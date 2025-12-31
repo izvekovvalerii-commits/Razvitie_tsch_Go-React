@@ -1,0 +1,238 @@
+.hero {
+    background: linear-gradient(135deg, #FFD700 0%, #FFC700 100%);
+    padding: 100px 20px;
+    position: relative;
+    overflow: hidden;
+    min-height: 650px;
+}
+
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.hero-text {
+    flex: 1;
+    max-width: 600px;
+}
+
+.hero-title {
+    font-size: 64px;
+    font-weight: 900;
+    color: #000;
+    margin: 0 0 16px 0;
+    line-height: 1.1;
+    letter-spacing: -1px;
+}
+
+.hero-subtitle {
+    font-size: 24px;
+    font-weight: 600;
+    color: #000;
+    margin: 0 0 40px 0;
+    line-height: 1.4;
+}
+
+.start-button {
+    background-color: #000;
+    color: #FFD700;
+    border: none;
+    padding: 16px 48px;
+    font-size: 18px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.start-button:hover {
+    background-color: #222;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.start-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Illustration */
+.hero-illustration {
+    flex: 1.2;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    max-width: 850px;
+    margin-top: 60px;
+    margin-right: -40px;
+    position: relative;
+    z-index: 1;
+}
+
+.mountain {
+    width: 100%;
+    max-width: 500px;
+}
+
+.mountain svg {
+    width: 100%;
+    height: auto;
+}
+
+/* Bird Animation */
+.bird {
+    animation: flying 4s ease-in-out infinite;
+    transform-origin: center;
+}
+
+.bird-1 {
+    animation-delay: 0s;
+}
+
+.bird-2 {
+    animation-delay: 2s;
+}
+
+@keyframes flying {
+
+    0%,
+    100% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+    }
+
+    15% {
+        transform: translateY(-8px) translateX(-3px) rotate(-3deg);
+    }
+
+    30% {
+        transform: translateY(-15px) translateX(-5px) rotate(-5deg);
+    }
+
+    45% {
+        transform: translateY(-10px) translateX(-3px) rotate(-2deg);
+    }
+
+    60% {
+        transform: translateY(-5px) translateX(0) rotate(2deg);
+    }
+
+    75% {
+        transform: translateY(-12px) translateX(2px) rotate(3deg);
+    }
+
+    90% {
+        transform: translateY(-6px) translateX(1px) rotate(1deg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .hero-title {
+        font-size: 48px;
+    }
+
+    .hero-subtitle {
+        font-size: 20px;
+    }
+
+    .hero-illustration {
+        max-width: 600px;
+        margin-right: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero {
+        padding: 60px 20px 0;
+        min-height: 500px;
+        overflow: hidden;
+    }
+
+    .hero-illustration {
+        max-width: 120%;
+        width: 120%;
+        margin-top: 20px;
+        margin-right: 0;
+        margin-left: -10%;
+    }
+
+    .start-button {
+        padding: 14px 36px;
+        font-size: 16px;
+    }
+}
+
+/* Snow Animation */
+.snowfall {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.snowflake {
+    position: absolute;
+    top: -20px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 20px;
+    user-select: none;
+    animation: snowfall linear infinite;
+}
+
+@keyframes snowfall {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+
+    25% {
+        transform: translateY(25vh) translateX(10px) rotate(90deg);
+    }
+
+    50% {
+        transform: translateY(50vh) translateX(-10px) rotate(180deg);
+    }
+
+    75% {
+        transform: translateY(75vh) translateX(5px) rotate(270deg);
+    }
+
+    100% {
+        transform: translateY(100vh) translateX(0) rotate(360deg);
+        opacity: 0.7;
+    }
+}
+
+/* Variation for different snowflake sizes */
+.snowflake:nth-child(2n) {
+    font-size: 16px;
+    animation-duration: 12s;
+}
+
+.snowflake:nth-child(3n) {
+    font-size: 24px;
+    animation-duration: 8s;
+}
+
+.snowflake:nth-child(4n) {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.snowflake:nth-child(5n) {
+    font-size: 18px;
+    animation-duration: 15s;
+}

@@ -1,0 +1,43 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+import Login from './pages/Login';
+import Welcome from './pages/Welcome';
+import Hero from './pages/Hero';
+import Stores from './pages/Stores';
+import Projects from './pages/Projects';
+import ProjectDetails from './pages/ProjectDetails';
+import Tasks from './pages/Tasks';
+import ProtectedRoute from './components/ProtectedRoute';
+import './App.css';
+
+function App() {
+    return (
+        <Router>
+            <div className="app-container">
+                <Header />
+                <main className="main-content">
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/" element={<Welcome />} />
+
+                        <Route element={<ProtectedRoute />}>
+                            <Route path="/home" element={<Hero />} />
+                            <Route path="/stores" element={<Stores />} />
+                            <Route path="/projects" element={<Projects />} />
+                            <Route path="/projects/:id" element={<ProjectDetails />} />
+                            <Route path="/tasks" element={<Tasks />} />
+                        </Route>
+
+                        {/* Fallback */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </main>
+                <Footer />
+            </div>
+        </Router>
+    );
+}
+
+export default App;
