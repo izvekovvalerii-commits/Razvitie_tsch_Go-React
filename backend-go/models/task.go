@@ -37,6 +37,8 @@ type ProjectTask struct {
 	RsrBudgetNoVat               *float64   `gorm:"column:RsrBudgetNoVat" json:"rsrBudgetNoVat"`
 	PisBudgetNoVat               *float64   `gorm:"column:PisBudgetNoVat" json:"pisBudgetNoVat"`
 	TotalBudgetNoVat             *float64   `gorm:"column:TotalBudgetNoVat" json:"totalBudgetNoVat"`
+	Days                         *int       `gorm:"column:Days" json:"days"`
+	DependsOn                    *string    `gorm:"column:DependsOn;type:text" json:"dependsOn"`
 	Project                      *Project   `gorm:"foreignKey:ProjectId;references:Id" json:"project,omitempty"`
 }
 

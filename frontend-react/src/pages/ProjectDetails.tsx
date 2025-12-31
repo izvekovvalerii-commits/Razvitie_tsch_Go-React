@@ -45,10 +45,12 @@ const ProjectDetails: React.FC = () => {
 
     // Gantt State
     const [isGanttExpanded, setIsGanttExpanded] = useState(true);
+    const [ganttViewMode, setGanttViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('day');
     const ganttTasks = useMemo(() => tasks.map(t => ({
         ...t,
-        dependsOn: workflowConfig.find(def => def.code === t.code)?.dependsOn || []
+        dependsOn: workflowConfig.find((def: any) => (def.Code || def.code) === t.code)?.DependsOn || workflowConfig.find((def: any) => (def.Code || def.code) === t.code)?.dependsOn || []
     })), [tasks, workflowConfig]);
+
 
     // Modals
     const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
@@ -481,33 +483,31 @@ const ProjectDetails: React.FC = () => {
             <div className="project-content-grid">
                 {/* Left Sidebar */}
                 <div className="sidebar-column">
-                    {/* Project Info Card Removed as per Angular */}
-
                     <div className="info-card">
-                        <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 18 }}>👥</span> Команда проекта
+                        <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#475569' }}>
+                            <span style={{ fontSize: 20 }}>👥</span> Команда проекта
                         </h3>
                         <div className="responsible-list">
                             {projectTeam.map((member, idx) => (
                                 <div key={idx} className="team-card">
-                                    <div className="avatar" style={{ backgroundColor: member.color }}>{member.initials}</div>
+                                    <div className="avatar" style={{ backgroundColor: member.color, boxShadow: `0 4px 10px ${member.color}40` }}>{member.initials}</div>
                                     <div className="team-info">
-                                        <div className="team-name">{member.name}</div>
                                         <div className="team-role">{member.role}</div>
+                                        <div className="team-name">{member.name}</div>
                                         <div className="team-phone">{member.phone}</div>
                                     </div>
                                 </div>
                             ))}
-                            {projectTeam.length === 0 && <div className="text-muted" style={{ padding: 10 }}>Нет участников</div>}
+                            {projectTeam.length === 0 && <div className="empty-state">Нет участников</div>}
                         </div>
                     </div>
 
                     <div className="info-card">
-                        <div className="card-header-flex" style={{ marginBottom: 12 }}>
-                            <h3 className="section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 18 }}>📂</span> Документы проекта
+                        <div className="card-header-flex" style={{ marginBottom: 16, alignItems: 'center' }}>
+                            <h3 className="section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10, color: '#475569' }}>
+                                <span style={{ fontSize: 20 }}>📂</span> Документы
                             </h3>
-                            <label className="btn-primary small" style={{ width: 28, height: 28, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, fontSize: 18, lineHeight: 1, cursor: 'pointer' }}>
+                            <label className="add-doc-label" title="Добавить документ">
                                 + <input type="file" multiple style={{ display: 'none' }} onChange={(e) => {
                                     if (e.target.files) {
                                         Array.from(e.target.files).forEach(f => {
@@ -524,27 +524,46 @@ const ProjectDetails: React.FC = () => {
                                 }} />
                             </label>
                         </div>
-                        <div className="docs-list compact-list">
+                        <div className="docs-list">
                             {projectDocs.map((doc) => (
-                                <div key={doc.id} className="attachment-item" style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', alignItems: 'center', display: 'flex' }}>
-                                    <div className="attachment-info" style={{ gap: 10, flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
-                                        <span className="file-icon" style={{ fontSize: 16, color: '#64748b' }}>📄</span>
-                                        <div className="doc-name" onClick={() => downloadDoc(doc)} style={{ fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
+                                <div key={doc.id} className="attachment-item">
+                                    <div className="file-icon">
+                                        {doc.name.endsWith('.pdf') ? '📄' : doc.name.endsWith('.xls') || doc.name.endsWith('.xlsx') ? '📊' : '📁'}
                                     </div>
-                                    <button className="btn-delete-doc" onClick={() => deleteDoc(doc)} style={{ width: 24, height: 24, fontSize: 18, marginLeft: 8 }}>×</button>
+                                    <div className="attachment-info">
+                                        <div className="doc-name" onClick={() => downloadDoc(doc)} title={doc.name}>{doc.name}</div>
+                                        <div className="doc-meta">{new Date(doc.uploadDate).toLocaleDateString()} • {(doc.size / 1024).toFixed(0)} KB</div>
+                                    </div>
+                                    <button className="btn-delete-doc" onClick={() => deleteDoc(doc)} title="Удалить">×</button>
                                 </div>
                             ))}
-                            {projectDocs.length === 0 && <div className="text-muted" style={{ padding: 10 }}>Нет документов</div>}
+                            {projectDocs.length === 0 && <div className="empty-state">Нет документов</div>}
                         </div>
                     </div>
                 </div>
 
-                {/* Gantt Column */}
-                <div className="gantt-column">
+                {/* Main Content Area (Gantt + Tasks) */}
+
+                <div className="main-content-area">
+                    {/* Gantt Chart Section - Full Width */}
                     <div className="info-card gantt-wrapper" style={{ padding: 0, overflow: 'hidden' }}>
-                        <div className="card-header-flex" style={{ padding: '16px 20px', borderBottom: isGanttExpanded ? '1px solid #e2e8f0' : 'none', justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
-                            <h3 className="section-title" style={{ margin: 0 }}>📊 График</h3>
-                            <button className="btn-toggle-gantt" onClick={() => setIsGanttExpanded(!isGanttExpanded)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>
+                        <div className="card-header-flex" style={{ padding: '8px 16px', borderBottom: isGanttExpanded ? '1px solid #e2e8f0' : 'none', justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                <h3 className="section-title" style={{ margin: 0, whiteSpace: 'nowrap' }}>📊 График выполнения проекта</h3>
+                                <div className="ganttViewSwitcher" style={{ background: '#f1f5f9', padding: '3px', borderRadius: 8, display: 'flex' }}>
+                                    {(['day', 'week', 'month', 'quarter'] as const).map(m => (
+                                        <button
+                                            key={m}
+                                            className={`viewButton ${ganttViewMode === m ? 'active' : ''}`}
+                                            onClick={() => setGanttViewMode(m)}
+                                            style={{ padding: '4px 10px', fontSize: 13, border: 'none', background: ganttViewMode === m ? '#fff' : 'transparent', borderRadius: 6, cursor: 'pointer', color: ganttViewMode === m ? '#0f172a' : '#64748b', boxShadow: ganttViewMode === m ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', fontWeight: 500 }}
+                                        >
+                                            {m === 'day' ? 'День' : m === 'week' ? 'Неделя' : m === 'month' ? 'Месяц' : 'Квартал'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <button className="btn-toggle-gantt" onClick={() => setIsGanttExpanded(!isGanttExpanded)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}>
                                 {isGanttExpanded ? '▲' : '▼'}
                             </button>
                         </div>
@@ -553,6 +572,7 @@ const ProjectDetails: React.FC = () => {
                             <GanttChart
                                 tasks={ganttTasks}
                                 projectCreatedAt={project?.createdAt}
+                                viewMode={ganttViewMode}
                                 onTaskClick={(t) => {
                                     const original = tasks.find(pt => pt.id === t.id);
                                     if (original) {
@@ -564,15 +584,11 @@ const ProjectDetails: React.FC = () => {
                         )}
                     </div>
 
-                </div>
-
-                {/* Main Content */}
-                <div className="main-column">
-                    {/* Tasks List */}
+                    {/* Tasks List Section */}
                     <div className="info-card tasks-card">
                         <div className="card-header-flex">
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <h3 className="section-title" style={{ margin: 0 }}>✅ ЗАДАЧИ</h3>
+                                <h3 className="section-title" style={{ margin: 0 }}>✅ ЗАДАЧИ ПРОЕКТА</h3>
                             </div>
                             <div className="header-actions">
                                 <div className="tasks-count-badge">{ganttTasks.length}</div>
@@ -586,7 +602,7 @@ const ProjectDetails: React.FC = () => {
                                 <div className="col-deadline">Плановый срок</div>
                                 <div className="col-deadline">Фактический срок</div>
                                 <div className="col-deviation">Отклонение</div>
-                                <div className="col-status">Статус</div><div style={{ width: 120, padding: "0 10px", fontWeight: 600, color: "#64748b", fontSize: 12 }}>Действия</div>
+                                <div className="col-status">Статус</div>
                             </div>
                             <div className="tasks-table-body">
                                 {ganttTasks.map(task => (
@@ -604,33 +620,7 @@ const ProjectDetails: React.FC = () => {
                                                 <span style={{ fontSize: 16 }}>👤</span>
                                                 <span>{task.responsible}</span>
                                             </div>
-                                            {/* Actions Column */}
-                                            <div style={{ width: 120, padding: "0 10px", display: "flex", alignItems: "center" }}>
-                                                {canUserTakeTask(task) && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (window.confirm(`Взять задачу "${task.name}" в работу?`)) {
-                                                                tasksService.updateTaskStatus(task.id, "В работе")
-                                                                    .then(() => loadProjectTasks())
-                                                                    .catch(err => alert("Ошибка: " + err));
-                                                            }
-                                                        }}
-                                                        className="btn-primary"
-                                                        style={{
-                                                            padding: "4px 10px",
-                                                            fontSize: 12,
-                                                            borderRadius: 4,
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            gap: 6,
-                                                            background: "#2563eb"
-                                                        }}
-                                                    >
-                                                        <span>▶</span> В работу
-                                                    </button>
-                                                )}
-                                            </div>
+
 
                                         </div>
                                         <div className="col-deadline">
@@ -667,33 +657,7 @@ const ProjectDetails: React.FC = () => {
                                                 {task.status}
                                             </span>
                                         </div>
-                                        {/* Actions Column */}
-                                        <div style={{ width: 120, padding: "0 10px", display: "flex", alignItems: "center" }}>
-                                            {canUserTakeTask(task) && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (window.confirm(`Взять задачу "${task.name}" в работу?`)) {
-                                                            tasksService.updateTaskStatus(task.id, "В работе")
-                                                                .then(() => loadProjectTasks())
-                                                                .catch(err => alert("Ошибка: " + err));
-                                                        }
-                                                    }}
-                                                    className="btn-primary"
-                                                    style={{
-                                                        padding: "4px 10px",
-                                                        fontSize: 12,
-                                                        borderRadius: 4,
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 6,
-                                                        background: "#2563eb"
-                                                    }}
-                                                >
-                                                    <span>▶</span> В работу
-                                                </button>
-                                            )}
-                                        </div>
+
 
                                     </div>
                                 ))}
@@ -701,6 +665,7 @@ const ProjectDetails: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
             </div>
 
             {/* --- Modals --- */}

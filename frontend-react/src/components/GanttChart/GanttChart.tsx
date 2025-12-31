@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import './GanttChart.css';
 
 export interface GanttTask {
@@ -15,10 +15,12 @@ export interface GanttTask {
     responsible?: string;
 }
 
+export type ViewMode = 'day' | 'week' | 'month' | 'quarter';
+
 interface GanttChartProps {
     tasks: GanttTask[];
     projectCreatedAt?: string | Date;
-    initialViewMode?: 'day' | 'week' | 'month' | 'quarter';
+    viewMode: ViewMode;
     onTaskClick?: (task: GanttTask) => void;
 }
 
@@ -27,14 +29,15 @@ const ROW_HEIGHT = 48;
 export const GanttChart: React.FC<GanttChartProps> = ({
     tasks,
     projectCreatedAt,
-    initialViewMode = 'day',
+    viewMode,
     onTaskClick
 }) => {
-    const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>(initialViewMode);
+    // viewMode is now controlled from parent
 
     // 1. Calculate Timeline Range and Dates
     // Memoize the timeline computation
     const { ganttDates, timelineStart } = useMemo(() => {
+
         if (!tasks.length && !projectCreatedAt) return { ganttDates: [], totalUnits: 0 };
 
         const startDates = tasks.map(t => new Date(t.createdAt || Date.now())).filter(d => !isNaN(d.getTime()));
@@ -134,9 +137,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         });
     }, [tasks, timelineStart, viewMode]);
 
-    // Connections (Manhattan style)
+    // Connections (Menhattan/Bezier style with arrows)
     const connections = useMemo(() => {
-        const paths: string[] = [];
+        const paths: { path: string; id: string }[] = [];
         const taskMap = new Map((tasks || []).map((t, i) => [t.code, { ...t, index: i }]));
 
         tasks.forEach((task, index) => {
@@ -148,27 +151,28 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     const currentLayout = taskPositions.find(p => p.id === task.id);
 
                     if (depLayout && currentLayout) {
-                        // Start point: Right side of dependency
+                        // Start point: Right side of dependency bar
                         const startX = depLayout.left + depLayout.width;
                         const startY = depTask.index * ROW_HEIGHT + (ROW_HEIGHT / 2);
 
-                        // End point: Left side of current task
+                        // End point: Left side of current task bar
                         const endX = currentLayout.left;
                         const endY = index * ROW_HEIGHT + (ROW_HEIGHT / 2);
 
-                        // Smooth Bezier curve path (like in the reference image)
-                        const gap = 20;
+                        // Enhanced smooth S-curve path
+                        const gap = 25;
+                        const midX = (startX + endX) / 2;
 
-                        // Control points for smooth S-curve
-                        const cp1x = startX + gap * 2;
+                        // Control points for beautiful S-curve
+                        const cp1x = startX + gap * 3;
                         const cp1y = startY;
-                        const cp2x = endX - gap;
+                        const cp2x = endX - gap * 2;
                         const cp2y = endY;
 
                         // Cubic Bezier curve for smooth connection
                         const smoothPath = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
 
-                        paths.push(smoothPath);
+                        paths.push({ path: smoothPath, id: `${depTask.id}-${task.id}` });
                     }
                 }
             });
@@ -206,20 +210,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
     return (
         <div className="ganttContainer">
-            <div className="ganttToolbar">
 
-                <div className="ganttViewSwitcher">
-                    {(['day', 'week', 'month', 'quarter'] as const).map(m => (
-                        <button
-                            key={m}
-                            className={`viewButton ${viewMode === m ? 'active' : ''}`}
-                            onClick={() => setViewMode(m)}
-                        >
-                            {m === 'day' ? 'День' : m === 'week' ? 'Неделя' : m === 'month' ? 'Месяц' : 'Квартал'}
-                        </button>
-                    ))}
-                </div>
-            </div>
 
             <div className="ganttScrollArea">
                 <div className="ganttLayout" style={{ width: Math.max(1000, 280 + TOTAL_WIDTH_PX) }}>
@@ -269,10 +260,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                         );
                     })}
 
-                    {/* Connections Overlay */}
+                    {/* Connections Overlay - Smooth thin lines without arrows */}
                     <svg className="connectionsOverlay">
-                        {connections.map((d, i) => (
-                            <path key={i} d={d} fill="none" stroke="#94a3b8" strokeWidth="2.5" />
+                        {connections.map((conn, i) => (
+                            <path
+                                key={conn.id || i}
+                                d={conn.path}
+                                fill="none"
+                                stroke="#94a3b8"
+                                strokeWidth="2"
+                                opacity="0.6"
+                            />
                         ))}
                     </svg>
 
