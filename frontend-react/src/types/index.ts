@@ -86,6 +86,8 @@ export interface ProjectTask {
     rsrBudgetNoVat?: number;
     pisBudgetNoVat?: number;
     totalBudgetNoVat?: number;
+    days?: number;
+    dependsOn?: string | string[];
 }
 
 export interface ProjectDocument {

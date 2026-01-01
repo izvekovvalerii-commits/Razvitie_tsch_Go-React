@@ -1,5 +1,5 @@
 import { ProjectTask } from '../types';
-import { MOCK_USERS } from '../constants/users';
+
 
 export const tasksService = {
     getAllTasks: async (): Promise<ProjectTask[]> => {
@@ -33,7 +33,7 @@ export const tasksService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cleanTask)
         });
-        
+
         if (!response.ok) {
             let errorMsg = `Failed to update task ${task.id}`;
             try {
@@ -44,12 +44,12 @@ export const tasksService = {
             }
             throw new Error(errorMsg);
         }
-        
+
         // Handle 204 No Content
         if (response.status === 204) {
             return task;
         }
-        
+
         return await response.json();
     },
 
@@ -61,18 +61,18 @@ export const tasksService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cleanTask)
         });
-        
+
         if (!response.ok) {
             let errorMsg = 'Failed to create task';
             try {
                 const errorData = await response.json();
                 if (errorData.error) errorMsg = errorData.error;
             } catch (e) {
-                 // ignore
+                // ignore
             }
             throw new Error(errorMsg);
         }
-        
+
         return await response.json();
     },
 
@@ -82,16 +82,16 @@ export const tasksService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status })
         });
-        
+
         if (!response.ok) {
-             let errorMsg = `Failed to update task status ${id}`;
-             try {
-                 const errorData = await response.json();
-                 if (errorData.error) errorMsg = errorData.error;
-             } catch (e) {
-                 // ignore
-             }
-             throw new Error(errorMsg);
+            let errorMsg = `Failed to update task status ${id}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.error) errorMsg = errorData.error;
+            } catch (e) {
+                // ignore
+            }
+            throw new Error(errorMsg);
         }
     }
 };

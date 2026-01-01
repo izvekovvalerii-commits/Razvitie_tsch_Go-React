@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"portal-razvitie/database"
@@ -89,6 +90,11 @@ func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt 
 		// 4. Create Struct
 		code := def.Code
 		stage := def.Stage
+		days := def.Duration
+
+		// Serialize dependsOn
+		depsBytes, _ := json.Marshal(def.DependsOn)
+		depsStr := string(depsBytes)
 
 		newTask := models.ProjectTask{
 			ProjectID:         projectID,
@@ -102,6 +108,8 @@ func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt 
 			IsActive:          isActive,
 			Stage:             &stage,
 			CreatedAt:         &startDate,
+			Days:              &days,
+			DependsOn:         &depsStr,
 		}
 
 		if err := database.DB.Create(&newTask).Error; err != nil {
