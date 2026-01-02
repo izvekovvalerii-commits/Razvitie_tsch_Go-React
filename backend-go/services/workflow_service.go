@@ -6,11 +6,27 @@ import (
 	"log"
 	"portal-razvitie/database"
 	"portal-razvitie/models"
+	"portal-razvitie/repositories"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 )
 
-type WorkflowService struct{}
+// WorkflowServiceInterface defines the contract for workflow operations
+type WorkflowServiceInterface interface {
+	GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error)
+	ProcessTaskCompletion(projectID uint, completedTaskCode string) error
+	ValidateTaskCompletion(task models.ProjectTask) error
+}
+
+type WorkflowService struct {
+	userRepo repositories.UserRepository
+}
+
+func (s *WorkflowService) SetUserRepo(repo repositories.UserRepository) {
+	s.userRepo = repo
+}
 
 type TaskDefinition struct {
 	Code              string
@@ -26,29 +42,29 @@ type TaskDefinition struct {
 // Full workflow definition specific to the "Child" portal requirements
 var StoreOpeningTasks = []TaskDefinition{
 	// Этап 1: Инициализация и Аудит
-	{Code: "TASK-PREP-AUDIT", Name: "Подготовка к аудиту", Duration: 2, DependsOn: []string{}, ResponsibleRole: "МП", TaskType: "UserTask", Stage: "Инициализация"},
-	{Code: "TASK-AUDIT", Name: "Аудит объекта", Duration: 1, DependsOn: []string{"TASK-PREP-AUDIT"}, ResponsibleRole: "МП", TaskType: "UserTask", Stage: "Аудит"},
+	{Code: "TASK-PREP-AUDIT", Name: "Подготовка к аудиту", Duration: 2, DependsOn: []string{}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Инициализация"},
+	{Code: "TASK-AUDIT", Name: "Аудит объекта", Duration: 1, DependsOn: []string{"TASK-PREP-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Аудит"},
 
 	// Этап 2: Параллельные ветки после аудита
-	{Code: "TASK-ALCO-LIC", Name: "Алкогольная лицензия", Duration: 2, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: "МП", TaskType: "UserTask", Stage: "Лицензирование"},
-	{Code: "TASK-WASTE", Name: "Площадка ТБО", Duration: 2, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: "МП", TaskType: "UserTask", Stage: "ТБО"},
-	{Code: "TASK-CONTOUR", Name: "Контур планировки", Duration: 1, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: "МРиЗ", TaskType: "UserTask", Stage: "Проектирование"},
+	{Code: "TASK-ALCO-LIC", Name: "Алкогольная лицензия", Duration: 2, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Лицензирование"},
+	{Code: "TASK-WASTE", Name: "Площадка ТБО", Duration: 2, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "ТБО"},
+	{Code: "TASK-CONTOUR", Name: "Контур планировки", Duration: 1, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Проектирование"},
 
 	// Этап 3: Детальное проектирование (после контура)
-	{Code: "TASK-VISUALIZATION", Name: "Визуализация", Duration: 1, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: "МП", TaskType: "UserTask", Stage: "Проектирование"},
-	{Code: "TASK-LOGISTICS", Name: "Оценка логистики", Duration: 2, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: "МРиЗ", TaskType: "UserTask", Stage: "Логистика"},
-	{Code: "TASK-LAYOUT", Name: "Планировка с расстановкой", Duration: 2, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: "МРиЗ", TaskType: "UserTask", Stage: "Проектирование"},
+	{Code: "TASK-VISUALIZATION", Name: "Визуализация", Duration: 1, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Проектирование"},
+	{Code: "TASK-LOGISTICS", Name: "Оценка логистики", Duration: 2, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Логистика"},
+	{Code: "TASK-LAYOUT", Name: "Планировка с расстановкой", Duration: 2, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Проектирование"},
 
 	// Этап 4: Бюджетирование
-	{Code: "TASK-BUDGET-EQUIP", Name: "Расчет бюджета оборудования", Duration: 2, DependsOn: []string{"TASK-VISUALIZATION", "TASK-LAYOUT"}, ResponsibleRole: "МРиЗ", TaskType: "UserTask", Stage: "Бюджет"},
-	{Code: "TASK-BUDGET-SECURITY", Name: "Расчет бюджета СБ", Duration: 2, DependsOn: []string{"TASK-LAYOUT"}, ResponsibleRole: "МРиЗ", TaskType: "UserTask", Stage: "Бюджет"},
-	{Code: "TASK-BUDGET-RSR", Name: "ТЗ и расчет бюджета РСР", Duration: 1, DependsOn: []string{"TASK-BUDGET-SECURITY"}, ResponsibleRole: "МРиЗ", TaskType: "UserTask", Stage: "Бюджет"},
-	{Code: "TASK-BUDGET-PIS", Name: "Расчет бюджета ПиС", Duration: 1, DependsOn: []string{"TASK-BUDGET-RSR", "TASK-BUDGET-EQUIP"}, ResponsibleRole: "МРиЗ", TaskType: "UserTask", Stage: "Бюджет"},
-	{Code: "TASK-TOTAL-BUDGET", Name: "Общий бюджет проекта", Duration: 1, DependsOn: []string{"TASK-BUDGET-PIS"}, ResponsibleRole: "МП", TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-BUDGET-EQUIP", Name: "Расчет бюджета оборудования", Duration: 2, DependsOn: []string{"TASK-VISUALIZATION", "TASK-LAYOUT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-BUDGET-SECURITY", Name: "Расчет бюджета СБ", Duration: 2, DependsOn: []string{"TASK-LAYOUT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-BUDGET-RSR", Name: "ТЗ и расчет бюджета РСР", Duration: 1, DependsOn: []string{"TASK-BUDGET-SECURITY"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-BUDGET-PIS", Name: "Расчет бюджета ПиС", Duration: 1, DependsOn: []string{"TASK-BUDGET-RSR", "TASK-BUDGET-EQUIP"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-TOTAL-BUDGET", Name: "Общий бюджет проекта", Duration: 1, DependsOn: []string{"TASK-BUDGET-PIS"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Бюджет"},
 }
 
-// GenerateProjectTasks creates the full task roadmap for a new project
-func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error) {
+// GenerateProjectTasksWithTx creates the full task roadmap for a new project using a transaction
+func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error) {
 	var createdTasks []models.ProjectTask
 	taskMap := make(map[string]*models.ProjectTask) // Map By Code
 
@@ -112,7 +128,16 @@ func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt 
 			DependsOn:         &depsStr,
 		}
 
-		if err := database.DB.Create(&newTask).Error; err != nil {
+		// Resolve ResponsibleUserID
+		if s.userRepo != nil && newTask.ResponsibleUserID == nil && newTask.Responsible != "" {
+			users, err := s.userRepo.FindByRole(newTask.Responsible)
+			if err == nil && len(users) > 0 {
+				uid := int(users[0].ID)
+				newTask.ResponsibleUserID = &uid
+			}
+		}
+
+		if err := tx.Create(&newTask).Error; err != nil {
 			return nil, err
 		}
 
@@ -125,6 +150,11 @@ func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt 
 	}
 
 	return createdTasks, nil
+}
+
+// GenerateProjectTasks wrapper for backward compatibility
+func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error) {
+	return s.GenerateProjectTasksWithTx(database.DB, projectID, projectCreatedAt)
 }
 
 // ProcessTaskCompletion checks if subsequent tasks should be activated

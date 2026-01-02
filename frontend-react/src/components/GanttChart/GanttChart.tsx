@@ -92,17 +92,32 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
     // Helper: Position calculations
     const getTaskLayout = (task: GanttTask) => {
-        if (!timelineStart || !task.createdAt || !task.normativeDeadline) return { unitsFromStart: 0, durationUnits: 0 };
+        if (!timelineStart || !task.normativeDeadline) return { unitsFromStart: 0, durationUnits: 0 };
 
-        const start = new Date(task.createdAt);
-        const end = new Date(task.normativeDeadline);
+        // Fallback for null createdAt: use project creation date or a reasonable default
+        let taskStart: Date;
+        if (task.createdAt) {
+            taskStart = new Date(task.createdAt);
+        } else if (projectCreatedAt) {
+            taskStart = new Date(projectCreatedAt);
+            console.warn(`⚠️ Task ${task.id} (${task.name}) has null createdAt, using project creation date`);
+        } else {
+            // Last resort: use timeline start
+            taskStart = new Date(timelineStart);
+            console.warn(`⚠️ Task ${task.id} (${task.name}) has null createdAt and no project date, using timeline start`);
+        }
 
-        if (start < timelineStart) {
+        // Use actualDate for completed tasks, normativeDeadline otherwise
+        const endDate = task.status === 'Завершена' && task.actualDate
+            ? new Date(task.actualDate)
+            : new Date(task.normativeDeadline);
+
+        if (taskStart < timelineStart) {
             // Clamping logic if needed
         }
 
-        const unitsFromStart = Math.max(0, getDiffInUnits(timelineStart, start));
-        const durationUnits = Math.max(0.1, getDiffInUnits(start, end)); // Min width
+        const unitsFromStart = Math.max(0, getDiffInUnits(timelineStart, taskStart));
+        const durationUnits = Math.max(0.1, getDiffInUnits(taskStart, endDate)); // Min width
 
         // Convert to percentage
         // Total width is totalUnits. 1 unit = 1 column.
@@ -114,18 +129,21 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         return { unitsFromStart, durationUnits };
     };
 
-    const getColWidth = () => {
+    // Memoize column width calculation
+    const COL_WIDTH = useMemo(() => {
         switch (viewMode) {
             case 'day': return 40;
             case 'week': return 60;
             case 'month': return 100;
             case 'quarter': return 120;
+            default: return 40;
         }
-        return 40;
-    }
+    }, [viewMode]);
 
-    const COL_WIDTH = getColWidth();
-    const TOTAL_WIDTH_PX = ganttDates.length * COL_WIDTH;
+    const TOTAL_WIDTH_PX = useMemo(() =>
+        ganttDates.length * COL_WIDTH,
+        [ganttDates.length, COL_WIDTH]
+    );
 
     // Memoize the calculated task positions to avoid recalc on render
     const taskPositions = useMemo(() => {

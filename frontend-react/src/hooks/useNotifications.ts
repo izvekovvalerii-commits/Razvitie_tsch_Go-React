@@ -1,42 +1,92 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Notification } from '../types';
+import { useWebSocket } from './useWebSocket';
+import { apiFetch } from '../utils/api';
 
 export const useNotifications = (userId?: number) => {
-    const [notifications, setNotifications] = useState<Notification[]>([
-        {
-            id: 1,
-            message: 'Новая задача назначена на вас',
-            date: new Date(),
-            isRead: false,
-            relatedTaskId: 101
-        },
-        {
-            id: 2,
-            message: 'Проект "Открытие магазина" обновлен',
-            date: new Date(Date.now() - 3600000), // 1 hour ago
-            isRead: true,
-            relatedProjectId: 5
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+
+    useEffect(() => {
+        if (!userId) {
+            setNotifications([]);
+            return;
         }
-    ]);
+
+        apiFetch(`/notifications?userId=${userId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.notifications) {
+                    const mapped = data.notifications.map((n: any) => ({
+                        id: n.id,
+                        message: n.message,
+                        date: new Date(n.createdAt),
+                        isRead: n.isRead,
+                        type: n.type,
+                        relatedProjectId: n.link && n.link.includes('projects') ? parseInt(n.link.split('/').pop()) : undefined
+                    }));
+                    setNotifications(mapped);
+                }
+            })
+            .catch(err => console.error("Failed to fetch notifications", err));
+    }, [userId]);
+
+    const handleCallback = useCallback((msg: any) => {
+        if (msg.type === 'NOTIFICATION_NEW') {
+            const n = msg.payload;
+            const newNotif: Notification = {
+                id: n.id,
+                message: n.message,
+                date: new Date(n.createdAt),
+                isRead: n.isRead,
+                type: n.type,
+                relatedProjectId: n.link && n.link.includes('projects') ? parseInt(n.link.split('/').pop() || '0') : undefined
+            };
+            setNotifications(prev => [newNotif, ...prev]);
+        }
+    }, []);
+
+    useWebSocket(handleCallback, userId);
 
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
     const markAsRead = (id: number) => {
-        setNotifications(prev => prev.map(n =>
-            n.id === id ? { ...n, isRead: true } : n
-        ));
+        // Optimistic update
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+        apiFetch(`/notifications/${id}/read`, { method: 'POST' }).catch(console.error);
     };
 
     const markAllAsRead = () => {
+        // Optimistic
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    };
-
-    const deleteNotification = (id: number) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
+        if (userId) {
+            apiFetch(`/notifications/read-all?userId=${userId}`, { method: 'POST' }).catch(console.error);
+        }
     };
 
     const clearAll = () => {
+        // Optimistic: clear immediately
         setNotifications([]);
+        // Actually delete from DB
+        if (userId) {
+            apiFetch(`/notifications/delete-all?userId=${userId}`, {
+                method: 'DELETE'
+            }).catch(err => {
+                console.error('Failed to delete all notifications', err);
+                // Could reload notifications here on error
+            });
+        }
+    };
+
+    const deleteNotification = (id: number) => {
+        // Optimistic: remove from UI immediately
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        // Actually delete from DB
+        apiFetch(`/notifications/${id}`, {
+            method: 'DELETE'
+        }).catch(err => {
+            console.error('Failed to delete notification', err);
+            // Could reload notifications here on error
+        });
     };
 
     return {
@@ -44,7 +94,7 @@ export const useNotifications = (userId?: number) => {
         unreadCount,
         markAsRead,
         markAllAsRead,
-        deleteNotification,
-        clearAll
+        clearAll,
+        deleteNotification
     };
 };

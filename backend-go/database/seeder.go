@@ -149,28 +149,109 @@ func SeedUsers() error {
 		{
 			Name:   "Иванов И.И.",
 			Login:  "ivanov",
-			Role:   "МП",
+			Role:   models.RoleMP,
 			Avatar: "👨‍💼", // Using emoji as avatar for now to match frontend
 		},
 		{
 			Name:   "Петров П.П.",
 			Login:  "petrov",
-			Role:   "МРиЗ",
+			Role:   models.RoleMRiZ,
 			Avatar: "👷",
 		},
 		{
 			Name:   "Сидоров С.С.",
 			Login:  "sidorov",
-			Role:   "БА",
+			Role:   models.RoleBA,
 			Avatar: "📊",
 		},
 		{
 			Name:   "Админов А.А.",
 			Login:  "admin",
-			Role:   "admin",
+			Role:   models.RoleAdmin,
 			Avatar: "🔑",
 		},
 	}
 
 	return DB.Create(&users).Error
+}
+
+// SeedRBAC populates Roles and Permissions tables from the hardcoded configuration
+func SeedRBAC() error {
+	log.Println("🔐 Seeding RBAC data...")
+
+	// 1. Sync Permissions
+	permDescriptions := map[string]string{
+		models.PermProjectCreate: "Создание проектов",
+		models.PermProjectView:   "Просмотр проектов",
+		models.PermProjectEdit:   "Редактирование проектов",
+		models.PermProjectDelete: "Удаление проектов",
+
+		models.PermTaskView:    "Просмотр задач",
+		models.PermTaskCreate:  "Создание задач",
+		models.PermTaskEdit:    "Редактирование любых задач",
+		models.PermTaskEditOwn: "Редактирование своих задач",
+
+		models.PermUserView:   "Просмотр пользователей",
+		models.PermUserManage: "Управление пользователями",
+
+		models.PermStoreView:   "Просмотр магазинов",
+		models.PermStoreManage: "Управление магазинами",
+
+		models.PermRoleManage: "Управление ролями и правами",
+	}
+
+	uniquePerms := make(map[string]bool)
+	for _, perms := range models.RolePermissions {
+		for _, p := range perms {
+			uniquePerms[p] = true
+		}
+	}
+
+	for code := range uniquePerms {
+		var p models.Permission
+		if err := DB.Where(models.Permission{Code: code}).FirstOrCreate(&p).Error; err != nil {
+			return err
+		}
+		// Update description
+		if desc, ok := permDescriptions[code]; ok && p.Description != desc {
+			p.Description = desc
+			if err := DB.Save(&p).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	// 2. Sync Roles and Links
+	for roleCode, permCodes := range models.RolePermissions {
+		var role models.Role
+		if err := DB.Where(models.Role{Code: roleCode}).FirstOrCreate(&role).Error; err != nil {
+			return err
+		}
+
+		// Проверяем существующие права роли
+		var existingPerms []models.Permission
+		DB.Model(&role).Association("Permissions").Find(&existingPerms)
+
+		// Обновляем права только если роль новая (нет прав)
+		if len(existingPerms) == 0 {
+			log.Printf("Initializing permissions for new role '%s'", roleCode)
+
+			// Find permission objects for this role
+			var perms []models.Permission
+			if err := DB.Where("\"Code\" IN ?", permCodes).Find(&perms).Error; err != nil {
+				return err
+			}
+
+			// Replace associations (updates role_permissions table)
+			if err := DB.Model(&role).Association("Permissions").Replace(perms); err != nil {
+				return err
+			}
+		} else {
+			log.Printf("Skipping role '%s' - already has %d permissions (preserving custom config)",
+				roleCode, len(existingPerms))
+		}
+	}
+
+	log.Println("✅ RBAC seeded successfully")
+	return nil
 }

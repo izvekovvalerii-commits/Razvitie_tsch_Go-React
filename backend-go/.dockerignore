@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Binaries
+main
+*.exe
+
+# Uploads
+uploads/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+*_test.go
+
+# Vendor (if using)
+vendor/

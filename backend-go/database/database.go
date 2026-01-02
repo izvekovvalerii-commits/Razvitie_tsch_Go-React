@@ -93,6 +93,9 @@ func AutoMigrate() error {
 		&models.Project{},
 		&models.ProjectTask{},
 		&models.ProjectDocument{},
+		&models.Notification{},
+		&models.Role{},
+		&models.Permission{},
 	)
 
 	if err != nil {

@@ -5,8 +5,10 @@ import (
 	"log"
 	"portal-razvitie/config"
 	"portal-razvitie/database"
+	"portal-razvitie/repositories"
 	"portal-razvitie/routes"
 	"portal-razvitie/services"
+	"portal-razvitie/websocket"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -37,12 +39,22 @@ func main() {
 		log.Printf("⚠️ Warning: Failed to seed stores: %v", err)
 	}
 
+	if err := database.SeedRBAC(); err != nil {
+		log.Printf("⚠️ Warning: Failed to seed RBAC: %v", err)
+	}
+
 	if err := database.SeedUsers(); err != nil {
 		log.Printf("⚠️ Warning: Failed to seed users: %v", err)
 	}
 
 	// Initialize services
+	userRepo := repositories.NewUserRepository(database.DB)
 	workflowService := &services.WorkflowService{}
+	workflowService.SetUserRepo(userRepo)
+
+	// Initialize and run WebSocket Hub
+	hub := websocket.NewHub()
+	go hub.Run()
 
 	// Initialize Gin router
 	router := gin.Default()
@@ -57,7 +69,7 @@ func main() {
 	}))
 
 	// Setup routes (включая middleware)
-	routes.SetupRoutes(router, cfg, workflowService)
+	routes.SetupRoutes(router, cfg, workflowService, hub)
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {

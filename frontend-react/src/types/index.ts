@@ -3,6 +3,7 @@ export interface User {
     name: string;
     email: string;
     role: string;
+    permissions?: string[];
 }
 
 export interface Notification {

@@ -5,7 +5,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import './Header.css';
 
 export const Header: React.FC = () => {
-    const { currentUser, logout } = useAuth();
+    const { currentUser, logout, hasPermission } = useAuth();
     const {
         notifications,
         unreadCount,
@@ -103,6 +103,15 @@ export const Header: React.FC = () => {
                             {item.label}
                         </NavLink>
                     ))}
+
+                    {hasPermission('role:manage') && (
+                        <NavLink
+                            to="/admin/roles"
+                            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                        >
+                            Роли
+                        </NavLink>
+                    )}
                 </nav>
 
                 {/* Right Actions Panel */}

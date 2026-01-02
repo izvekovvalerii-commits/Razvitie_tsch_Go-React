@@ -10,8 +10,12 @@ import (
 
 type AuthController struct{}
 
+type UserWithPerms struct {
+	models.User
+	Permissions []string `json:"permissions"`
+}
+
 // Login simulates a login by returning the user matching the login param
-// In a real app, this would check passwords and return a JWT
 func (ctrl *AuthController) Login(c *gin.Context) {
 	var body struct {
 		Login string `json:"login" binding:"required"`
@@ -28,7 +32,16 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	// Fetch permissions from DB
+	var role models.Role
+	var perms []string
+	if err := database.DB.Preload("Permissions").Where(&models.Role{Code: user.Role}).First(&role).Error; err == nil {
+		for _, p := range role.Permissions {
+			perms = append(perms, p.Code)
+		}
+	}
+
+	c.JSON(http.StatusOK, UserWithPerms{User: user, Permissions: perms})
 }
 
 // GetUsers returns all available users (for the demo switcher)
@@ -38,5 +51,24 @@ func (ctrl *AuthController) GetUsers(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, users)
+
+	// Map to UserWithPerms
+	var response []UserWithPerms
+	for _, u := range users {
+		var role models.Role
+		var perms []string
+
+		if err := database.DB.Preload("Permissions").Where(&models.Role{Code: u.Role}).First(&role).Error; err == nil {
+			for _, p := range role.Permissions {
+				perms = append(perms, p.Code)
+			}
+		} else {
+			// Fallback (e.g. if code admin has no role yet)
+			perms = []string{}
+		}
+
+		response = append(response, UserWithPerms{User: u, Permissions: perms})
+	}
+
+	c.JSON(http.StatusOK, response)
 }

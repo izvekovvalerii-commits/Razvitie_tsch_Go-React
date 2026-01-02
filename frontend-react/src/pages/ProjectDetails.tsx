@@ -6,6 +6,7 @@ import { tasksService } from '../services/tasks';
 import { workflowService } from '../services/workflow';
 import { documentsService } from '../services/documents';
 import { GanttChart } from '../components/GanttChart/GanttChart';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 
 import './ProjectDetails.css';
@@ -35,21 +36,62 @@ const CalendarIcon = () => (
 const ProjectDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { currentUser, setCurrentUser, availableUsers } = useAuth();
+    const { currentUser, setCurrentUser, availableUsers, hasPermission } = useAuth();
 
     // State
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<ProjectTask[]>([]);
+
+    useWebSocket((msg) => {
+        if (msg.type === 'TASK_UPDATED' && id) {
+            const updatedTask = msg.payload;
+            if (updatedTask.projectId === Number(id)) {
+                setTasks(prev => {
+                    const exists = prev.find(t => t.id === updatedTask.id);
+                    if (exists) {
+                        return prev.map(t => t.id === updatedTask.id ? updatedTask : t);
+                    }
+                    return prev;
+                });
+            }
+        }
+    });
+
     const [loading, setLoading] = useState(true);
     const [workflowConfig, setWorkflowConfig] = useState<any[]>([]);
 
     // Gantt State
     const [isGanttExpanded, setIsGanttExpanded] = useState(true);
     const [ganttViewMode, setGanttViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('day');
-    const ganttTasks = useMemo(() => tasks.map(t => ({
-        ...t,
-        dependsOn: workflowConfig.find((def: any) => (def.Code || def.code) === t.code)?.DependsOn || workflowConfig.find((def: any) => (def.Code || def.code) === t.code)?.dependsOn || []
-    })), [tasks, workflowConfig]);
+    const ganttTasks = useMemo(() => tasks.map(t => {
+        let deps: string[] = [];
+
+        // 1. Try to get from task itself (backend source)
+        if (t.dependsOn) {
+            if (Array.isArray(t.dependsOn)) {
+                deps = t.dependsOn;
+            } else if (typeof t.dependsOn === 'string') {
+                try {
+                    deps = JSON.parse(t.dependsOn);
+                } catch (e) {
+                    console.error("Failed to parse dependsOn JSON", e);
+                }
+            }
+        }
+
+        // 2. Fallback to config (for old tasks)
+        if (deps.length === 0 && workflowConfig.length > 0) {
+            const def = workflowConfig.find((d: any) => (d.Code || d.code) === t.code);
+            if (def) {
+                deps = def.DependsOn || def.dependsOn || [];
+            }
+        }
+
+        return {
+            ...t,
+            dependsOn: deps
+        };
+    }), [tasks, workflowConfig]);
 
 
     // Modals
@@ -102,6 +144,7 @@ const ProjectDetails: React.FC = () => {
                     // Sort remaining by ID
                     return a.id - b.id;
                 });
+
                 setTasks(sorted);
                 calculateProjectTeam(projTasks);
             }
@@ -476,7 +519,9 @@ const ProjectDetails: React.FC = () => {
                         </div>
                     </div>
 
-                    <button className="btn-delete-project" title="Удалить проект" onClick={handleDeleteProject}>🗑️</button>
+                    {hasPermission('project:delete') && (
+                        <button className="btn-delete-project" title="Удалить проект" onClick={handleDeleteProject}>🗑️</button>
+                    )}
                 </div>
             </header>
 
@@ -507,22 +552,24 @@ const ProjectDetails: React.FC = () => {
                             <h3 className="section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10, color: '#475569' }}>
                                 <span style={{ fontSize: 20 }}>📂</span> Документы
                             </h3>
-                            <label className="add-doc-label" title="Добавить документ">
-                                + <input type="file" multiple style={{ display: 'none' }} onChange={(e) => {
-                                    if (e.target.files) {
-                                        Array.from(e.target.files).forEach(f => {
-                                            setProjectDocs(p => [...p, {
-                                                id: Date.now() + Math.random(),
-                                                name: f.name,
-                                                type: 'Файл',
-                                                size: f.size,
-                                                url: '#',
-                                                uploadDate: new Date().toISOString()
-                                            }]);
-                                        });
-                                    }
-                                }} />
-                            </label>
+                            {hasPermission('project:edit') && (
+                                <label className="add-doc-label" title="Добавить документ">
+                                    + <input type="file" multiple style={{ display: 'none' }} onChange={(e) => {
+                                        if (e.target.files) {
+                                            Array.from(e.target.files).forEach(f => {
+                                                setProjectDocs(p => [...p, {
+                                                    id: Date.now() + Math.random(),
+                                                    name: f.name,
+                                                    type: 'Файл',
+                                                    size: f.size,
+                                                    url: '#',
+                                                    uploadDate: new Date().toISOString()
+                                                }]);
+                                            });
+                                        }
+                                    }} />
+                                </label>
+                            )}
                         </div>
                         <div className="docs-list">
                             {projectDocs.map((doc) => (
@@ -534,7 +581,9 @@ const ProjectDetails: React.FC = () => {
                                         <div className="doc-name" onClick={() => downloadDoc(doc)} title={doc.name}>{doc.name}</div>
                                         <div className="doc-meta">{new Date(doc.uploadDate).toLocaleDateString()} • {(doc.size / 1024).toFixed(0)} KB</div>
                                     </div>
-                                    <button className="btn-delete-doc" onClick={() => deleteDoc(doc)} title="Удалить">×</button>
+                                    {hasPermission('project:edit') && (
+                                        <button className="btn-delete-doc" onClick={() => deleteDoc(doc)} title="Удалить">×</button>
+                                    )}
                                 </div>
                             ))}
                             {projectDocs.length === 0 && <div className="empty-state">Нет документов</div>}
@@ -612,7 +661,9 @@ const ProjectDetails: React.FC = () => {
                                         <div className="col-task-name">
                                             <div className="task-name-wrapper">
                                                 <span className="task-name-text">{task.name}</span>
-                                                <button className="btn-edit-icon" title="Редактировать">✎</button>
+                                                {(hasPermission('task:edit') || (hasPermission('task:edit_own') && canUserTakeTask(task))) && (
+                                                    <button className="btn-edit-icon" title="Редактировать">✎</button>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="col-responsible">
@@ -697,7 +748,7 @@ const ProjectDetails: React.FC = () => {
                         </div>
                         <div className="modal-actions">
                             <button className="btn-secondary" onClick={() => setShowCreateTaskModal(false)}>Отмена</button>
-                            {selectedTask && canUserTakeTask(selectedTask) && (
+                            {selectedTask && canUserTakeTask(selectedTask) && (hasPermission('task:edit') || hasPermission('task:edit_own')) && (
                                 <button
                                     className="btn-primary"
                                     onClick={() => {
@@ -1056,7 +1107,7 @@ const ProjectDetails: React.FC = () => {
 
                         <div className="modal-actions">
                             <button className="btn-secondary" onClick={() => setShowEditTaskModal(false)}>Отмена</button>
-                            {selectedTask && canUserTakeTask(selectedTask) && (
+                            {selectedTask && canUserTakeTask(selectedTask) && (hasPermission('task:edit') || hasPermission('task:edit_own')) && (
                                 <button
                                     className="btn-primary"
                                     onClick={() => {
@@ -1072,7 +1123,7 @@ const ProjectDetails: React.FC = () => {
                                     <span>▶</span> В работу
                                 </button>
                             )}
-                            {selectedTask.status !== 'Завершена' && (
+                            {selectedTask.status !== 'Завершена' && (hasPermission('task:edit') || hasPermission('task:edit_own')) && (
                                 <button className="btn-action-complete" onClick={handleCompleteTaskFromModal} style={{ marginRight: 'auto' }}>
                                     ✓ Завершить задачу
                                 </button>

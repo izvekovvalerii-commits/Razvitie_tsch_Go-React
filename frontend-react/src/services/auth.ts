@@ -1,12 +1,10 @@
 import { User } from '../context/AuthContext';
+import { apiFetch } from '../utils/api';
 
 export const authService = {
     login: async (login: string): Promise<User> => {
-        const response = await fetch('/api/auth/login', {
+        const response = await apiFetch('/auth/login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify({ login })
         });
 
@@ -17,7 +15,7 @@ export const authService = {
     },
 
     getUsers: async (): Promise<User[]> => {
-        const response = await fetch('/api/auth/users');
+        const response = await apiFetch('/auth/users');
         if (!response.ok) {
             throw new Error(`Failed to fetch users: ${response.status}`);
         }

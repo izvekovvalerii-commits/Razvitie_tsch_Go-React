@@ -9,7 +9,7 @@ import './Projects.css';
 
 const Projects: React.FC = () => {
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
+    const { hasPermission } = useAuth();
 
     const [projects, setProjects] = useState<Project[]>([]);
     const [stores, setStores] = useState<Store[]>([]);
@@ -143,7 +143,7 @@ const Projects: React.FC = () => {
         });
     };
 
-    const canCreate = currentUser?.role === 'БА' || currentUser?.role === 'МРиЗ';
+    const canCreate = hasPermission('project:create');
 
     // Helpers
     const getStatusClass = (status: string) => `status-${status.toLowerCase().replace(/ /g, '-')}`;

@@ -1,4 +1,5 @@
 import { ProjectDocument } from '../types';
+import { apiFetch } from '../utils/api';
 
 export const documentsService = {
     upload: async (file: File, projectId: number, type: string, taskId?: number): Promise<ProjectDocument> => {
@@ -10,8 +11,13 @@ export const documentsService = {
             formData.append('taskId', taskId.toString());
         }
 
+        // Note: For FormData, we need to use native fetch with manual header
+        const userId = localStorage.getItem('user_id');
         const response = await fetch('/api/documents/upload', {
             method: 'POST',
+            headers: {
+                ...(userId ? { 'X-User-ID': userId } : {}),
+            },
             body: formData
         });
 
@@ -24,7 +30,7 @@ export const documentsService = {
     },
 
     delete: async (id: number): Promise<void> => {
-        const response = await fetch(`/api/documents/${id}`, {
+        const response = await apiFetch(`/documents/${id}`, {
             method: 'DELETE'
         });
 
@@ -34,7 +40,7 @@ export const documentsService = {
     },
 
     getByProject: async (projectId: number): Promise<ProjectDocument[]> => {
-        const response = await fetch(`/api/documents/project/${projectId}`);
+        const response = await apiFetch(`/documents/project/${projectId}`);
         if (!response.ok) {
             throw new Error(`Fetch failed: ${response.status}`);
         }

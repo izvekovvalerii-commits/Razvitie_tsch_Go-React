@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"portal-razvitie/database"
 	"portal-razvitie/middleware"
 	"portal-razvitie/models"
 	"portal-razvitie/services"
@@ -12,19 +11,19 @@ import (
 )
 
 type ProjectsController struct {
-	workflowService *services.WorkflowService
+	projectService *services.ProjectService
 }
 
-func NewProjectsController(workflowService *services.WorkflowService) *ProjectsController {
+func NewProjectsController(projectService *services.ProjectService) *ProjectsController {
 	return &ProjectsController{
-		workflowService: workflowService,
+		projectService: projectService,
 	}
 }
 
 // GetProjects возвращает список всех проектов
 func (ctrl *ProjectsController) GetProjects(c *gin.Context) {
-	var projects []models.Project
-	if err := database.DB.Preload("Store").Find(&projects).Error; err != nil {
+	projects, err := ctrl.projectService.FindAll()
+	if err != nil {
 		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось получить список проектов", err))
 		return
 	}
@@ -39,8 +38,8 @@ func (ctrl *ProjectsController) GetProject(c *gin.Context) {
 		return
 	}
 
-	var project models.Project
-	if err := database.DB.Preload("Store").First(&project, id).Error; err != nil {
+	project, err := ctrl.projectService.FindByID(uint(id))
+	if err != nil {
 		c.Error(middleware.NewAppError(http.StatusNotFound, "Проект не найден", err))
 		return
 	}
@@ -50,32 +49,26 @@ func (ctrl *ProjectsController) GetProject(c *gin.Context) {
 // CreateProject создает новый проект с автогенерацией задач
 func (ctrl *ProjectsController) CreateProject(c *gin.Context) {
 	var project models.Project
-	
+
 	// Валидация входных данных
 	if err := c.ShouldBindJSON(&project); err != nil {
 		c.Error(middleware.NewAppError(http.StatusBadRequest, "Ошибка валидации данных проекта", err))
 		return
 	}
 
-	// Создание проекта
-	if err := database.DB.Create(&project).Error; err != nil {
+	// Создание проекта через сервис (с транзакцией)
+	if err := ctrl.projectService.CreateProject(&project); err != nil {
 		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось создать проект", err))
 		return
 	}
 
-	// Автогенерация задач
-	_, err := ctrl.workflowService.GenerateProjectTasks(project.ID, project.CreatedAt)
-	if err != nil {
-		// Откатываем создание проекта при ошибке генерации задач
-		database.DB.Delete(&project)
-		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось сгенерировать задачи для проекта", err))
-		return
+	// Загружаем полный объект с данными магазина для ответа
+	fullProject, err := ctrl.projectService.FindByID(project.ID)
+	if err == nil {
+		c.JSON(http.StatusCreated, fullProject)
+	} else {
+		c.JSON(http.StatusCreated, project)
 	}
-
-	// Preload для возврата с данными магазина
-	database.DB.Preload("Store").First(&project, project.ID)
-	
-	c.JSON(http.StatusCreated, project)
 }
 
 // UpdateProject обновляет существующий проект
@@ -93,7 +86,7 @@ func (ctrl *ProjectsController) UpdateProject(c *gin.Context) {
 	}
 
 	project.ID = uint(id)
-	if err := database.DB.Save(&project).Error; err != nil {
+	if err := ctrl.projectService.Update(&project); err != nil {
 		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось обновить проект", err))
 		return
 	}
@@ -118,13 +111,8 @@ func (ctrl *ProjectsController) UpdateProjectStatus(c *gin.Context) {
 		return
 	}
 
-	result := database.DB.Model(&models.Project{}).Where("Id = ?", id).Update("Status", request.Status)
-	if result.Error != nil {
-		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось обновить статус проекта", result.Error))
-		return
-	}
-	if result.RowsAffected == 0 {
-		c.Error(middleware.NewAppError(http.StatusNotFound, "Проект не найден", nil))
+	if err := ctrl.projectService.UpdateStatus(uint(id), request.Status); err != nil {
+		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось обновить статус проекта", err))
 		return
 	}
 
@@ -139,13 +127,8 @@ func (ctrl *ProjectsController) DeleteProject(c *gin.Context) {
 		return
 	}
 
-	result := database.DB.Delete(&models.Project{}, id)
-	if result.Error != nil {
-		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось удалить проект", result.Error))
-		return
-	}
-	if result.RowsAffected == 0 {
-		c.Error(middleware.NewAppError(http.StatusNotFound, "Проект не найден", nil))
+	if err := ctrl.projectService.Delete(uint(id)); err != nil {
+		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось удалить проект", err))
 		return
 	}
 
