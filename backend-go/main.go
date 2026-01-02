@@ -47,14 +47,23 @@ func main() {
 		log.Printf("⚠️ Warning: Failed to seed users: %v", err)
 	}
 
-	// Initialize services
+	// Initialize repositories
 	userRepo := repositories.NewUserRepository(database.DB)
-	workflowService := &services.WorkflowService{}
-	workflowService.SetUserRepo(userRepo)
+	projectRepo := repositories.NewProjectRepository(database.DB)
+	notifRepo := repositories.NewNotificationRepository(database.DB)
 
 	// Initialize and run WebSocket Hub
 	hub := websocket.NewHub()
 	go hub.Run()
+
+	// Initialize notification service
+	notifService := services.NewNotificationService(notifRepo, hub)
+
+	// Initialize workflow service with all dependencies
+	workflowService := &services.WorkflowService{}
+	workflowService.SetUserRepo(userRepo)
+	workflowService.SetNotificationService(notifService)
+	workflowService.SetProjectRepo(projectRepo)
 
 	// Initialize Gin router
 	router := gin.Default()

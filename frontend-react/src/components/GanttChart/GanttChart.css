@@ -299,3 +299,101 @@
     /* Between background grid and bars? bar is 5. row is 1. grid is 0. */
     /* So this is 2. Perfect. */
 }
+/* Weekend Styling */
+.gridColumn.weekend {
+    background-color: #f8fafc;
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        #eff6ff 10px, 
+        #eff6ff 20px
+    );
+}
+
+.dateHeader.weekend {
+    background-color: #f8fafc;
+    color: #94a3b8;
+}
+
+/* Rich Tooltip */
+.gantt-tooltip {
+    position: fixed;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    min-width: 220px;
+    max-width: 300px;
+    pointer-events: none;
+    font-size: 12px;
+    color: #334155;
+    animation: tooltipFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tooltip-header {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #0f172a;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tooltip-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 99px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.tooltip-row {
+    display: flex;
+    margin-bottom: 4px;
+    align-items: flex-start;
+}
+
+.tooltip-label {
+    color: #94a3b8;
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.tooltip-value {
+    font-weight: 500;
+    color: #334155;
+    flex: 1;
+}
+
+@keyframes tooltipFadeIn {
+    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Responsible Avatar */
+.gantt-avatar {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    color: #475569;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    border: 1px solid #cbd5e1;
+    z-index: 4;
+    cursor: default;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}

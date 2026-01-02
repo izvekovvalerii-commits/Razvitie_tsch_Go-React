@@ -21,11 +21,29 @@ type WorkflowServiceInterface interface {
 }
 
 type WorkflowService struct {
-	userRepo repositories.UserRepository
+	userRepo     repositories.UserRepository
+	notifService *NotificationService
+	projectRepo  repositories.ProjectRepository
 }
 
 func (s *WorkflowService) SetUserRepo(repo repositories.UserRepository) {
 	s.userRepo = repo
+}
+
+func (s *WorkflowService) SetNotificationService(notifService *NotificationService) {
+	s.notifService = notifService
+}
+
+func (s *WorkflowService) SetProjectRepo(repo repositories.ProjectRepository) {
+	s.projectRepo = repo
+}
+
+// Helper to format nullable date
+func formatDate(t *time.Time) string {
+	if t == nil {
+		return "N/A"
+	}
+	return t.Format("2006-01-02")
 }
 
 type TaskDefinition struct {
@@ -87,7 +105,8 @@ func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint
 			}
 
 			if foundDeps {
-				startDate = maxPrevEndDate.AddDate(0, 0, 1)
+				nextDay := maxPrevEndDate.AddDate(0, 0, 1)
+				startDate = time.Date(nextDay.Year(), nextDay.Month(), nextDay.Day(), 0, 0, 0, 0, time.UTC)
 			}
 		}
 
@@ -120,6 +139,7 @@ func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint
 			Responsible:       def.ResponsibleRole,
 			ResponsibleUserID: def.ResponsibleUserID,
 			NormativeDeadline: deadline,
+			PlannedStartDate:  &startDate,
 			Status:            status,
 			IsActive:          isActive,
 			Stage:             &stage,
@@ -157,7 +177,7 @@ func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt 
 	return s.GenerateProjectTasksWithTx(database.DB, projectID, projectCreatedAt)
 }
 
-// ProcessTaskCompletion checks if subsequent tasks should be activated
+// ProcessTaskCompletion checks if subsequent tasks should be activated and reschedules dependent tasks
 func (s *WorkflowService) ProcessTaskCompletion(projectID uint, completedTaskCode string) error {
 	log.Printf("[Workflow] Processing completion for task %s in project %d", completedTaskCode, projectID)
 
@@ -166,53 +186,137 @@ func (s *WorkflowService) ProcessTaskCompletion(projectID uint, completedTaskCod
 		return err
 	}
 
-	// Create a map for quick lookup of status
-	statusMap := make(map[string]string)
-	for _, t := range projectTasks {
-		if t.Code != nil {
-			statusMap[*t.Code] = t.Status
+	// 1. Create a map for quick lookup
+	taskMap := make(map[string]*models.ProjectTask)
+	for i := range projectTasks {
+		if projectTasks[i].Code != nil {
+			taskMap[*projectTasks[i].Code] = &projectTasks[i]
 		}
 	}
 
-	// Check definitions to find tasks that depend on the completed one
+	// 2. TIMELINE RECALCULATION (Global Propagating Pass)
+	// Iterate valid definitions in topological order (StoreOpeningTasks is ordered)
 	for _, def := range StoreOpeningTasks {
-		// Only check tasks that are waiting
-		currentStatus := statusMap[def.Code]
-		if currentStatus != "Ожидание" {
+		task := taskMap[def.Code]
+		if task == nil {
 			continue
 		}
 
-		// Check if ALL dependencies are completed
-		allDepsMet := true
-		for _, depCode := range def.DependsOn {
-			if statusMap[depCode] != "Завершена" {
-				allDepsMet = false
-				break
-			}
+		// Skip completed tasks - their history is frozen
+		if task.Status == "Завершена" {
+			continue
 		}
 
-		if allDepsMet {
-			log.Printf("[Workflow] Activating task %s", def.Code)
-			// Find the task record to update
-			for _, t := range projectTasks {
-				if t.Code != nil && *t.Code == def.Code {
-					// Activate it
-					t.Status = "Назначена"
-					t.IsActive = true
-					now := time.Now().UTC()
-					t.StartedAt = &now // Or just leave it as Assigned
+		// Calculate Start Date based on dependencies
+		if len(def.DependsOn) > 0 {
+			var maxPrevEndDate time.Time
+			hasDeps := false
+			allDepsCompleted := true
 
-					// Save
-					if err := database.DB.Save(&t).Error; err != nil {
+			for _, depCode := range def.DependsOn {
+				depTask := taskMap[depCode]
+				if depTask == nil {
+					continue // Should not happen if DB is consistent
+				}
+				hasDeps = true
+
+				// Determine effective end date of dependency
+				var effectiveEnd time.Time
+				if depTask.Status == "Завершена" && depTask.ActualDate != nil {
+					effectiveEnd = *depTask.ActualDate
+				} else {
+					allDepsCompleted = false
+					effectiveEnd = depTask.NormativeDeadline
+				}
+
+				if effectiveEnd.After(maxPrevEndDate) {
+					maxPrevEndDate = effectiveEnd
+				}
+			}
+
+			if hasDeps {
+				// New Start = Max(Deps End) + 1 Day, normalized to midnight
+				nextDay := maxPrevEndDate.AddDate(0, 0, 1)
+				newStart := time.Date(nextDay.Year(), nextDay.Month(), nextDay.Day(), 0, 0, 0, 0, time.UTC)
+
+				// New Deadline = New Start + Duration
+				newDeadline := newStart.AddDate(0, 0, def.Duration)
+
+				// Check if updates are needed
+				oldStart := task.PlannedStartDate
+				oldDeadline := task.NormativeDeadline
+
+				startChanged := oldStart == nil || !datesEqual(*oldStart, newStart)
+				deadlineChanged := !datesEqual(oldDeadline, newDeadline)
+
+				if startChanged || deadlineChanged {
+					task.PlannedStartDate = &newStart
+					task.NormativeDeadline = newDeadline
+
+					log.Printf("[Workflow] Task %s rescheduled: start %s -> %s, deadline %s -> %s",
+						def.Code,
+						formatDate(oldStart),
+						newStart.Format("2006-01-02"),
+						oldDeadline.Format("2006-01-02"),
+						newDeadline.Format("2006-01-02"))
+
+					if err := database.DB.Save(task).Error; err != nil {
+						log.Printf("Error updating task %s: %v", def.Code, err)
+					}
+				}
+
+				// 3. ACTIVATION LOGIC
+				// Activate only if ALL dependencies are completed AND task is waiting
+				if allDepsCompleted && task.Status == "Ожидание" {
+					log.Printf("[Workflow] Activating task %s", def.Code)
+					task.Status = "Назначена"
+					task.IsActive = true
+					now := time.Now().UTC()
+					task.StartedAt = &now
+
+					if err := database.DB.Save(task).Error; err != nil {
 						log.Printf("Error activating task: %v", err)
 					}
-					break
+
+					// Send notification
+					s.sendAssignmentNotification(projectID, task)
 				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func datesEqual(t1, t2 time.Time) bool {
+	y1, m1, d1 := t1.Date()
+	y2, m2, d2 := t2.Date()
+	return y1 == y2 && m1 == m2 && d1 == d2
+}
+
+func (s *WorkflowService) sendAssignmentNotification(projectID uint, task *models.ProjectTask) {
+	if task.ResponsibleUserID == nil || s.notifService == nil {
+		return
+	}
+
+	projectName := "неизвестном проекте"
+	if s.projectRepo != nil {
+		if project, err := s.projectRepo.FindByID(projectID); err == nil && project.Store != nil {
+			projectName = "проекте " + project.Store.Name
+		}
+	}
+	message := fmt.Sprintf("Вам назначена задача: %s в %s", task.Name, projectName)
+	if err := s.notifService.SendNotification(
+		uint(*task.ResponsibleUserID),
+		"Новая задача",
+		message,
+		"TASK_ASSIGNED",
+		fmt.Sprintf("/projects/%d", projectID),
+	); err != nil {
+		log.Printf("⚠️ Failed to send notification for task %s: %v", *task.Code, err)
+	} else {
+		log.Printf("✅ Notification sent for task %s to user %d", *task.Code, *task.ResponsibleUserID)
+	}
 }
 
 // ValidateTaskCompletion checks if the task has all required fields and documents before completion

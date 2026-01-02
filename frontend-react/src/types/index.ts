@@ -61,6 +61,7 @@ export interface ProjectTask {
     responsible: string;
     responsibleUserId?: number;
     normativeDeadline: string;
+    plannedStartDate?: string;
     actualDate?: string;
     status: string;
     createdAt?: string;

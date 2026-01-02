@@ -12,6 +12,7 @@ type ProjectTask struct {
 	Responsible                  string     `gorm:"column:Responsible;type:varchar(255)" json:"responsible"`
 	ResponsibleUserID            *int       `gorm:"column:ResponsibleUserId" json:"responsibleUserId"`
 	NormativeDeadline            time.Time  `gorm:"column:NormativeDeadline;not null" json:"normativeDeadline" binding:"required"`
+	PlannedStartDate             *time.Time `gorm:"column:PlannedStartDate" json:"plannedStartDate"`
 	ActualDate                   *time.Time `gorm:"column:ActualDate" json:"actualDate"`
 	Status                       string     `gorm:"column:Status;type:varchar(50);default:'Назначена'" json:"status"`
 	CreatedAt                    *time.Time `gorm:"column:CreatedAt" json:"createdAt"`
