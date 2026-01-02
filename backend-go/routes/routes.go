@@ -32,10 +32,12 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 	storeRepo := repositories.NewStoreRepository(database.DB)
 	notifRepo := repositories.NewNotificationRepository(database.DB)
 	userRepo := repositories.NewUserRepository(database.DB)
+	activityRepo := repositories.NewUserActivityRepository(database.DB)
 
 	notifService := services.NewNotificationService(notifRepo, hub)
-	projectService := services.NewProjectService(projectRepo, workflowService, database.DB, notifService)
-	taskService := services.NewTaskService(taskRepo, projectRepo, userRepo, workflowService, hub, notifService)
+	activityService := services.NewActivityService(activityRepo)
+	projectService := services.NewProjectService(projectRepo, workflowService, database.DB, notifService, activityService)
+	taskService := services.NewTaskService(taskRepo, projectRepo, userRepo, workflowService, hub, notifService, activityService)
 	storeService := services.NewStoreService(storeRepo)
 
 	// Initialize controllers
@@ -46,6 +48,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 	notifController := controllers.NewNotificationController(notifService)
 	rbacController := controllers.NewRBACController()
 	authController := &controllers.AuthController{}
+	dashboardController := controllers.NewDashboardController(activityService, taskService, projectService)
 
 	// API group
 	api := router.Group("/api")
@@ -118,6 +121,12 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 			notifications.POST("/read-all", notifController.MarkAllRead)
 			notifications.DELETE("/:id", notifController.Delete)
 			notifications.DELETE("/delete-all", notifController.DeleteAll)
+		}
+
+		// Dashboard routes
+		dashboard := api.Group("/dashboard")
+		{
+			dashboard.GET("/activity", dashboardController.GetRecentActivity)
 		}
 
 		// RBAC routes (Admin only)

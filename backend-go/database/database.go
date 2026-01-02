@@ -96,6 +96,7 @@ func AutoMigrate() error {
 		&models.Notification{},
 		&models.Role{},
 		&models.Permission{},
+		&models.UserActivity{},
 	)
 
 	if err != nil {

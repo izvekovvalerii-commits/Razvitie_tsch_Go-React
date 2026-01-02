@@ -61,7 +61,8 @@ func (tc *TasksController) CreateTask(c *gin.Context) {
 		return
 	}
 
-	if err := tc.taskService.CreateTask(&task); err != nil {
+	user := c.MustGet("user").(*models.User)
+	if err := tc.taskService.CreateTask(&task, user.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -90,7 +91,8 @@ func (tc *TasksController) UpdateTask(c *gin.Context) {
 		return
 	}
 
-	if err := tc.taskService.UpdateTask(&task); err != nil {
+	user := c.MustGet("user").(*models.User)
+	if err := tc.taskService.UpdateTask(&task, user.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -117,7 +119,8 @@ func (tc *TasksController) UpdateTaskStatus(c *gin.Context) {
 		return
 	}
 
-	if err := tc.taskService.UpdateStatus(uint(id), statusUpdate.Status); err != nil {
+	user := c.MustGet("user").(*models.User)
+	if err := tc.taskService.UpdateStatus(uint(id), statusUpdate.Status, user.ID); err != nil {
 		// Could distinguish between validation errors and internal errors
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

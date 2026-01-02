@@ -13,18 +13,20 @@ type ProjectService struct {
 	workflowService WorkflowServiceInterface
 	db              *gorm.DB
 	notifService    *NotificationService
+	activityService *ActivityService
 }
 
-func NewProjectService(repo repositories.ProjectRepository, workflowService WorkflowServiceInterface, db *gorm.DB, notifService *NotificationService) *ProjectService {
+func NewProjectService(repo repositories.ProjectRepository, workflowService WorkflowServiceInterface, db *gorm.DB, notifService *NotificationService, activityService *ActivityService) *ProjectService {
 	return &ProjectService{
 		repo:            repo,
 		workflowService: workflowService,
 		db:              db,
 		notifService:    notifService,
+		activityService: activityService,
 	}
 }
 
-func (s *ProjectService) CreateProject(project *models.Project) error {
+func (s *ProjectService) CreateProject(project *models.Project, actorId uint) error {
 	var createdTasks []models.ProjectTask
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
@@ -44,6 +46,7 @@ func (s *ProjectService) CreateProject(project *models.Project) error {
 	})
 
 	if err == nil {
+		s.activityService.LogActivity(actorId, "создал проект", "project", project.ID, fmt.Sprintf("Проект #%d", project.ID), &project.ID)
 		for _, task := range createdTasks {
 			// Отправляем уведомление только для задач со статусом "Назначена"
 			if task.Status == "Назначена" && task.ResponsibleUserID != nil {
@@ -69,12 +72,24 @@ func (s *ProjectService) FindByID(id uint) (*models.Project, error) {
 	return s.repo.FindByID(id)
 }
 
-func (s *ProjectService) Update(project *models.Project) error {
-	return s.repo.Update(project)
+func (s *ProjectService) Update(project *models.Project, actorId uint) error {
+	if err := s.repo.Update(project); err != nil {
+		return err
+	}
+	s.activityService.LogActivity(actorId, "обновил проект", "project", project.ID, fmt.Sprintf("Проект #%d", project.ID), &project.ID)
+	return nil
 }
 
-func (s *ProjectService) UpdateStatus(id uint, status string) error {
-	return s.repo.UpdateStatus(id, status)
+func (s *ProjectService) UpdateStatus(id uint, status string, actorId uint) error {
+	name := fmt.Sprintf("Проект #%d", id)
+	if p, err := s.repo.FindByID(id); err == nil && p.Store != nil {
+		name = p.Store.Name
+	}
+	if err := s.repo.UpdateStatus(id, status); err != nil {
+		return err
+	}
+	s.activityService.LogActivity(actorId, "изменил статус на '"+status+"'", "project", id, name, &id)
+	return nil
 }
 
 func (s *ProjectService) Delete(id uint) error {

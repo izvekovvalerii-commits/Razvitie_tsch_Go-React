@@ -57,7 +57,8 @@ func (ctrl *ProjectsController) CreateProject(c *gin.Context) {
 	}
 
 	// Создание проекта через сервис (с транзакцией)
-	if err := ctrl.projectService.CreateProject(&project); err != nil {
+	user := c.MustGet("user").(*models.User)
+	if err := ctrl.projectService.CreateProject(&project, user.ID); err != nil {
 		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось создать проект", err))
 		return
 	}
@@ -86,7 +87,8 @@ func (ctrl *ProjectsController) UpdateProject(c *gin.Context) {
 	}
 
 	project.ID = uint(id)
-	if err := ctrl.projectService.Update(&project); err != nil {
+	user := c.MustGet("user").(*models.User)
+	if err := ctrl.projectService.Update(&project, user.ID); err != nil {
 		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось обновить проект", err))
 		return
 	}
@@ -111,7 +113,8 @@ func (ctrl *ProjectsController) UpdateProjectStatus(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.projectService.UpdateStatus(uint(id), request.Status); err != nil {
+	user := c.MustGet("user").(*models.User)
+	if err := ctrl.projectService.UpdateStatus(uint(id), request.Status, user.ID); err != nil {
 		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось обновить статус проекта", err))
 		return
 	}

@@ -6,6 +6,23 @@ import { ProjectTask } from '../types';
 import { TASK_STATUSES, TASK_TYPES } from '../constants';
 import './Tasks.css';
 
+// Helper function to generate avatar color based on name
+const getAvatarColor = (name: string | undefined): string => {
+    if (!name) return '#94a3b8';
+    const colors = [
+        '#3b82f6', // blue
+        '#10b981', // green
+        '#f59e0b', // amber
+        '#ef4444', // red
+        '#8b5cf6', // purple
+        '#ec4899', // pink
+        '#14b8a6', // teal
+        '#f97316', // orange
+    ];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+};
+
 const Tasks: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -196,149 +213,166 @@ const Tasks: React.FC = () => {
 
     if (loading) return <div className="tasks-page"><p>Загрузка задач...</p></div>;
 
+    const totalTasks = allTasks.length;
+    const inProgressCount = allTasks.filter(t => t.status === 'В работе').length;
+    const overdueCount = allTasks.filter(t => {
+        const deadline = new Date(t.normativeDeadline);
+        const now = new Date();
+        deadline.setHours(0, 0, 0, 0);
+        now.setHours(0, 0, 0, 0);
+        return deadline < now && t.status !== 'Выполнена' && t.status !== 'Завершена';
+    }).length;
+
     return (
         <div className="tasks-page">
-            <div className="page-header">
-                <div className="header-left">
-                    <h1 className="page-title">Задачи</h1>
-                    <p className="page-subtitle">Все задачи по всем проектам</p>
+            {/* Unified Controls Block */}
+            <div className="unified-controls-row">
+                {/* Left: Quick Stats */}
+                <div className="quick-stats-inline">
+                    <div className="stat-card-mini">
+                        <span className="stat-label-mini">Всего</span>
+                        <span className="stat-value-mini">{totalTasks}</span>
+                    </div>
+                    <div className="stat-card-mini">
+                        <span className="stat-label-mini">В работе</span>
+                        <span className="stat-value-mini">{inProgressCount}</span>
+                    </div>
+                    <div className="stat-card-mini">
+                        <span className="stat-label-mini">Просрочено</span>
+                        <span className="stat-value-mini danger">{overdueCount}</span>
+                    </div>
                 </div>
 
-                <div className="filters-bar">
-                    <div className="search-box">
-                        <span className="search-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                        </span>
+                {/* Right: Filters + Search */}
+                <div className="controls-right-group">
+                    {/* Dropdown Filters */}
+                    <select className="compact-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                        <option value="">Все типы</option>
+                        {uniqueTaskTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <select className="compact-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                        <option value="">Все статусы</option>
+                        {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <select className="compact-select" value={responsibleFilter} onChange={(e) => setResponsibleFilter(e.target.value)}>
+                        <option value="">Все исполнители</option>
+                        {uniqueResponsibles.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+
+                    {/* Search */}
+                    <div className="search-wrapper-compact">
+                        <span className="search-icon">🔍</span>
                         <input
                             type="text"
                             placeholder="Поиск (название, ID проекта)"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            className="search-input-compact"
                         />
                     </div>
 
-                    <select className="filter-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                        <option value="">Все типы</option>
-                        {uniqueTaskTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-
-                    <select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                        <option value="">Все статусы</option>
-                        {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-
-                    <select className="filter-select" value={responsibleFilter} onChange={(e) => setResponsibleFilter(e.target.value)}>
-                        <option value="">Все исполнители</option>
-                        {uniqueResponsibles.map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
-
+                    {/* Reset Button */}
                     {isFilterActive && (
-                        <button className="reset-btn" onClick={resetFilters} title="Сбросить фильтры">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12" />
-                                <path d="M3 3v9h9" />
-                            </svg>
+                        <button className="reset-btn-compact" onClick={resetFilters} title="Сбросить фильтры">
+                            ✕
                         </button>
                     )}
                 </div>
-
-                {/* Table */}
-                {!loading && filteredTasks.length > 0 && (
-                    <div className="tasks-table-container">
-                        <table className="tasks-table compact-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '25%' }} onClick={() => handleSort('name')} className="sortable-header">
-                                        Название {sortColumn === 'name' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
-                                    </th>
-                                    <th style={{ width: '5%' }} onClick={() => handleSort('projectId')} className="sortable-header">
-                                        Проект {sortColumn === 'projectId' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
-                                    </th>
-                                    <th style={{ width: '12%' }} onClick={() => handleSort('taskType')} className="sortable-header">
-                                        Тип {sortColumn === 'taskType' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
-                                    </th>
-                                    <th style={{ width: '10%' }} onClick={() => handleSort('status')} className="sortable-header">
-                                        Статус {sortColumn === 'status' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
-                                    </th>
-                                    <th style={{ width: '15%' }} onClick={() => handleSort('responsible')} className="sortable-header">
-                                        Ответственный {sortColumn === 'responsible' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
-                                    </th>
-                                    <th style={{ width: '8%' }} onClick={() => handleSort('normativeDeadline')} className="sortable-header">
-                                        План {sortColumn === 'normativeDeadline' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
-                                    </th>
-                                    <th style={{ width: '15%' }} onClick={() => handleSort('actualDate')} className="sortable-header">
-                                        Факт / Откл. {sortColumn === 'actualDate' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
-                                    </th>
-                                    <th style={{ width: '10%' }} onClick={() => handleSort('createdAt')} className="sortable-header">
-                                        Создана {sortColumn === 'createdAt' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredTasks.map(task => (
-                                    <tr key={task.id} className="clickable-row" onClick={() => openEditModal(task)}>
-                                        <td className="task-name-cell">
-                                            <span className="task-name-text" title={task.name}>{task.name}</span>
-                                        </td>
-                                        <td><span className="project-id-badge">#{task.projectId}</span></td>
-                                        <td className="text-cell">{task.taskType}</td>
-                                        <td>
-                                            <span className={`status-badge ${getStatusClass(task.status)}`}>
-                                                {task.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="responsible-cell">
-                                                <div className="resp-avatar-sm">{getInitials(getResponsibleDisplay(task))}</div>
-                                                <span className="resp-name">{getResponsibleDisplay(task)}</span>
-                                            </div>
-                                        </td>
-                                        <td className={getDeadlineClass(task.normativeDeadline)}>
-                                            {new Date(task.normativeDeadline).toLocaleDateString()}
-                                        </td>
-                                        <td>
-                                            {task.actualDate ? (
-                                                <div>
-                                                    {new Date(task.actualDate).toLocaleDateString()}
-                                                    {(() => {
-                                                        const dev = getTaskDeviation(task);
-                                                        if (dev) {
-                                                            return (
-                                                                <span style={{
-                                                                    color: dev.type === 'early' ? 'green' : 'red',
-                                                                    fontSize: '11px',
-                                                                    marginLeft: '4px',
-                                                                    fontWeight: 600
-                                                                }}>
-                                                                    ({dev.type === 'early' ? '-' : '+'}{dev.days}д)
-                                                                </span>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()}
-                                                </div>
-                                            ) : <span style={{ color: '#ccc' }}>—</span>}
-                                        </td>
-                                        <td style={{ color: '#94a3b8' }}>
-                                            {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : ''}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-
-                {/* Empty State */}
-                {!loading && filteredTasks.length === 0 && (
-                    <div className="empty-state">
-                        <p>Задачи не найдены</p>
-                    </div>
-                )}
             </div>
+
+            {/* Table */}
+            {!loading && filteredTasks.length > 0 && (
+                <div className="tasks-table-container">
+                    <table className="tasks-table compact-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: '25%' }} onClick={() => handleSort('name')} className="sortable-header">
+                                    Название {sortColumn === 'name' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                </th>
+                                <th style={{ width: '5%' }} onClick={() => handleSort('projectId')} className="sortable-header">
+                                    Проект {sortColumn === 'projectId' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                </th>
+                                <th style={{ width: '12%' }} onClick={() => handleSort('taskType')} className="sortable-header">
+                                    Тип {sortColumn === 'taskType' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                </th>
+                                <th style={{ width: '10%' }} onClick={() => handleSort('status')} className="sortable-header">
+                                    Статус {sortColumn === 'status' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                </th>
+                                <th style={{ width: '15%' }} onClick={() => handleSort('responsible')} className="sortable-header">
+                                    Ответственный {sortColumn === 'responsible' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                </th>
+                                <th style={{ width: '8%' }} onClick={() => handleSort('normativeDeadline')} className="sortable-header">
+                                    План {sortColumn === 'normativeDeadline' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                </th>
+                                <th style={{ width: '15%' }} onClick={() => handleSort('actualDate')} className="sortable-header">
+                                    Факт / Откл. {sortColumn === 'actualDate' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                </th>
+                                <th style={{ width: '10%' }} onClick={() => handleSort('createdAt')} className="sortable-header">
+                                    Создана {sortColumn === 'createdAt' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredTasks.map(task => (
+                                <tr key={task.id} className="clickable-row" onClick={() => openEditModal(task)}>
+                                    <td className="task-name-cell">
+                                        <span className="task-name-text" title={task.name}>{task.name}</span>
+                                    </td>
+                                    <td><span className="project-id-badge">#{task.projectId}</span></td>
+                                    <td className="text-cell">{task.taskType}</td>
+                                    <td>
+                                        <span className={`status-badge ${getStatusClass(task.status)}`}>
+                                            {task.status}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="responsible-cell">
+                                            <div className="resp-avatar-sm" style={{ backgroundColor: getAvatarColor(getResponsibleDisplay(task)) }}>{getInitials(getResponsibleDisplay(task))}</div>
+                                            <span className="resp-name">{getResponsibleDisplay(task)}</span>
+                                        </div>
+                                    </td>
+                                    <td className={getDeadlineClass(task.normativeDeadline)}>
+                                        {new Date(task.normativeDeadline).toLocaleDateString()}
+                                    </td>
+                                    <td>
+                                        {task.actualDate ? (
+                                            <div>
+                                                {new Date(task.actualDate).toLocaleDateString()}
+                                                {(() => {
+                                                    const dev = getTaskDeviation(task);
+                                                    if (dev) {
+                                                        return (
+                                                            <span style={{
+                                                                color: dev.type === 'early' ? 'green' : 'red',
+                                                                fontSize: '11px',
+                                                                marginLeft: '4px',
+                                                                fontWeight: 600
+                                                            }}>
+                                                                ({dev.type === 'early' ? '-' : '+'}{dev.days}д)
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </div>
+                                        ) : <span style={{ color: '#ccc' }}>—</span>}
+                                    </td>
+                                    <td style={{ color: '#94a3b8' }}>
+                                        {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : ''}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && filteredTasks.length === 0 && (
+                <div className="empty-state">
+                    <p>Задачи не найдены</p>
+                </div>
+            )}
         </div>
     );
 };

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { tasksService } from '../services/tasks';
 import { projectsService } from '../services/projects';
-import { userActivityService } from '../services/user-activity';
+import { dashboardService } from '../services/dashboard';
 import { ProjectTask, Project, UserActivity } from '../types';
 import './Hero.css';
 
@@ -27,6 +27,7 @@ const Hero: React.FC = () => {
     const [recentActivities, setRecentActivities] = useState<UserActivity[]>([]);
     const [overdueCount, setOverdueCount] = useState(0);
     const [expiringSoonCount, setExpiringSoonCount] = useState(0);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -40,17 +41,21 @@ const Hero: React.FC = () => {
     }, [currentUser]);
 
     const loadDashboardData = async () => {
+        setLoading(true);
         try {
-            const [allTasks, allProjects] = await Promise.all([
+            const [allTasks, allProjects, activities] = await Promise.all([
                 tasksService.getAllTasks(),
-                projectsService.getProjects()
+                projectsService.getProjects(),
+                dashboardService.getRecentActivity()
             ]);
 
             processTasks(allTasks);
-            const userProjects = processProjects(allProjects, allTasks);
-            loadRecentActivities(userProjects);
+            processProjects(allProjects, allTasks);
+            setRecentActivities(activities);
         } catch (error) {
             console.error('Error loading dashboard data:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -140,25 +145,7 @@ const Hero: React.FC = () => {
         return myProjects;
     };
 
-    const loadRecentActivities = (projects: Project[]) => {
-        const activities = userActivityService.getActivities();
-        const projectMap = new Map(projects.map(p => [p.id, p]));
 
-        const processedActivities = activities.map(a => {
-            const p = projectMap.get(a.projectId);
-            let pName = 'Проект #' + a.projectId;
-            if (p) {
-                pName = p.store?.name || p.address || p.projectType || pName;
-            }
-            return {
-                ...a,
-                projectName: pName
-            };
-        }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .slice(0, 20);
-
-        setRecentActivities(processedActivities);
-    };
 
     // Helpers
     const getDetailedStatusColor = (status: string): string => {
@@ -284,53 +271,59 @@ const Hero: React.FC = () => {
 
             {/* KPI Cards Grid */}
             <div className="kpi-grid">
-                {/* Projects */}
-                <div className="kpi-card purple" onClick={() => navigate('/projects')}>
-                    <div className="kpi-icon-bg">🏢</div>
-                    <div className="kpi-content">
-                        <div className="kpi-value">{projectStats.total}</div>
-                        <div className="kpi-label">Всего проектов</div>
-                    </div>
-                </div>
-                {/* New Tasks */}
-                <div className="kpi-card blue" onClick={() => navigateToTasksWithFilter('Назначена')}>
-                    <div className="kpi-icon-bg">🔔</div>
-                    <div className="kpi-content">
-                        <div className="kpi-value">{newTasks.length}</div>
-                        <div className="kpi-label">Новые задачи</div>
-                    </div>
-                </div>
-                {/* Active Tasks */}
-                <div className="kpi-card green" onClick={() => navigateToTasksWithFilter('В работе')}>
-                    <div className="kpi-icon-bg">⚡</div>
-                    <div className="kpi-content">
-                        <div className="kpi-value">{activeTasks.length}</div>
-                        <div className="kpi-label">В работе</div>
-                    </div>
-                </div>
-                {/* Overdue */}
-                <div className="kpi-card orange" onClick={navigateToOverdueTasks}>
-                    <div className="kpi-icon-bg">🔥</div>
-                    <div className="kpi-content">
-                        <div className="kpi-value">{overdueCount}</div>
-                        <div className="kpi-label">Просрочено</div>
-                    </div>
-                </div>
-                {/* Expiring Soon */}
-                <div className="kpi-card yellow" onClick={navigateToExpiringSoonTasks}>
-                    <div className="kpi-icon-bg">⏰</div>
-                    <div className="kpi-content">
-                        <div className="kpi-value">{expiringSoonCount}</div>
-                        <div className="kpi-label">Истекают</div>
-                    </div>
-                </div>
+                {loading ? Array(5).fill(0).map((_, i) => (
+                    <div key={i} className="kpi-card skeleton" style={{ height: '100px', cursor: 'default', background: '#f1f5f9' }}></div>
+                )) : (
+                    <>
+                        {/* Projects */}
+                        <div className="kpi-card purple" onClick={() => navigate('/projects')}>
+                            <div className="kpi-icon-bg">🏢</div>
+                            <div className="kpi-content">
+                                <div className="kpi-value">{projectStats.total}</div>
+                                <div className="kpi-label">Всего проектов</div>
+                            </div>
+                        </div>
+                        {/* New Tasks */}
+                        <div className="kpi-card blue" onClick={() => navigateToTasksWithFilter('Назначена')}>
+                            <div className="kpi-icon-bg">🔔</div>
+                            <div className="kpi-content">
+                                <div className="kpi-value">{newTasks.length}</div>
+                                <div className="kpi-label">Новые задачи</div>
+                            </div>
+                        </div>
+                        {/* Active Tasks */}
+                        <div className="kpi-card green" onClick={() => navigateToTasksWithFilter('В работе')}>
+                            <div className="kpi-icon-bg">⚡</div>
+                            <div className="kpi-content">
+                                <div className="kpi-value">{activeTasks.length}</div>
+                                <div className="kpi-label">В работе</div>
+                            </div>
+                        </div>
+                        {/* Overdue */}
+                        <div className="kpi-card orange" onClick={navigateToOverdueTasks}>
+                            <div className="kpi-icon-bg">🔥</div>
+                            <div className="kpi-content">
+                                <div className="kpi-value">{overdueCount}</div>
+                                <div className="kpi-label">Просрочено</div>
+                            </div>
+                        </div>
+                        {/* Expiring Soon */}
+                        <div className="kpi-card yellow" onClick={navigateToExpiringSoonTasks}>
+                            <div className="kpi-icon-bg">⏰</div>
+                            <div className="kpi-content">
+                                <div className="kpi-value">{expiringSoonCount}</div>
+                                <div className="kpi-label">Истекают</div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             <div className="dashboard-split">
                 {/* Left Main Column */}
                 <div className="main-column">
                     {/* Projects Charts / Status */}
-                    <div className="content-block stats-block">
+                    <div className="content-block stats-block" style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.3s' }}>
                         <div className="block-header-modern">
                             <h3>Статус проектов</h3>
                             <Link to="/projects" className="link-simple">Все проекты →</Link>
@@ -388,26 +381,32 @@ const Hero: React.FC = () => {
                             <Link to="/tasks" className="link-simple">Все задачи →</Link>
                         </div>
                         <div className="task-list-modern">
-                            {myTasks.slice(0, 6).map(task => {
-                                const deadlineInfo = getDaysUntilDeadline(task);
-                                return (
-                                    <Link key={task.id} to={`/projects/${task.projectId}`} className="task-row">
-                                        <div className={`task-status-line ${getStatusClass(task.status)}`}></div>
-                                        <div className="task-main-info">
-                                            <div className="task-title">{task.name}</div>
-                                            <div className="task-meta">
-                                                <span>#{task.projectId}</span> • <span>{task.taskType}</span>
-                                            </div>
-                                        </div>
-                                        <div className="task-right">
-                                            <div className={`task-deadline-badge ${deadlineInfo.isUrgent ? 'urgent' : ''} ${deadlineInfo.isOverdue ? 'overdue' : ''}`}>
-                                                {deadlineInfo.text}
-                                            </div>
-                                        </div>
-                                    </Link>
-                                );
-                            })}
-                            {myTasks.length === 0 && <div className="empty-text">Нет активных задач</div>}
+                            {loading ? Array(5).fill(0).map((_, i) => (
+                                <div key={i} className="skeleton skeleton-list-item"></div>
+                            )) : (
+                                <>
+                                    {myTasks.slice(0, 6).map(task => {
+                                        const deadlineInfo = getDaysUntilDeadline(task);
+                                        return (
+                                            <Link key={task.id} to={`/projects/${task.projectId}`} className="task-row">
+                                                <div className={`task-status-line ${getStatusClass(task.status)}`}></div>
+                                                <div className="task-main-info">
+                                                    <div className="task-title">{task.name}</div>
+                                                    <div className="task-meta">
+                                                        <span>#{task.projectId}</span> • <span>{task.taskType}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="task-right">
+                                                    <div className={`task-deadline-badge ${deadlineInfo.isUrgent ? 'urgent' : ''} ${deadlineInfo.isOverdue ? 'overdue' : ''}`}>
+                                                        {deadlineInfo.text}
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
+                                    {myTasks.length === 0 && <div className="empty-text">Нет активных задач</div>}
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -420,31 +419,40 @@ const Hero: React.FC = () => {
                             <h3>Последняя активность</h3>
                         </div>
                         <div className="activity-feed">
-                            {recentActivities.slice(0, 10).map(activity => (
-                                <div key={activity.id} className="feed-item">
-                                    <div className="feed-avatar" style={{ background: getRoleColor(activity.userRole) }}>
-                                        {activity.userName.charAt(0)}
-                                    </div>
-                                    <div className="feed-content">
-                                        <div className="feed-text">
-                                            <strong>{activity.userName}</strong> {activity.action}
-                                        </div>
-                                        {activity.projectName && (
-                                            <div className="feed-project-name">{activity.projectName}</div>
-                                        )}
-                                        <Link to={`/projects/${activity.projectId}`} className="feed-link">
-                                            {activity.taskName}
-                                        </Link>
-                                        <div className="feed-time">{getTimeAgo(activity.timestamp)}</div>
-                                    </div>
+                            {loading ? Array(6).fill(0).map((_, i) => (
+                                <div key={i} className="skeleton-row">
+                                    <div className="skeleton skeleton-circle"></div>
+                                    <div className="skeleton skeleton-text long"></div>
                                 </div>
-                            ))}
-                            {recentActivities.length === 0 && <div className="empty-text">Нет активности</div>}
+                            )) : (
+                                <>
+                                    {recentActivities.slice(0, 10).map(activity => (
+                                        <div key={activity.id} className="feed-item">
+                                            <div className="feed-avatar" style={{ background: getRoleColor(activity.userRole) }}>
+                                                {activity.userName.charAt(0)}
+                                            </div>
+                                            <div className="feed-content">
+                                                <div className="feed-text">
+                                                    <strong>{activity.userName}</strong> {activity.action}
+                                                </div>
+                                                {activity.projectName && (
+                                                    <div className="feed-project-name">{activity.projectName}</div>
+                                                )}
+                                                <Link to={`/projects/${activity.projectId}`} className="feed-link">
+                                                    {activity.taskName}
+                                                </Link>
+                                                <div className="feed-time">{getTimeAgo(activity.timestamp)}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {recentActivities.length === 0 && <div className="empty-text">Нет активности</div>}
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

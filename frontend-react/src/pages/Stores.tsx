@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { storesService } from '../services/stores';
 import { Store } from '../types';
 import './Stores.css';
@@ -8,19 +8,16 @@ const Stores: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Filters & Search
+    const [searchTerm, setSearchTerm] = useState('');
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
     const [selectedCities, setSelectedCities] = useState<string[]>([]);
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
-    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    // UI State
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [regionDropdownOpen, setRegionDropdownOpen] = useState(false);
     const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
-
-    const statusOptions = ['Активный', 'Планируется', 'Ремонт'];
-
-    // Close dropdowns on outside click - simplified for now with just toggle logic
-    // but in a real app better to attach global click listener
 
     useEffect(() => {
         loadStores();
@@ -28,7 +25,6 @@ const Stores: React.FC = () => {
 
     const loadStores = async () => {
         setLoading(true);
-        setError(null);
         try {
             const data = await storesService.getStores();
             setStores(data);
@@ -39,93 +35,65 @@ const Stores: React.FC = () => {
         }
     };
 
-    const regionOptions = useMemo(() => {
-        const regions = new Set(stores.map(s => s.region).filter(Boolean));
-        return Array.from(regions).sort();
-    }, [stores]);
+    // Stats Calculation
+    const stats = useMemo(() => ({
+        total: stores.length,
+        active: stores.filter(s => s.status === 'Active').length,
+        planning: stores.filter(s => s.status === 'Planning').length,
+        renovation: stores.filter(s => s.status === 'Renovation').length
+    }), [stores]);
 
-    const cityOptions = useMemo(() => {
-        const cities = new Set(stores.map(s => s.city).filter(Boolean));
-        return Array.from(cities).sort();
-    }, [stores]);
+    // Options
+    const regionOptions = useMemo(() =>
+        Array.from(new Set(stores.map(s => s.region).filter(Boolean))).sort(),
+        [stores]);
 
+    const cityOptions = useMemo(() =>
+        Array.from(new Set(stores.map(s => s.city).filter(Boolean))).sort(),
+        [stores]);
+
+    // Filtering Logic
     const filteredStores = useMemo(() => {
         return stores.filter(store => {
+            // Search
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                const match = store.name.toLowerCase().includes(term) ||
+                    store.code.toLowerCase().includes(term) ||
+                    store.address.toLowerCase().includes(term) ||
+                    store.city.toLowerCase().includes(term);
+                if (!match) return false;
+            }
+
             // Status Filter
             if (selectedStatuses.length > 0) {
-                const statusMap: { [key: string]: string } = {
-                    'Активный': 'Active',
-                    'Планируется': 'Planning',
-                    'Ремонт': 'Renovation'
-                };
-                const storeStatusRu = Object.keys(statusMap).find(key => statusMap[key] === store.status);
-                if (!storeStatusRu || !selectedStatuses.includes(storeStatusRu)) {
-                    return false;
-                }
+
+                // Reverse lookup or map store status map
+                const mappingRev: { [key: string]: string } = { 'Active': 'Активный', 'Planning': 'Планируется', 'Renovation': 'Ремонт' };
+                const ruStatus = mappingRev[store.status];
+                if (!ruStatus || !selectedStatuses.includes(ruStatus)) return false;
             }
 
-            // Region Filter
-            if (selectedRegions.length > 0 && !selectedRegions.includes(store.region)) {
-                return false;
-            }
-
-            // City Filter
-            if (selectedCities.length > 0 && !selectedCities.includes(store.city)) {
-                return false;
-            }
+            // Region & City
+            if (selectedRegions.length > 0 && !selectedRegions.includes(store.region)) return false;
+            if (selectedCities.length > 0 && !selectedCities.includes(store.city)) return false;
 
             return true;
         });
-    }, [stores, selectedStatuses, selectedRegions, selectedCities]);
+    }, [stores, searchTerm, selectedStatuses, selectedRegions, selectedCities]);
 
     // Handlers
-    const toggleStatusDropdown = () => {
-        setStatusDropdownOpen(!statusDropdownOpen);
-        setRegionDropdownOpen(false);
-        setCityDropdownOpen(false);
-    };
-
-    const toggleRegionDropdown = () => {
-        setRegionDropdownOpen(!regionDropdownOpen);
-        setStatusDropdownOpen(false);
-        setCityDropdownOpen(false);
-    };
-
-    const toggleCityDropdown = () => {
-        setCityDropdownOpen(!cityDropdownOpen);
-        setStatusDropdownOpen(false);
-        setRegionDropdownOpen(false);
+    const handleStatClick = (type: 'total' | 'Active' | 'Planning' | 'Renovation') => {
+        if (type === 'total') {
+            setSelectedStatuses([]);
+        } else {
+            const map: any = { 'Active': 'Активный', 'Planning': 'Планируется', 'Renovation': 'Ремонт' };
+            setSelectedStatuses([map[type]]);
+        }
     };
 
     const toggleSelection = (list: string[], item: string, setList: (l: string[]) => void) => {
-        if (list.includes(item)) {
-            setList(list.filter(i => i !== item));
-        } else {
-            setList([...list, item]);
-        }
-    };
-
-    const getFilterLabel = (type: 'status' | 'region' | 'city') => {
-        let selected: string[] = [];
-        let label = '';
-        switch (type) {
-            case 'status': selected = selectedStatuses; label = 'Статус'; break;
-            case 'region': selected = selectedRegions; label = 'Регион'; break;
-            case 'city': selected = selectedCities; label = 'Город'; break;
-        }
-
-        if (selected.length === 0) return label;
-        if (selected.length === 1) return selected[0];
-        return `${label} (${selected.length})`;
-    };
-
-    const getStatusClass = (status: string) => {
-        switch (status) {
-            case 'Active': return 'status-active';
-            case 'Planning': return 'status-planning';
-            case 'Renovation': return 'status-renovation';
-            default: return '';
-        }
+        setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
     };
 
     const getStatusText = (status: string) => {
@@ -137,231 +105,217 @@ const Stores: React.FC = () => {
         }
     };
 
+    const getStatusClass = (status: string) => {
+        switch (status) {
+            case 'Active': return 'status-active';
+            case 'Planning': return 'status-planning';
+            case 'Renovation': return 'status-renovation';
+            default: return '';
+        }
+    };
+
+    // Icons (SVG Component Helpers)
+    const Icons = {
+        Search: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+        MapPin: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>,
+        Building: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="22.01"></line><line x1="15" y1="22" x2="15" y2="22.01"></line><line x1="12" y1="22" x2="12" y2="22.01"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>,
+        Maximize: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>,
+        Grid: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>,
+        List: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
+        Filter: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+    };
+
     if (loading) return (
-        <div className="stores-page">
-            <div className="loading">
-                <div className="spinner"></div>
-                <p>Загрузка...</p>
-            </div>
+        <div className="stores-page loading-state">
+            <div className="spinner"></div>
+            <p>Загрузка магазинов...</p>
         </div>
     );
 
     if (error) return (
-        <div className="stores-page">
-            <div className="error">
-                <p>{error}</p>
-                <button onClick={loadStores}>Попробовать снова</button>
-            </div>
+        <div className="stores-page error-state">
+            <p>{error}</p>
+            <button onClick={loadStores}>Повторить</button>
         </div>
     );
 
     return (
         <div className="stores-page">
-            <div className="page-header">
-                <div className="header-left">
-                    <h1 className="page-title">Магазины</h1>
-                    <div className="title-underline"></div>
-                </div>
 
-                {/* Filters */}
-                <div className="filters-section">
-                    {/* Status */}
-                    <div className="filter-dropdown">
-                        <button className="filter-dropdown-btn" onClick={toggleStatusDropdown}>
-                            {getFilterLabel('status')}
-                            <span className="dropdown-arrow">{statusDropdownOpen ? '▲' : '▼'}</span>
-                        </button>
-                        {statusDropdownOpen && (
-                            <div className="filter-dropdown-menu">
-                                {statusOptions.map(status => (
-                                    <div className="filter-option" key={status}>
-                                        <label className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedStatuses.includes(status)}
-                                                onChange={() => toggleSelection(selectedStatuses, status, setSelectedStatuses)}
-                                            />
-                                            <span>{status}</span>
-                                        </label>
-                                    </div>
-                                ))}
-                                {selectedStatuses.length > 0 && (
-                                    <div className="filter-actions">
-                                        <button className="clear-btn" onClick={() => setSelectedStatuses([])}>Очистить</button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+            {/* Top Controls - Stats + Search + Filters in 1 Row */}
+            <div className="top-controls-row">
+                {/* 1. Stats Overview (Left Side - Compact) */}
+                <div className="stats-inline">
+                    <div
+                        className={`stat-card-compact total ${selectedStatuses.length === 0 ? 'active-filter' : ''}`}
+                        onClick={() => handleStatClick('total')}
+                    >
+                        <div className="stat-label">Всего магазинов</div>
+                        <div className="stat-value">{stats.total}</div>
                     </div>
-
-                    {/* Region */}
-                    <div className="filter-dropdown">
-                        <button className="filter-dropdown-btn" onClick={toggleRegionDropdown}>
-                            {getFilterLabel('region')}
-                            <span className="dropdown-arrow">{regionDropdownOpen ? '▲' : '▼'}</span>
-                        </button>
-                        {regionDropdownOpen && (
-                            <div className="filter-dropdown-menu">
-                                {regionOptions.map(region => (
-                                    <div className="filter-option" key={region}>
-                                        <label className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedRegions.includes(region)}
-                                                onChange={() => toggleSelection(selectedRegions, region, setSelectedRegions)}
-                                            />
-                                            <span>{region}</span>
-                                        </label>
-                                    </div>
-                                ))}
-                                {selectedRegions.length > 0 && (
-                                    <div className="filter-actions">
-                                        <button className="clear-btn" onClick={() => setSelectedRegions([])}>Очистить</button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                    <div
+                        className={`stat-card-compact active ${selectedStatuses.includes('Активный') ? 'active-filter' : ''}`}
+                        onClick={() => handleStatClick('Active')}
+                    >
+                        <div className="stat-label">Активные</div>
+                        <div className="stat-value text-green">{stats.active}</div>
                     </div>
-
-                    {/* City */}
-                    <div className="filter-dropdown">
-                        <button className="filter-dropdown-btn" onClick={toggleCityDropdown}>
-                            {getFilterLabel('city')}
-                            <span className="dropdown-arrow">{cityDropdownOpen ? '▲' : '▼'}</span>
-                        </button>
-                        {cityDropdownOpen && (
-                            <div className="filter-dropdown-menu">
-                                {cityOptions.map(city => (
-                                    <div className="filter-option" key={city}>
-                                        <label className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedCities.includes(city)}
-                                                onChange={() => toggleSelection(selectedCities, city, setSelectedCities)}
-                                            />
-                                            <span>{city}</span>
-                                        </label>
-                                    </div>
-                                ))}
-                                {selectedCities.length > 0 && (
-                                    <div className="filter-actions">
-                                        <button className="clear-btn" onClick={() => setSelectedCities([])}>Очистить</button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                    <div
+                        className={`stat-card-compact planning ${selectedStatuses.includes('Планируется') ? 'active-filter' : ''}`}
+                        onClick={() => handleStatClick('Planning')}
+                    >
+                        <div className="stat-label">В плане</div>
+                        <div className="stat-value text-orange">{stats.planning}</div>
+                    </div>
+                    <div
+                        className={`stat-card-compact renovation ${selectedStatuses.includes('Ремонт') ? 'active-filter' : ''}`}
+                        onClick={() => handleStatClick('Renovation')}
+                    >
+                        <div className="stat-label">Ремонт</div>
+                        <div className="stat-value text-red">{stats.renovation}</div>
                     </div>
                 </div>
 
-                <div className="header-actions">
-                    <div className="view-toggle">
-                        <button
-                            className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
-                            onClick={() => setViewMode('table')}
-                        >
-                            <span className="icon">☰</span>
-                        </button>
-                        <button
-                            className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                            onClick={() => setViewMode('grid')}
-                        >
-                            <span className="icon">⊞</span>
-                        </button>
+                {/* Right Side: Search + Filters + View Toggle */}
+                <div className="controls-right">
+                    {/* Search */}
+                    <div className="search-wrapper">
+                        <div className="search-icon"><Icons.Search /></div>
+                        <input
+                            type="text"
+                            placeholder="Поиск по названию, коду, адресу..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="search-input"
+                        />
+                    </div>
+
+                    {/* Filters + View Toggle */}
+                    <div className="toolbar-actions">
+                        <div className="filters-group">
+                            {/* Region Filter */}
+                            <div className="filter-dropdown">
+                                <button className={`filter-btn ${regionDropdownOpen ? 'active' : ''}`} onClick={() => { setRegionDropdownOpen(!regionDropdownOpen); setCityDropdownOpen(false); }}>
+                                    Регион {selectedRegions.length > 0 && `(${selectedRegions.length})`}
+                                </button>
+                                {regionDropdownOpen && (
+                                    <div className="dropdown-menu">
+                                        {regionOptions.map(opt => (
+                                            <label key={opt} className="dropdown-item">
+                                                <input type="checkbox" checked={selectedRegions.includes(opt)} onChange={() => toggleSelection(selectedRegions, opt, setSelectedRegions)} />
+                                                <span>{opt}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* City Filter */}
+                            <div className="filter-dropdown">
+                                <button className={`filter-btn ${cityDropdownOpen ? 'active' : ''}`} onClick={() => { setCityDropdownOpen(!cityDropdownOpen); setRegionDropdownOpen(false); }}>
+                                    Город {selectedCities.length > 0 && `(${selectedCities.length})`}
+                                </button>
+                                {cityDropdownOpen && (
+                                    <div className="dropdown-menu">
+                                        {cityOptions.map(opt => (
+                                            <label key={opt} className="dropdown-item">
+                                                <input type="checkbox" checked={selectedCities.includes(opt)} onChange={() => toggleSelection(selectedCities, opt, setSelectedCities)} />
+                                                <span>{opt}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {(selectedStatuses.length > 0 || selectedRegions.length > 0 || selectedCities.length > 0) && (
+                                <button className="clear-all-btn" onClick={() => { setSelectedStatuses([]); setSelectedRegions([]); setSelectedCities([]); }}>
+                                    Сбросить
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="view-toggles">
+                            <button className={`toggle-view-btn ${viewMode === 'table' ? 'active' : ''}`} onClick={() => setViewMode('table')}>
+                                <Icons.List />
+                            </button>
+                            <button className={`toggle-view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
+                                <Icons.Grid />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="stores-container">
-                {viewMode === 'table' && filteredStores.length > 0 && (
-                    <div className="stores-table-container">
-                        <table className="compact-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '15%' }}>Название</th>
-                                    <th style={{ width: '10%' }}>Код</th>
-                                    <th style={{ width: '10%' }}>Статус</th>
-                                    <th style={{ width: '25%' }}>Адрес</th>
-                                    <th style={{ width: '15%' }}>Город</th>
-                                    <th style={{ width: '15%' }}>Регион</th>
-                                    <th style={{ width: '10%' }}>Площадь (Общ/Торг)</th>
+            {/* 3. Content */}
+            {viewMode === 'grid' ? (
+                <div className="stores-grid">
+                    {filteredStores.map(store => (
+                        <div className="store-card" key={store.id}>
+                            <div className="card-top">
+                                <span className="card-code">{store.code}</span>
+                                <span className={`card-status ${getStatusClass(store.status)}`}>
+                                    {getStatusText(store.status)}
+                                </span>
+                            </div>
+                            <h3 className="card-title">{store.name}</h3>
+
+                            <div className="card-details">
+                                <div className="detail-item">
+                                    <div className="detail-icon"><Icons.MapPin /></div>
+                                    <div className="detail-text" title={store.address}>{store.address}</div>
+                                </div>
+                                <div className="detail-row">
+                                    <div className="detail-item">
+                                        <div className="detail-icon"><Icons.Building /></div>
+                                        <div className="detail-text">{store.city}</div>
+                                    </div>
+                                    <div className="detail-item right">
+                                        <div className="detail-icon"><Icons.Maximize /></div>
+                                        <div className="detail-text">{store.totalArea} м²</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="table-wrapper">
+                    <table className="compact-table">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Код</th>
+                                <th>Статус</th>
+                                <th>Адрес</th>
+                                <th>Город</th>
+                                <th>Регион</th>
+                                <th>Площадь</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredStores.map(store => (
+                                <tr key={store.id}>
+                                    <td className="fw-600">{store.name}</td>
+                                    <td><span className="code-tag">{store.code}</span></td>
+                                    <td><span className={`status-dot ${getStatusClass(store.status)}`}></span> {getStatusText(store.status)}</td>
+                                    <td className="text-muted">{store.address}</td>
+                                    <td>{store.city}</td>
+                                    <td>{store.region}</td>
+                                    <td>{store.totalArea}</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {filteredStores.map(store => (
-                                    <tr key={store.id}>
-                                        <td className="name-cell">
-                                            <span className="store-name-text">{store.name}</span>
-                                        </td>
-                                        <td><span className="code-badge">{store.code}</span></td>
-                                        <td>
-                                            <span className={`status-badge-sm ${getStatusClass(store.status)}`}>
-                                                {getStatusText(store.status)}
-                                            </span>
-                                        </td>
-                                        <td className="address-cell" title={store.address}>
-                                            {store.address}
-                                        </td>
-                                        <td>{store.city}</td>
-                                        <td>{store.region}</td>
-                                        <td>
-                                            {store.totalArea} / {store.tradeArea} <span className="unit">м²</span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
-                {viewMode === 'grid' && filteredStores.length > 0 && (
-                    <div className="stores-grid">
-                        {filteredStores.map(store => (
-                            <div className="store-card" key={store.id}>
-                                <div className="store-header">
-                                    <h3 className="store-name">{store.name}</h3>
-                                    <span className={`store-status ${getStatusClass(store.status)}`}>
-                                        {getStatusText(store.status)}
-                                    </span>
-                                </div>
-
-                                <div className="store-info">
-                                    <div className="info-row">
-                                        <span className="info-label">Код:</span>
-                                        <span className="info-value">{store.code}</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span className="info-label">Адрес:</span>
-                                        <span className="info-value">{store.address}</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span className="info-label">Город:</span>
-                                        <span className="info-value">{store.city}</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span className="info-label">Регион:</span>
-                                        <span className="info-value">{store.region}</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span className="info-label">Общая площадь:</span>
-                                        <span className="info-value">{store.totalArea} м²</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span className="info-label">Торговая площадь:</span>
-                                        <span className="info-value">{store.tradeArea} м²</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {filteredStores.length === 0 && (
-                    <div className="empty-state">
-                        <p>Магазины не найдены</p>
-                    </div>
-                )}
-            </div>
+            {filteredStores.length === 0 && (
+                <div className="empty-state">
+                    <div className="empty-icon"><Icons.Search /></div>
+                    <h3>Ничего не найдено</h3>
+                    <p>Попробуйте изменить параметры поиска или фильтры</p>
+                </div>
+            )}
         </div>
     );
 };

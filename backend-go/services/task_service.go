@@ -14,9 +14,10 @@ type TaskService struct {
 	workflowService WorkflowServiceInterface
 	hub             *websocket.Hub
 	notifService    *NotificationService
+	activityService *ActivityService
 }
 
-func NewTaskService(repo repositories.TaskRepository, projectRepo repositories.ProjectRepository, userRepo repositories.UserRepository, workflowService WorkflowServiceInterface, hub *websocket.Hub, notifService *NotificationService) *TaskService {
+func NewTaskService(repo repositories.TaskRepository, projectRepo repositories.ProjectRepository, userRepo repositories.UserRepository, workflowService WorkflowServiceInterface, hub *websocket.Hub, notifService *NotificationService, activityService *ActivityService) *TaskService {
 	return &TaskService{
 		repo:            repo,
 		projectRepo:     projectRepo,
@@ -24,6 +25,7 @@ func NewTaskService(repo repositories.TaskRepository, projectRepo repositories.P
 		workflowService: workflowService,
 		hub:             hub,
 		notifService:    notifService,
+		activityService: activityService,
 	}
 }
 
@@ -39,7 +41,7 @@ func (s *TaskService) GetTask(id uint) (*models.ProjectTask, error) {
 	return s.repo.FindByID(id)
 }
 
-func (s *TaskService) CreateTask(task *models.ProjectTask) error {
+func (s *TaskService) CreateTask(task *models.ProjectTask, actorId uint) error {
 	now := time.Now().UTC()
 	task.CreatedAt = &now
 
@@ -76,20 +78,24 @@ func (s *TaskService) CreateTask(task *models.ProjectTask) error {
 		s.notifService.SendNotification(uint(*task.ResponsibleUserID), "Новая задача", message, "TASK_ASSIGNED", "")
 	}
 
+	// Log Activity
+	s.activityService.LogActivity(actorId, "создал задачу", "task", task.ID, task.Name, &task.ProjectID)
+
 	return nil
 }
 
-func (s *TaskService) UpdateTask(task *models.ProjectTask) error {
+func (s *TaskService) UpdateTask(task *models.ProjectTask, actorId uint) error {
 	now := time.Now().UTC()
 	task.UpdatedAt = &now
 	if err := s.repo.Update(task); err != nil {
 		return err
 	}
 	s.hub.BroadcastUpdate("TASK_UPDATED", task)
+	s.activityService.LogActivity(actorId, "обновил задачу", "task", task.ID, task.Name, &task.ProjectID)
 	return nil
 }
 
-func (s *TaskService) UpdateStatus(id uint, status string) error {
+func (s *TaskService) UpdateStatus(id uint, status string, actorId uint) error {
 	task, err := s.repo.FindByID(id)
 	if err != nil {
 		return err
@@ -126,6 +132,9 @@ func (s *TaskService) UpdateStatus(id uint, status string) error {
 	if status == "Завершена" && task.Code != nil {
 		go s.workflowService.ProcessTaskCompletion(task.ProjectID, *task.Code)
 	}
+
+	// Log Activity
+	s.activityService.LogActivity(actorId, "изменил статус на '"+status+"'", "task", task.ID, task.Name, &task.ProjectID)
 
 	return nil
 }
