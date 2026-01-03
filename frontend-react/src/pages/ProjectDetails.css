@@ -140,7 +140,7 @@
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    border: 1px solid #FFDD00 !important;
+    border: 1px solid #e2e8f0;
     width: 100%;
 }
 
@@ -282,7 +282,7 @@
     padding: 3px;
     border-radius: 8px;
     user-select: none;
-    border: 1px solid #FFDD00 !important;
+    border: 1px solid #e2e8f0;
 }
 
 .gantt-view-switcher button {
@@ -542,7 +542,7 @@
 
 .tasks-table-wrapper {
     margin-top: 16px;
-    border: 1px solid #FFDD00;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
     background: white;
     overflow: hidden;

@@ -185,6 +185,55 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         return paths;
     }, [taskPositions, taskMap]);
 
+    const getDeviationLabel = (t: GanttTask) => {
+        if (!t.normativeDeadline) return null;
+
+        const deadline = new Date(t.normativeDeadline);
+        deadline.setHours(23, 59, 59, 999);
+
+        let end = new Date();
+        if (t.status === 'Завершена' && t.actualDate) {
+            end = new Date(t.actualDate);
+        }
+        end.setHours(23, 59, 59, 999);
+
+        // Calculate diff: Deadline - End
+        // Positive = Early/Buffer (Green)
+        // Negative = Late/Overdue (Red)
+        const diffMs = deadline.getTime() - end.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return null;
+
+        // Only show completed deviations or overdue active tasks
+        // If task is active and diffDays > 0, it means we have time left (Plan > Now), 
+        // which is NOT a deviation, it's just schedule.
+        if (t.status !== 'Завершена' && diffDays > 0) return null;
+
+        const isPositive = diffDays > 0;
+        const color = isPositive ? '#22c55e' : '#b91c1c'; // brighter green : red-700
+        const sign = isPositive ? '+' : '';
+
+        return (
+            <span style={{
+                color: color,
+                backgroundColor: '#ffffff',
+                padding: '1px 6px',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: '800',
+                lineHeight: '1.2',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '24px'
+            }}>
+                {sign}{diffDays}
+            </span>
+        );
+    };
+
     const getDuration = (t: GanttTask) => {
         const start = t.plannedStartDate ? new Date(t.plannedStartDate) : (t.createdAt ? new Date(t.createdAt) : null);
         if (!start || !t.normativeDeadline) return 0;
@@ -299,6 +348,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                                 <div className="ganttRowContent">
                                     {pos && (
                                         <>
+                                            {/* Main Bar */}
                                             <div
                                                 className={`ganttBar ${getStatusClass(task.status)}`}
                                                 style={{ left: pos.left, width: pos.width }}
@@ -306,17 +356,35 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                                                 onMouseEnter={(e) => handleMouseEnter(e, task)}
                                                 onMouseLeave={() => setTooltip(null)}
                                             >
-                                                {getDuration(task)}
                                             </div>
-                                            {task.responsible && (
-                                                <div
-                                                    className="gantt-avatar"
-                                                    style={{ left: pos.left + pos.width + 12 }}
-                                                    title={task.responsible}
-                                                >
-                                                    {getInitials(task.responsible)}
-                                                </div>
-                                            )}
+
+                                            {/* Right-side Info: Deviation + Responsible Avatar */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                left: pos.left + pos.width + 12,
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                zIndex: 4,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 8
+                                            }}>
+                                                {getDeviationLabel(task)}
+
+                                                {task.responsible && (
+                                                    <div
+                                                        className="gantt-avatar"
+                                                        style={{
+                                                            position: 'static',
+                                                            transform: 'none',
+                                                            marginTop: 0
+                                                        }}
+                                                        title={task.responsible}
+                                                    >
+                                                        {getInitials(task.responsible)}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </>
                                     )}
                                 </div>
@@ -342,65 +410,53 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             </div>
 
             {/* Rich Tooltip Portal/Overlay */}
-            {tooltip && (
-                <div className="gantt-tooltip" style={{ top: tooltip.y, left: tooltip.x }}>
-                    <div className="tooltip-header">
-                        <span>{tooltip.task.name}</span>
-                        <span className="tooltip-status">{tooltip.task.status}</span>
-                    </div>
-                    <div className="tooltip-body">
-                        <div className="tooltip-row">
-                            <span className="tooltip-label">Старт:</span>
-                            <span className="tooltip-value">{formatDate(tooltip.task.plannedStartDate || tooltip.task.createdAt)}</span>
+            {
+                tooltip && (
+                    <div className="gantt-tooltip" style={{ top: tooltip.y, left: tooltip.x }}>
+                        <div className="tooltip-header">
+                            <span>{tooltip.task.name}</span>
+                            <span className="tooltip-status">{tooltip.task.status}</span>
                         </div>
-                        <div className="tooltip-row">
-                            <span className="tooltip-label">Финиш:</span>
-                            <span className="tooltip-value">{formatDate(tooltip.task.actualDate || tooltip.task.normativeDeadline)}</span>
-                        </div>
-                        <div className="tooltip-row">
-                            <span className="tooltip-label">Длительность:</span>
-                            <span className="tooltip-value">{getDuration(tooltip.task)} дн.</span>
-                        </div>
-
-                        {(() => {
-                            const dev = getDeviation(tooltip.task);
-                            if (dev !== null && dev !== 0) {
-                                const isLate = dev > 0;
-                                return (
-                                    <div className="tooltip-row">
-                                        <span className="tooltip-label">Отклонение:</span>
-                                        <span className="tooltip-value" style={{ color: isLate ? '#ef4444' : '#22c55e' }}>
-                                            {isLate ? `+${dev} дн.` : `${dev} дн.`}
-                                        </span>
-                                    </div>
-                                );
-                            }
-                            return null;
-                        })()}
-
-                        {tooltip.task.responsible && (
+                        <div className="tooltip-body">
                             <div className="tooltip-row">
-                                <span className="tooltip-label">Ответственный:</span>
-                                <span className="tooltip-value">{tooltip.task.responsible}</span>
+                                <span className="tooltip-label">Старт:</span>
+                                <span className="tooltip-value">{formatDate(tooltip.task.plannedStartDate || tooltip.task.createdAt)}</span>
                             </div>
-                        )}
+                            <div className="tooltip-row">
+                                <span className="tooltip-label">Финиш:</span>
+                                <span className="tooltip-value">{formatDate(tooltip.task.actualDate || tooltip.task.normativeDeadline)}</span>
+                            </div>
+                            <div className="tooltip-row">
+                                <span className="tooltip-label">Длительность:</span>
+                                <span className="tooltip-value">{getDuration(tooltip.task)} дн.</span>
+                            </div>
 
-                        {tooltip.task.dependsOn && tooltip.task.dependsOn.length > 0 && (
-                            <div style={{ marginTop: 8 }}>
-                                <span className="tooltip-label" style={{ display: 'block', marginBottom: 4 }}>Зависит от:</span>
-                                {tooltip.task.dependsOn.map(code => {
-                                    const dep = taskMap.get(code);
-                                    return (
-                                        <div key={code} style={{ fontSize: 10, color: '#64748b', marginLeft: 4 }}>
-                                            • {dep ? dep.name : code}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                            {/* Deviation Row Removed from Tooltip */}
+
+                            {tooltip.task.responsible && (
+                                <div className="tooltip-row">
+                                    <span className="tooltip-label">Ответственный:</span>
+                                    <span className="tooltip-value">{tooltip.task.responsible}</span>
+                                </div>
+                            )}
+
+                            {tooltip.task.dependsOn && tooltip.task.dependsOn.length > 0 && (
+                                <div style={{ marginTop: 8 }}>
+                                    <span className="tooltip-label" style={{ display: 'block', marginBottom: 4 }}>Зависит от:</span>
+                                    {tooltip.task.dependsOn.map(code => {
+                                        const dep = taskMap.get(code);
+                                        return (
+                                            <div key={code} style={{ fontSize: 10, color: '#64748b', marginLeft: 4 }}>
+                                                • {dep ? dep.name : code}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
