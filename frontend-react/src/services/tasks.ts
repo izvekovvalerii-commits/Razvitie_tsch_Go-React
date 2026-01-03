@@ -1,13 +1,22 @@
 import { ProjectTask } from '../types';
 import { apiFetch } from '../utils/api';
+import { checkApiResponse, serializeArrayField, deserializeArrayField } from '../utils/apiHelpers';
 
 // Helper to parse dependsOn from JSON string to array
 const parseTask = (task: any): ProjectTask => {
     return {
         ...task,
-        dependsOn: task.dependsOn && typeof task.dependsOn === 'string'
-            ? JSON.parse(task.dependsOn)
-            : task.dependsOn
+        dependsOn: deserializeArrayField(task.dependsOn)
+    };
+};
+
+// Helper to prepare task for sending to backend
+const preparTaskForApi = (task: any) => {
+    const { project, createdAt, updatedAt, ...cleanTask } = task;
+
+    return {
+        ...cleanTask,
+        dependsOn: serializeArrayField(cleanTask.dependsOn)
     };
 };
 
@@ -37,29 +46,14 @@ export const tasksService = {
     },
 
     updateTask: async (task: ProjectTask): Promise<ProjectTask> => {
-        const { project, createdAt, updatedAt, ...cleanTask } = task as any;
-
-        // Convert dependsOn array to JSON string for backend
-        const taskToSend = {
-            ...cleanTask,
-            dependsOn: Array.isArray(cleanTask.dependsOn)
-                ? JSON.stringify(cleanTask.dependsOn)
-                : cleanTask.dependsOn
-        };
+        const taskToSend = preparTaskForApi(task);
 
         const response = await apiFetch(`/tasks/${task.id}`, {
             method: 'PUT',
             body: JSON.stringify(taskToSend)
         });
 
-        if (!response.ok) {
-            let errorMsg = `Failed to update task ${task.id}`;
-            try {
-                const errorData = await response.json();
-                if (errorData.error) errorMsg = errorData.error;
-            } catch (e) { }
-            throw new Error(errorMsg);
-        }
+        await checkApiResponse(response, `Failed to update task ${task.id}`);
 
         if (response.status === 204) return task;
         const updatedTask = await response.json();
@@ -67,29 +61,14 @@ export const tasksService = {
     },
 
     createTask: async (task: ProjectTask): Promise<ProjectTask> => {
-        const { project, createdAt, updatedAt, ...cleanTask } = task as any;
-
-        // Convert dependsOn array to JSON string for backend
-        const taskToSend = {
-            ...cleanTask,
-            dependsOn: Array.isArray(cleanTask.dependsOn)
-                ? JSON.stringify(cleanTask.dependsOn)
-                : cleanTask.dependsOn
-        };
+        const taskToSend = preparTaskForApi(task);
 
         const response = await apiFetch('/tasks', {
             method: 'POST',
             body: JSON.stringify(taskToSend)
         });
 
-        if (!response.ok) {
-            let errorMsg = 'Failed to create task';
-            try {
-                const errorData = await response.json();
-                if (errorData.error) errorMsg = errorData.error;
-            } catch (e) { }
-            throw new Error(errorMsg);
-        }
+        await checkApiResponse(response, 'Failed to create task');
 
         const createdTask = await response.json();
         return parseTask(createdTask);
@@ -101,13 +80,6 @@ export const tasksService = {
             body: JSON.stringify({ status })
         });
 
-        if (!response.ok) {
-            let errorMsg = `Failed to update task status ${id}`;
-            try {
-                const errorData = await response.json();
-                if (errorData.error) errorMsg = errorData.error;
-            } catch (e) { }
-            throw new Error(errorMsg);
-        }
+        await checkApiResponse(response, `Failed to update task status ${id}`);
     }
 };

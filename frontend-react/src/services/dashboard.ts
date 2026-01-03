@@ -22,7 +22,7 @@ export const dashboardService = {
             projectId: item.projectId || 0,
             // Handle potentially nested store name
             projectName: item.project?.store?.name || `Проект #${item.projectId || 0}`,
-            timestamp: item.timestamp
+            timestamp: item.createdAt
         }));
     }
 };

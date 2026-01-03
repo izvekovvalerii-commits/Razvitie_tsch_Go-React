@@ -26,6 +26,14 @@ type WorkflowService struct {
 	projectRepo  repositories.ProjectRepository
 }
 
+func NewWorkflowService(userRepo repositories.UserRepository, projectRepo repositories.ProjectRepository, notifService *NotificationService) *WorkflowService {
+	return &WorkflowService{
+		userRepo:     userRepo,
+		projectRepo:  projectRepo,
+		notifService: notifService,
+	}
+}
+
 func (s *WorkflowService) SetUserRepo(repo repositories.UserRepository) {
 	s.userRepo = repo
 }

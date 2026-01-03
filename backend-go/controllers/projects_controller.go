@@ -130,7 +130,8 @@ func (ctrl *ProjectsController) DeleteProject(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.projectService.Delete(uint(id)); err != nil {
+	user := c.MustGet("user").(*models.User)
+	if err := ctrl.projectService.Delete(uint(id), user.ID); err != nil {
 		c.Error(middleware.NewAppError(http.StatusInternalServerError, "Не удалось удалить проект", err))
 		return
 	}

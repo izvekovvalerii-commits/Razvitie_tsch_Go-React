@@ -5,24 +5,8 @@ import { storesService } from '../services/stores';
 import { useAuth } from '../hooks/useAuth';
 import { Project, Store } from '../types';
 import { PROJECT_TYPES, PROJECT_STATUSES, CFO_LIST, MANAGERS } from '../constants';
+import { getAvatarColor, getProjectStatusClass } from '../utils/uiHelpers';
 import './Projects.css';
-
-// Helper function to generate avatar color based on name
-const getAvatarColor = (name: string | undefined): string => {
-    if (!name) return '#94a3b8';
-    const colors = [
-        '#3b82f6', // blue
-        '#10b981', // green
-        '#f59e0b', // amber
-        '#ef4444', // red
-        '#8b5cf6', // purple
-        '#ec4899', // pink
-        '#14b8a6', // teal
-        '#f97316', // orange
-    ];
-    const index = name.charCodeAt(0) % colors.length;
-    return colors[index];
-};
 
 const Projects: React.FC = () => {
     const navigate = useNavigate();
@@ -169,8 +153,7 @@ const Projects: React.FC = () => {
 
     const canCreate = hasPermission('project:create');
 
-    // Helpers
-    const getStatusClass = (status: string) => `status-${status.toLowerCase().replace(/ /g, '-')}`;
+
 
     if (loading) return <div className="projects-page"><p>Загрузка...</p></div>;
 
@@ -307,7 +290,7 @@ const Projects: React.FC = () => {
                                             </td>
                                             <td><span className="project-type-badge" style={{ fontSize: '10px' }}>{project.projectType}</span></td>
                                             <td>
-                                                <span className={`status-badge-sm ${getStatusClass(project.status)}`}>
+                                                <span className={`status-badge-sm ${getProjectStatusClass(project.status)}`}>
                                                     {project.status}
                                                 </span>
                                             </td>
@@ -342,7 +325,7 @@ const Projects: React.FC = () => {
                                     </div>
 
                                     <div className="card-status-section">
-                                        <div className={`status-indicator ${getStatusClass(project.status)}`}>
+                                        <div className={`status-indicator ${getProjectStatusClass(project.status)}`}>
                                             <span className="status-dot"></span>
                                             <span className="status-text">{project.status}</span>
                                         </div>

@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"portal-razvitie/events"
 	"portal-razvitie/models"
 	"portal-razvitie/repositories"
 
@@ -12,17 +13,15 @@ type ProjectService struct {
 	repo            repositories.ProjectRepository
 	workflowService WorkflowServiceInterface
 	db              *gorm.DB
-	notifService    *NotificationService
-	activityService *ActivityService
+	eventBus        events.EventBus
 }
 
-func NewProjectService(repo repositories.ProjectRepository, workflowService WorkflowServiceInterface, db *gorm.DB, notifService *NotificationService, activityService *ActivityService) *ProjectService {
+func NewProjectService(repo repositories.ProjectRepository, workflowService WorkflowServiceInterface, db *gorm.DB, eventBus events.EventBus) *ProjectService {
 	return &ProjectService{
 		repo:            repo,
 		workflowService: workflowService,
 		db:              db,
-		notifService:    notifService,
-		activityService: activityService,
+		eventBus:        eventBus,
 	}
 }
 
@@ -46,18 +45,18 @@ func (s *ProjectService) CreateProject(project *models.Project, actorId uint) er
 	})
 
 	if err == nil {
-		s.activityService.LogActivity(actorId, "создал проект", "project", project.ID, fmt.Sprintf("Проект #%d", project.ID), &project.ID)
-		for _, task := range createdTasks {
-			// Отправляем уведомление только для задач со статусом "Назначена"
-			if task.Status == "Назначена" && task.ResponsibleUserID != nil {
-				// Получаем название проекта через Store
-				projectName := "неизвестном проекте"
-				if loadedProject, err := s.repo.FindByID(project.ID); err == nil && loadedProject.Store != nil {
-					projectName = "проекте " + loadedProject.Store.Name
-				}
-				message := "Вам назначена задача: " + task.Name + " в " + projectName
-				s.notifService.SendNotification(uint(*task.ResponsibleUserID), "Новая задача", message, "TASK_ASSIGNED", fmt.Sprintf("/projects/%d", project.ID))
-			}
+		s.eventBus.Publish(events.ProjectCreatedEvent{
+			Project: project,
+			ActorID: actorId,
+		})
+
+		// Notify about tasks only if tasks were created
+		if len(createdTasks) > 0 {
+			s.eventBus.Publish(events.ProjectTasksGeneratedEvent{
+				Tasks:     createdTasks,
+				ProjectID: project.ID,
+				ActorID:   actorId,
+			})
 		}
 	}
 
@@ -76,22 +75,52 @@ func (s *ProjectService) Update(project *models.Project, actorId uint) error {
 	if err := s.repo.Update(project); err != nil {
 		return err
 	}
-	s.activityService.LogActivity(actorId, "обновил проект", "project", project.ID, fmt.Sprintf("Проект #%d", project.ID), &project.ID)
+	s.eventBus.Publish(events.ProjectUpdatedEvent{
+		Project: project,
+		ActorID: actorId,
+	})
 	return nil
 }
 
 func (s *ProjectService) UpdateStatus(id uint, status string, actorId uint) error {
 	name := fmt.Sprintf("Проект #%d", id)
-	if p, err := s.repo.FindByID(id); err == nil && p.Store != nil {
-		name = p.Store.Name
+	// Try to find project first to get existing status and name
+	p, err := s.repo.FindByID(id)
+	oldStatus := ""
+	if err == nil {
+		oldStatus = p.Status
+		if p.Store != nil {
+			name = p.Store.Name
+		}
 	}
+
 	if err := s.repo.UpdateStatus(id, status); err != nil {
 		return err
 	}
-	s.activityService.LogActivity(actorId, "изменил статус на '"+status+"'", "project", id, name, &id)
+
+	s.eventBus.Publish(events.ProjectStatusChangedEvent{
+		ProjectID:   id,
+		ProjectName: name,
+		OldStatus:   oldStatus,
+		NewStatus:   status,
+		ActorID:     actorId,
+	})
 	return nil
 }
 
-func (s *ProjectService) Delete(id uint) error {
+func (s *ProjectService) Delete(id uint, actorId uint) error {
+	project, err := s.repo.FindByID(id)
+	name := fmt.Sprintf("Проект #%d", id)
+	if err == nil {
+		if project.Store != nil {
+			name = project.Store.Name
+		}
+		// Publish event BEFORE deletion because repository might use soft delete or hard delete
+		s.eventBus.Publish(events.ProjectDeletedEvent{
+			ProjectID:   id,
+			ProjectName: name,
+			ActorID:     actorId,
+		})
+	}
 	return s.repo.Delete(id)
 }

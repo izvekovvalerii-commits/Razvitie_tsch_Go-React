@@ -4,6 +4,8 @@ import (
 	"portal-razvitie/config"
 	"portal-razvitie/controllers"
 	"portal-razvitie/database"
+	"portal-razvitie/events"
+	"portal-razvitie/listeners"
 	"portal-razvitie/middleware"
 	"portal-razvitie/models"
 	"portal-razvitie/repositories"
@@ -26,7 +28,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 		hub.ServeWs(c, uint(uid))
 	})
 
-	// Initialize Repositories & Services
+	// Initialize Repositories
 	projectRepo := repositories.NewProjectRepository(database.DB)
 	taskRepo := repositories.NewTaskRepository(database.DB)
 	storeRepo := repositories.NewStoreRepository(database.DB)
@@ -34,16 +36,31 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 	userRepo := repositories.NewUserRepository(database.DB)
 	activityRepo := repositories.NewUserActivityRepository(database.DB)
 
+	// Services
 	notifService := services.NewNotificationService(notifRepo, hub)
 	activityService := services.NewActivityService(activityRepo)
-	projectService := services.NewProjectService(projectRepo, workflowService, database.DB, notifService, activityService)
-	taskService := services.NewTaskService(taskRepo, projectRepo, userRepo, workflowService, hub, notifService, activityService)
+
+	// Event Bus & Listeners
+	eventBus := events.NewEventBus()
+
+	activityListener := listeners.NewActivityListener(activityService)
+	activityListener.Register(eventBus)
+
+	notificationListener := listeners.NewNotificationListener(notifService, projectRepo)
+	notificationListener.Register(eventBus)
+
+	webSocketListener := listeners.NewWebSocketListener(hub)
+	webSocketListener.Register(eventBus)
+
+	workflowService = services.NewWorkflowService(userRepo, projectRepo, notifService)
+	taskService := services.NewTaskService(taskRepo, projectRepo, userRepo, workflowService, eventBus)
+	projectService := services.NewProjectService(projectRepo, workflowService, database.DB, eventBus)
 	storeService := services.NewStoreService(storeRepo)
 
 	// Initialize controllers
 	storesController := controllers.NewStoresController(storeService)
-	projectsController := controllers.NewProjectsController(projectService)
 	tasksController := controllers.NewTasksController(taskService)
+	projectsController := controllers.NewProjectsController(projectService)
 	documentsController := controllers.NewDocumentsController(cfg)
 	notifController := controllers.NewNotificationController(notifService)
 	rbacController := controllers.NewRBACController()
@@ -93,6 +110,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 			tasks.POST("", middleware.RequirePermission(models.PermTaskCreate), tasksController.CreateTask)
 			tasks.PUT("/:id", middleware.RequireTaskEditPermission(), tasksController.UpdateTask)
 			tasks.PATCH("/:id/status", middleware.RequireTaskEditPermission(), tasksController.UpdateTaskStatus)
+			tasks.DELETE("/:id", middleware.RequireTaskEditPermission(), tasksController.DeleteTask)
 			tasks.DELETE("/cleanup-old", tasksController.CleanupOldTasks)
 		}
 

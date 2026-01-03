@@ -14,6 +14,7 @@ type TaskRepository interface {
 	Update(task *models.ProjectTask) error
 	DeleteOld() (int64, error)
 	FindRecent(limit int) ([]models.ProjectTask, error)
+	Delete(id uint) error
 }
 
 type taskRepository struct {
@@ -59,4 +60,8 @@ func (r *taskRepository) FindRecent(limit int) ([]models.ProjectTask, error) {
 	var tasks []models.ProjectTask
 	err := r.db.Order("id DESC").Limit(limit).Find(&tasks).Error
 	return tasks, err
+}
+
+func (r *taskRepository) Delete(id uint) error {
+	return r.db.Delete(&models.ProjectTask{}, id).Error
 }

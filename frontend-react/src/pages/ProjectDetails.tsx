@@ -36,7 +36,7 @@ const CalendarIcon = () => (
 const ProjectDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { currentUser, setCurrentUser, availableUsers, hasPermission } = useAuth();
+    const { currentUser, hasPermission } = useAuth();
 
     // State
     const [project, setProject] = useState<Project | null>(null);
@@ -484,23 +484,11 @@ const ProjectDetails: React.FC = () => {
                         </div>
                         <div className="info-item-inline">
                             <label>РЕГИОН</label>
-                            {/* Demo User Switcher */}
-                            <div style={{ marginLeft: "auto", marginRight: 20, display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", padding: "4px 8px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
-                                <span style={{ fontSize: 13, color: "#64748b" }}>Вы:</span>
-                                <select
-                                    value={currentUser?.id}
-                                    onChange={(e) => {
-                                        const user = availableUsers.find(u => u.id === Number(e.target.value));
-                                        if (user) setCurrentUser(user);
-                                    }}
-                                    style={{ border: "none", background: "transparent", fontWeight: 500, cursor: "pointer", outline: "none" }}
-                                >
-                                    {availableUsers.map(u => (
-                                        <option key={u.id} value={u.id}>{u.role} - {u.name}</option>
-                                    ))}
-                                </select>
-                            </div>
                             <span className="value">{project.region || project.store?.region || '-'}</span>
+                        </div>
+                        <div className="info-item-inline">
+                            <label>ОТВЕТСТВЕННЫЙ</label>
+                            <span className="value">{project.mp || '-'}</span>
                         </div>
                         <div className="info-item-inline">
                             <label>АДРЕС</label>
@@ -532,14 +520,16 @@ const ProjectDetails: React.FC = () => {
                         <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#475569' }}>
                             <span style={{ fontSize: 20 }}>👥</span> Команда проекта
                         </h3>
-                        <div className="responsible-list">
+                        <div className="responsible-list-unified">
                             {projectTeam.map((member, idx) => (
-                                <div key={idx} className="team-card">
-                                    <div className="avatar" style={{ backgroundColor: member.color, boxShadow: `0 4px 10px ${member.color}40` }}>{member.initials}</div>
-                                    <div className="team-info">
-                                        <div className="team-role">{member.role}</div>
+                                <div key={idx} className="team-card-row">
+                                    <div className="avatar-small" style={{ backgroundColor: member.color }}>{member.initials}</div>
+                                    <div className="team-info-col">
                                         <div className="team-name">{member.name}</div>
-                                        <div className="team-phone">{member.phone}</div>
+                                        <div className="team-meta-row">
+                                            <span className="team-role-badge">{member.role}</span>
+                                            <span className="team-phone">{member.phone}</span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -571,18 +561,18 @@ const ProjectDetails: React.FC = () => {
                                 </label>
                             )}
                         </div>
-                        <div className="docs-list">
+                        <div className="docs-list-unified">
                             {projectDocs.map((doc) => (
-                                <div key={doc.id} className="attachment-item">
-                                    <div className="file-icon">
+                                <div key={doc.id} className="doc-card-row">
+                                    <div className={`doc-icon-wrapper ${doc.name.endsWith('.xls') || doc.name.endsWith('.xlsx') ? 'xls' : 'pdf'}`}>
                                         {doc.name.endsWith('.pdf') ? '📄' : doc.name.endsWith('.xls') || doc.name.endsWith('.xlsx') ? '📊' : '📁'}
                                     </div>
-                                    <div className="attachment-info">
-                                        <div className="doc-name" onClick={() => downloadDoc(doc)} title={doc.name}>{doc.name}</div>
-                                        <div className="doc-meta">{new Date(doc.uploadDate).toLocaleDateString()} • {(doc.size / 1024).toFixed(0)} KB</div>
+                                    <div className="doc-info-col">
+                                        <div className="doc-name-text" onClick={() => downloadDoc(doc)} title={doc.name}>{doc.name}</div>
+                                        <div className="doc-meta-text">{new Date(doc.uploadDate).toLocaleDateString()} • {(doc.size / 1024).toFixed(0)} KB</div>
                                     </div>
                                     {hasPermission('project:edit') && (
-                                        <button className="btn-delete-doc" onClick={() => deleteDoc(doc)} title="Удалить">×</button>
+                                        <button className="btn-delete-doc-mini" onClick={() => deleteDoc(doc)} title="Удалить">×</button>
                                     )}
                                 </div>
                             ))}
@@ -667,12 +657,10 @@ const ProjectDetails: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="col-responsible">
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <span style={{ fontSize: 16 }}>👤</span>
-                                                <span>{task.responsible}</span>
+                                            <div className="resp-avatar-mini" style={{ background: task.responsible ? '#e2e8f0' : '#f1f5f9' }}>
+                                                {task.responsible ? task.responsible.charAt(0) : '?'}
                                             </div>
-
-
+                                            <span>{task.responsible}</span>
                                         </div>
                                         <div className="col-deadline">
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

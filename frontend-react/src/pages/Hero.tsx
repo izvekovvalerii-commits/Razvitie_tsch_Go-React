@@ -5,6 +5,17 @@ import { tasksService } from '../services/tasks';
 import { projectsService } from '../services/projects';
 import { dashboardService } from '../services/dashboard';
 import { ProjectTask, Project, UserActivity } from '../types';
+import {
+    filterUserTasks,
+    filterOverdueTasks,
+    filterExpiringSoonTasks,
+    getDaysUntilDeadline
+} from '../utils/taskUtils';
+import {
+    getDetailedStatusColor,
+    getRoleColor,
+    getTaskStatusClass
+} from '../utils/uiHelpers';
 import './Hero.css';
 
 interface Stat {
@@ -13,6 +24,7 @@ interface Stat {
     percent: number;
     color: string;
 }
+
 
 const Hero: React.FC = () => {
     const { currentUser } = useAuth();
@@ -28,6 +40,11 @@ const Hero: React.FC = () => {
     const [overdueCount, setOverdueCount] = useState(0);
     const [expiringSoonCount, setExpiringSoonCount] = useState(0);
     const [loading, setLoading] = useState(true);
+
+    // UI States
+    const [taskTab, setTaskTab] = useState<'all' | 'active' | 'urgent'>('all');
+
+    const [projectMap, setProjectMap] = useState<{ [key: number]: string }>({});
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -49,9 +66,26 @@ const Hero: React.FC = () => {
                 dashboardService.getRecentActivity()
             ]);
 
+            // Build Project Map
+            const pMap: { [key: number]: string } = {};
+            allProjects.forEach(p => {
+                if (p.store) {
+                    pMap[p.id] = `${p.store.name}`;
+                } else {
+                    pMap[p.id] = `Проект #${p.id}`;
+                }
+            });
+            setProjectMap(pMap);
+
             processTasks(allTasks);
             processProjects(allProjects, allTasks);
-            setRecentActivities(activities);
+            // Ensure dates are parsed
+            const parsedActivities = activities.map(a => ({
+                ...a,
+                // Handle various date formats if needed, or assume backend sends ISO
+                timestamp: a.timestamp
+            }));
+            setRecentActivities(parsedActivities);
         } catch (error) {
             console.error('Error loading dashboard data:', error);
         } finally {
@@ -62,47 +96,20 @@ const Hero: React.FC = () => {
     const processTasks = (allTasks: ProjectTask[]) => {
         if (!currentUser) return;
 
-        let userTasks = [];
-        if (currentUser.role === 'БА') {
-            userTasks = allTasks;
-        } else {
-            userTasks = allTasks.filter(task =>
-                task.responsibleUserId === currentUser.id ||
-                task.responsible === currentUser.name ||
-                task.responsible === currentUser.role
-            );
-        }
-
+        const userTasks = filterUserTasks(allTasks, currentUser);
         userTasks.sort((a, b) => new Date(a.normativeDeadline).getTime() - new Date(b.normativeDeadline).getTime());
 
         setMyTasks(userTasks);
         setNewTasks(userTasks.filter(t => t.status === 'Назначена'));
         setActiveTasks(userTasks.filter(t => t.status === 'В работе'));
 
-        // Calculate overdue
-        const now = new Date();
-        const overdue = userTasks.filter(task => {
-            const deadline = new Date(task.normativeDeadline);
-            return deadline < now && task.status !== 'Выполнена' && task.status !== 'Завершена';
-        });
+        const overdue = filterOverdueTasks(userTasks);
         setOverdueCount(overdue.length);
 
-        // Calculate expiring soon
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-
-        const dayAfterTomorrow = new Date(tomorrow);
-        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
-
-        const expiring = userTasks.filter(task => {
-            if (task.status === 'Выполнена' || task.status === 'Завершена') return false;
-            const deadline = new Date(task.normativeDeadline);
-            deadline.setHours(0, 0, 0, 0);
-            return deadline >= tomorrow && deadline < dayAfterTomorrow;
-        });
+        const expiring = filterExpiringSoonTasks(userTasks);
         setExpiringSoonCount(expiring.length);
     };
+
 
     const processProjects = (allProjects: Project[], userTasks: ProjectTask[]) => {
         if (!currentUser) return [];
@@ -116,7 +123,6 @@ const Hero: React.FC = () => {
             myProjects = allProjects.filter(p => myProjectIds.has(p.id));
         }
 
-        // Calculate stats
         const active = myProjects.filter(p => ['Active', 'Открыт'].includes(p.status)).length;
         const planning = myProjects.filter(p => ['Planning', 'Создан', 'Аудит', 'Бюджет сформирован', 'Утвержден ИК', 'Подписан договор'].includes(p.status)).length;
         const renovation = myProjects.filter(p => ['Renovation', 'СМР', 'Ремонт', 'Рср'].includes(p.status)).length;
@@ -145,105 +151,88 @@ const Hero: React.FC = () => {
         return myProjects;
     };
 
-
-
-    // Helpers
-    const getDetailedStatusColor = (status: string): string => {
-        const s = status.toLowerCase();
-        if (s.includes('открыт') || s.includes('active')) return '#4CAF50';
-        if (s.includes('смр') || s.includes('ремонт') || s.includes('renovation')) return '#F44336';
-        if (s.includes('аудит')) return '#FF9800';
-        if (s.includes('бюджет')) return '#FFC107';
-        if (s.includes('утвержден')) return '#FFB74D';
-        if (s.includes('договор')) return '#FB8C00';
-        return '#E0E0E0';
-    };
-
-    const getRoleColor = (role: string): string => {
-        const colors: { [key: string]: string } = {
-            'МП': '#42A5F5',
-            'МРиЗ': '#66BB6A',
-            'БА': '#FFA726',
-            'НОР': '#AB47BC',
-            'РНР': '#EF5350'
-        };
-        return colors[role] || '#999';
-    };
-
-    const getStatusClass = (status: string): string => {
-        return status.toLowerCase().replace(' ', '-');
-    };
-
-    const getDaysWord = (days: number): string => {
-        const absDays = Math.abs(days);
-        if (absDays % 10 === 1 && absDays % 100 !== 11) {
-            return 'день';
-        } else if ([2, 3, 4].includes(absDays % 10) && ![12, 13, 14].includes(absDays % 100)) {
-            return 'дня';
-        } else {
-            return 'дней';
-        }
-    };
-
-    const getDaysUntilDeadline = (task: ProjectTask) => {
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-
-        const deadline = new Date(task.normativeDeadline);
-        deadline.setHours(0, 0, 0, 0);
-
-        const diffTime = deadline.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        let text = '';
-        let isOverdue = false;
-        let isUrgent = false;
-
-        if (diffDays < 0) {
-            text = `${Math.abs(diffDays)} ${getDaysWord(Math.abs(diffDays))} назад`;
-            isOverdue = true;
-        } else if (diffDays === 0) {
-            text = 'Сегодня';
-            isUrgent = true;
-        } else if (diffDays === 1) {
-            text = 'Завтра';
-            isUrgent = true;
-        } else if (diffDays <= 3) {
-            text = `${diffDays} ${getDaysWord(diffDays)}`;
-            isUrgent = true;
-        } else {
-            text = `${diffDays} ${getDaysWord(diffDays)}`;
-        }
-
-        return { text, isOverdue, isUrgent };
-    };
-
-    const getTimeAgo = (timestamp: string): string => {
-        const now = new Date();
-        const date = new Date(timestamp);
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-
-        if (diffMins < 1) return 'только что';
-        if (diffMins < 60) return `${diffMins} мин назад`;
-        if (diffHours < 24) return `${diffHours} ч назад`;
-        return `${diffDays} дн назад`;
-    };
-
-    // Navigation
+    // --- Navigation Helpers ---
     const navigateToTasksWithFilter = (status: string) => {
         navigate(`/tasks?status=${status}`);
     };
 
-    const navigateToOverdueTasks = () => {
-        navigate('/tasks?overdue=true');
+    const navigateToOverdueTasks = () => navigate('/tasks?overdue=true');
+    const navigateToExpiringSoonTasks = () => navigate('/tasks?expiringSoon=true');
+
+
+    // --- Render Helpers ---
+
+    const getFilteredTasks = () => {
+        switch (taskTab) {
+            case 'active': return activeTasks;
+            case 'urgent': return myTasks.filter(t => getDaysUntilDeadline(t).isUrgent || getDaysUntilDeadline(t).isOverdue);
+            default: return myTasks;
+        }
     };
 
-    const navigateToExpiringSoonTasks = () => {
-        navigate('/tasks?expiringSoon=true');
+    const renderActivityFeed = () => {
+        if (loading) {
+            return Array(6).fill(0).map((_, i) => (
+                <div key={i} className="skeleton-row">
+                    <div className="skeleton skeleton-circle"></div>
+                    <div className="skeleton skeleton-text long"></div>
+                </div>
+            ));
+        }
+
+        if (recentActivities.length === 0) {
+            return <div className="empty-text">Нет активности</div>;
+        }
+
+        const groups: { [key: string]: UserActivity[] } = { 'Сегодня': [], 'Вчера': [], 'Ранее': [] };
+
+        recentActivities.slice(0, 15).forEach(act => {
+            const date = new Date(act.timestamp);
+            const today = new Date();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (date.toDateString() === today.toDateString()) {
+                groups['Сегодня'].push(act);
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                groups['Вчера'].push(act);
+            } else {
+                groups['Ранее'].push(act);
+            }
+        });
+
+        return Object.entries(groups).map(([label, activities]) => {
+            if (activities.length === 0) return null;
+            return (
+                <div key={label} className="activity-group">
+                    <div className="feed-date-header">{label}</div>
+                    {activities.map(activity => (
+                        <div key={activity.id} className="feed-item">
+                            <div className="feed-line"></div>
+                            <div className="feed-avatar" style={{ background: getRoleColor(activity.userRole) }}>
+                                {activity.userName.charAt(0)}
+                            </div>
+                            <div className="feed-content">
+                                <div className="feed-header-row">
+                                    <span className="feed-user">{activity.userName}</span>
+                                    <span className="feed-time-compact">{new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                <div className="feed-text-action">
+                                    {activity.action}
+                                    {activity.projectName && <span className="feed-project-tag">{activity.projectName}</span>}
+                                </div>
+                                <Link to={`/projects/${activity.projectId}`} className="feed-link">
+                                    {activity.entityName || activity.taskName || `Элемент #${activity.entityId}`}
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        });
     };
+
+    const filteredTasksInView = getFilteredTasks().slice(0, 6);
 
     return (
         <div className="dashboard-page">
@@ -259,11 +248,17 @@ const Hero: React.FC = () => {
                             {currentTime.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </div>
                         <div className="live-divider">•</div>
-                        <div className="tasks-count">У вас {activeTasks.length} задач в работе</div>
+                        <div className="tasks-count">
+                            {activeTasks.length > 0 ? `Активных задач: ${activeTasks.length}` : 'Все задачи выполнены'}
+                        </div>
                     </div>
                 </div>
                 <div className="quick-actions">
-                    <Link to="/projects" className="action-btn primary">
+                    <button className="action-btn secondary" onClick={() => navigate('/tasks')}>
+                        <span className="icon">📋</span> Мои задачи
+                    </button>
+                    <Link to="/projects/new" className="action-btn primary">
+                        {/* Assuming /projects/new exists or opens modal, otherwise /projects */}
                         <span className="icon">🏗️</span> Новый проект
                     </Link>
                 </div>
@@ -349,7 +344,6 @@ const Hero: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Detailed Stats List */}
                             <div className="detailed-stats-list">
                                 {detailedStats.map(stat => (
                                     <div className="stat-row" key={stat.name}>
@@ -378,33 +372,65 @@ const Hero: React.FC = () => {
                     <div className="content-block tasks-list-block">
                         <div className="block-header-modern">
                             <h3>Мои задачи</h3>
-                            <Link to="/tasks" className="link-simple">Все задачи →</Link>
+                            <div className="task-tabs-container">
+                                <button
+                                    className={`tab-btn ${taskTab === 'all' ? 'active' : ''}`}
+                                    onClick={() => setTaskTab('all')}
+                                >
+                                    Все
+                                </button>
+                                <button
+                                    className={`tab-btn ${taskTab === 'active' ? 'active' : ''}`}
+                                    onClick={() => setTaskTab('active')}
+                                >
+                                    В работе
+                                </button>
+                                <button
+                                    className={`tab-btn ${taskTab === 'urgent' ? 'active' : ''}`}
+                                    onClick={() => setTaskTab('urgent')}
+                                >
+                                    Срочные
+                                </button>
+                            </div>
                         </div>
                         <div className="task-list-modern">
                             {loading ? Array(5).fill(0).map((_, i) => (
                                 <div key={i} className="skeleton skeleton-list-item"></div>
                             )) : (
                                 <>
-                                    {myTasks.slice(0, 6).map(task => {
+                                    {filteredTasksInView.length > 0 ? filteredTasksInView.map(task => {
                                         const deadlineInfo = getDaysUntilDeadline(task);
+                                        const projectName = projectMap[task.projectId] || `Проект #${task.projectId}`;
+                                        const statusClass = getTaskStatusClass(task.status);
+
                                         return (
-                                            <Link key={task.id} to={`/projects/${task.projectId}`} className="task-row">
-                                                <div className={`task-status-line ${getStatusClass(task.status)}`}></div>
-                                                <div className="task-main-info">
-                                                    <div className="task-title">{task.name}</div>
-                                                    <div className="task-meta">
-                                                        <span>#{task.projectId}</span> • <span>{task.taskType}</span>
+                                            <Link key={task.id} to={`/projects/${task.projectId}`} className={`task-card ${statusClass}-border`}>
+                                                <div className="task-card-content">
+                                                    <div className="task-card-header">
+                                                        <span className="task-project-name">{projectName}</span>
+                                                        <span className="task-id-badge">#{task.id}</span>
                                                     </div>
-                                                </div>
-                                                <div className="task-right">
-                                                    <div className={`task-deadline-badge ${deadlineInfo.isUrgent ? 'urgent' : ''} ${deadlineInfo.isOverdue ? 'overdue' : ''}`}>
-                                                        {deadlineInfo.text}
+                                                    <div className="task-title-large">{task.name}</div>
+                                                    <div className="task-footer">
+                                                        <div className="task-badges">
+                                                            <span className="task-type-pill">{task.taskType}</span>
+                                                            {/* <span className={`status-pill ${statusClass}`}>{task.status}</span> */}
+                                                        </div>
+                                                        <div className={`task-deadline-badge ${deadlineInfo.isUrgent ? 'urgent' : ''} ${deadlineInfo.isOverdue ? 'overdue' : ''}`}>
+                                                            {deadlineInfo.text}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </Link>
                                         );
-                                    })}
-                                    {myTasks.length === 0 && <div className="empty-text">Нет активных задач</div>}
+                                    }) : (
+                                        <div className="empty-state-tasks">
+                                            {taskTab === 'urgent' ? 'Нет срочных задач 🎉' : 'Задач не найдено'}
+                                        </div>
+                                    )}
+                                    <div className="view-all-link-row">
+                                        <Link to="/tasks" className="link-simple">Перейти ко всем задачам →</Link>
+                                    </div>
                                 </>
                             )}
                         </div>
@@ -416,38 +442,10 @@ const Hero: React.FC = () => {
                     {/* Activity Feed */}
                     <div className="content-block activity-feed-block">
                         <div className="block-header-modern">
-                            <h3>Последняя активность</h3>
+                            <h3>Лента событий</h3>
                         </div>
                         <div className="activity-feed">
-                            {loading ? Array(6).fill(0).map((_, i) => (
-                                <div key={i} className="skeleton-row">
-                                    <div className="skeleton skeleton-circle"></div>
-                                    <div className="skeleton skeleton-text long"></div>
-                                </div>
-                            )) : (
-                                <>
-                                    {recentActivities.slice(0, 10).map(activity => (
-                                        <div key={activity.id} className="feed-item">
-                                            <div className="feed-avatar" style={{ background: getRoleColor(activity.userRole) }}>
-                                                {activity.userName.charAt(0)}
-                                            </div>
-                                            <div className="feed-content">
-                                                <div className="feed-text">
-                                                    <strong>{activity.userName}</strong> {activity.action}
-                                                </div>
-                                                {activity.projectName && (
-                                                    <div className="feed-project-name">{activity.projectName}</div>
-                                                )}
-                                                <Link to={`/projects/${activity.projectId}`} className="feed-link">
-                                                    {activity.taskName}
-                                                </Link>
-                                                <div className="feed-time">{getTimeAgo(activity.timestamp)}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {recentActivities.length === 0 && <div className="empty-text">Нет активности</div>}
-                                </>
-                            )}
+                            {renderActivityFeed()}
                         </div>
                     </div>
                 </div>

@@ -1,16 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { authService } from '../services/auth';
+import { User } from '../types';
 
 // Типы пользователей
 export type UserRole = 'МП' | 'МРиЗ' | 'БА' | 'admin';
 
-export interface User {
-    id: number;
-    name: string;
-    role: UserRole;
-    avatar: string;
-    permissions?: string[];
-}
 
 interface AuthContextType {
     currentUser: User | null;

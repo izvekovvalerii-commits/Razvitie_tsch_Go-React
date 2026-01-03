@@ -145,6 +145,25 @@ func (tc *TasksController) CleanupOldTasks(c *gin.Context) {
 	})
 }
 
+// DeleteTask godoc
+// @Summary Delete a task
+// @Router /api/tasks/{id} [delete]
+func (tc *TasksController) DeleteTask(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	user := c.MustGet("user").(*models.User)
+	if err := tc.taskService.DeleteTask(uint(id), user.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task deleted"})
+}
+
 // DebugAssignments godoc
 // @Summary Debug task assignments
 // @Router /api/tasks/debug-assignments [get]

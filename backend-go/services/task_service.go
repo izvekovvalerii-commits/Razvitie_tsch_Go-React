@@ -1,9 +1,9 @@
 package services
 
 import (
+	"portal-razvitie/events"
 	"portal-razvitie/models"
 	"portal-razvitie/repositories"
-	"portal-razvitie/websocket"
 	"time"
 )
 
@@ -12,20 +12,16 @@ type TaskService struct {
 	projectRepo     repositories.ProjectRepository
 	userRepo        repositories.UserRepository
 	workflowService WorkflowServiceInterface
-	hub             *websocket.Hub
-	notifService    *NotificationService
-	activityService *ActivityService
+	eventBus        events.EventBus
 }
 
-func NewTaskService(repo repositories.TaskRepository, projectRepo repositories.ProjectRepository, userRepo repositories.UserRepository, workflowService WorkflowServiceInterface, hub *websocket.Hub, notifService *NotificationService, activityService *ActivityService) *TaskService {
+func NewTaskService(repo repositories.TaskRepository, projectRepo repositories.ProjectRepository, userRepo repositories.UserRepository, workflowService WorkflowServiceInterface, eventBus events.EventBus) *TaskService {
 	return &TaskService{
 		repo:            repo,
 		projectRepo:     projectRepo,
 		userRepo:        userRepo,
 		workflowService: workflowService,
-		hub:             hub,
-		notifService:    notifService,
-		activityService: activityService,
+		eventBus:        eventBus,
 	}
 }
 
@@ -66,20 +62,8 @@ func (s *TaskService) CreateTask(task *models.ProjectTask, actorId uint) error {
 		return err
 	}
 
-	s.hub.BroadcastUpdate("TASK_UPDATED", task)
-
-	// Send notification only for tasks with status "Назначена"
-	if task.Status == "Назначена" && task.ResponsibleUserID != nil {
-		projectName := "неизвестном проекте"
-		if project, err := s.projectRepo.FindByID(task.ProjectID); err == nil && project.Store != nil {
-			projectName = "проекте " + project.Store.Name
-		}
-		message := "Вам назначена задача: " + task.Name + " в " + projectName
-		s.notifService.SendNotification(uint(*task.ResponsibleUserID), "Новая задача", message, "TASK_ASSIGNED", "")
-	}
-
-	// Log Activity
-	s.activityService.LogActivity(actorId, "создал задачу", "task", task.ID, task.Name, &task.ProjectID)
+	// Publish Event
+	s.eventBus.Publish(events.TaskCreatedEvent{Task: task, ActorID: actorId})
 
 	return nil
 }
@@ -90,8 +74,8 @@ func (s *TaskService) UpdateTask(task *models.ProjectTask, actorId uint) error {
 	if err := s.repo.Update(task); err != nil {
 		return err
 	}
-	s.hub.BroadcastUpdate("TASK_UPDATED", task)
-	s.activityService.LogActivity(actorId, "обновил задачу", "task", task.ID, task.Name, &task.ProjectID)
+
+	s.eventBus.Publish(events.TaskUpdatedEvent{Task: task, ActorID: actorId})
 	return nil
 }
 
@@ -101,11 +85,12 @@ func (s *TaskService) UpdateStatus(id uint, status string, actorId uint) error {
 		return err
 	}
 
+	oldStatus := task.Status
 	now := time.Now().UTC()
 	task.Status = status
 	task.UpdatedAt = &now
 
-	if status == "Завершена" {
+	if status == models.TaskStatusCompleted {
 		if err := s.workflowService.ValidateTaskCompletion(*task); err != nil {
 			return err
 		}
@@ -116,27 +101,37 @@ func (s *TaskService) UpdateStatus(id uint, status string, actorId uint) error {
 		return err
 	}
 
-	s.hub.BroadcastUpdate("TASK_UPDATED", task)
+	// Publish Event
+	s.eventBus.Publish(events.TaskStatusChangedEvent{
+		TaskID:    task.ID,
+		TaskName:  task.Name,
+		ProjectID: task.ProjectID,
+		OldStatus: oldStatus,
+		NewStatus: status,
+		ActorID:   actorId,
+		Task:      task,
+	})
 
-	// Notify responsible user only when task status becomes "Назначена"
-	if status == "Назначена" && task.ResponsibleUserID != nil {
-		projectName := "неизвестном проекте"
-		if project, err := s.projectRepo.FindByID(task.ProjectID); err == nil && project.Store != nil {
-			projectName = "проекте " + project.Store.Name
-		}
-		message := "Вам назначена задача: " + task.Name + " в " + projectName
-		s.notifService.SendNotification(uint(*task.ResponsibleUserID), "Новая задача", message, "TASK_ASSIGNED", "")
-	}
-
-	// Trigger workflow
-	if status == "Завершена" && task.Code != nil {
+	// Trigger workflow logic directly (core business logic)
+	// Alternatively, this could be moved to a WorkflowListener listening to TaskStatusChanged
+	if status == models.TaskStatusCompleted && task.Code != nil {
 		go s.workflowService.ProcessTaskCompletion(task.ProjectID, *task.Code)
 	}
 
-	// Log Activity
-	s.activityService.LogActivity(actorId, "изменил статус на '"+status+"'", "task", task.ID, task.Name, &task.ProjectID)
-
 	return nil
+}
+
+func (s *TaskService) DeleteTask(id uint, actorId uint) error {
+	task, err := s.repo.FindByID(id)
+	if err == nil {
+		s.eventBus.Publish(events.TaskDeletedEvent{
+			TaskID:    id,
+			TaskName:  task.Name,
+			ProjectID: task.ProjectID,
+			ActorID:   actorId,
+		})
+	}
+	return s.repo.Delete(id)
 }
 
 func (s *TaskService) CleanupOldTasks() (int64, error) {

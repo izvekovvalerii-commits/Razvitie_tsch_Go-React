@@ -20,8 +20,20 @@ func (r *UserActivityRepository) Create(activity *models.UserActivity) error {
 
 func (r *UserActivityRepository) GetRecent(limit int) ([]models.UserActivity, error) {
 	var activities []models.UserActivity
-	// Preload User and Project (Store inside project if needed for name?)
-	// Let's preload basic relations.
-	err := r.DB.Preload("User").Preload("Project").Preload("Project.Store").Order("created_at desc").Limit(limit).Find(&activities).Error
-	return activities, err
+
+	err := r.DB.Model(&models.UserActivity{}).
+		Preload("User").
+		Preload("Project").
+		Preload("Project.Store").
+		Order("\"CreatedAt\" desc").
+		Limit(limit).
+		Find(&activities).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return activities, nil
 }
+
+// Updated

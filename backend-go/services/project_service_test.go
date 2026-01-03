@@ -2,13 +2,14 @@ package services_test
 
 import (
 	"errors"
+	"portal-razvitie/events"
+	"portal-razvitie/listeners"
 	"testing"
 	"time"
 
 	"portal-razvitie/models"
 	"portal-razvitie/repositories"
 	"portal-razvitie/services"
-	"portal-razvitie/websocket"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
@@ -42,7 +43,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	}
 
 	// Migrate schema
-	err = db.AutoMigrate(&models.Project{}, &models.Store{}, &models.ProjectTask{}, &models.Notification{})
+	err = db.AutoMigrate(&models.Project{}, &models.Store{}, &models.ProjectTask{}, &models.Notification{}, &models.UserActivity{})
 	if err != nil {
 		t.Fatalf("failed to migrate schema: %v", err)
 	}
@@ -55,12 +56,15 @@ func TestProjectService_CreateProject_Success(t *testing.T) {
 	repo := repositories.NewProjectRepository(db)
 	mockWorkflow := &MockWorkflowService{ShouldFail: false}
 
-	notifRepo := repositories.NewNotificationRepository(db)
-	hub := websocket.NewHub()
-	go hub.Run()
-	notifService := services.NewNotificationService(notifRepo, hub)
+	activityRepo := repositories.NewUserActivityRepository(db)
+	activityService := services.NewActivityService(activityRepo)
 
-	service := services.NewProjectService(repo, mockWorkflow, db, notifService)
+	// Event Bus
+	eventBus := events.NewEventBus()
+	listener := listeners.NewActivityListener(activityService)
+	listener.Register(eventBus)
+
+	service := services.NewProjectService(repo, mockWorkflow, db, eventBus)
 
 	newProject := &models.Project{
 		Region: "Test Region",
@@ -68,7 +72,7 @@ func TestProjectService_CreateProject_Success(t *testing.T) {
 		Status: "Создан",
 	}
 
-	err := service.CreateProject(newProject)
+	err := service.CreateProject(newProject, 1)
 
 	assert.NoError(t, err)
 	assert.NotZero(t, newProject.ID)
@@ -77,6 +81,13 @@ func TestProjectService_CreateProject_Success(t *testing.T) {
 	var count int64
 	db.Model(&models.Project{}).Count(&count)
 	assert.Equal(t, int64(1), count)
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify Activity Logged
+	var activityCount int64
+	db.Model(&models.UserActivity{}).Count(&activityCount)
+	assert.Equal(t, int64(1), activityCount)
 }
 
 func TestProjectService_CreateProject_RollbackOnError(t *testing.T) {
@@ -86,18 +97,14 @@ func TestProjectService_CreateProject_RollbackOnError(t *testing.T) {
 	// Configure mock to fail
 	mockWorkflow := &MockWorkflowService{ShouldFail: true}
 
-	notifRepo := repositories.NewNotificationRepository(db)
-	hub := websocket.NewHub()
-	go hub.Run()
-	notifService := services.NewNotificationService(notifRepo, hub)
-
-	service := services.NewProjectService(repo, mockWorkflow, db, notifService)
+	eventBus := events.NewEventBus()
+	service := services.NewProjectService(repo, mockWorkflow, db, eventBus)
 
 	newProject := &models.Project{
 		Region: "Test Region",
 	}
 
-	err := service.CreateProject(newProject)
+	err := service.CreateProject(newProject, 1)
 
 	// Expect error
 	assert.Error(t, err)
@@ -107,4 +114,42 @@ func TestProjectService_CreateProject_RollbackOnError(t *testing.T) {
 	var count int64
 	db.Model(&models.Project{}).Count(&count)
 	assert.Equal(t, int64(0), count, "Project should have been rolled back")
+}
+
+func TestProjectService_Delete_LogsActivity(t *testing.T) {
+	db := setupTestDB(t)
+	if !db.Migrator().HasTable(&models.UserActivity{}) {
+		t.Fatal("Table UserActivity does not exist after migration")
+	}
+	repo := repositories.NewProjectRepository(db)
+	mockWorkflow := &MockWorkflowService{ShouldFail: false}
+
+	activityRepo := repositories.NewUserActivityRepository(db)
+	activityService := services.NewActivityService(activityRepo)
+
+	eventBus := events.NewEventBus()
+	listener := listeners.NewActivityListener(activityService)
+	listener.Register(eventBus)
+
+	service := services.NewProjectService(repo, mockWorkflow, db, eventBus)
+
+	// Create project first
+	project := &models.Project{Region: "Test", Status: "Создан"}
+	service.CreateProject(project, 1)
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Delete
+	err := service.Delete(project.ID, 1)
+	assert.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify Activity Logged (1 create + 1 delete = 2)
+	var activities []models.UserActivity
+	db.Find(&activities)
+	assert.Equal(t, 2, len(activities))
+	if len(activities) > 1 {
+		assert.Equal(t, "удалил проект", activities[1].Action)
+	}
 }

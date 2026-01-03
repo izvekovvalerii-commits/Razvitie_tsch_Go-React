@@ -4,24 +4,19 @@ import { tasksService } from '../services/tasks';
 import { useAuth } from '../hooks/useAuth';
 import { ProjectTask } from '../types';
 import { TASK_STATUSES, TASK_TYPES } from '../constants';
+import {
+    isUserTask,
+    isOverdueTask,
+    isExpiringSoonTask,
+    getDeadlineClass,
+    getTaskDeviation
+} from '../utils/taskUtils';
+import {
+    getAvatarColor,
+    getInitials,
+    getTaskStatusClass
+} from '../utils/uiHelpers';
 import './Tasks.css';
-
-// Helper function to generate avatar color based on name
-const getAvatarColor = (name: string | undefined): string => {
-    if (!name) return '#94a3b8';
-    const colors = [
-        '#3b82f6', // blue
-        '#10b981', // green
-        '#f59e0b', // amber
-        '#ef4444', // red
-        '#8b5cf6', // purple
-        '#ec4899', // pink
-        '#14b8a6', // teal
-        '#f97316', // orange
-    ];
-    const index = name.charCodeAt(0) % colors.length;
-    return colors[index];
-};
 
 const Tasks: React.FC = () => {
     const navigate = useNavigate();
@@ -80,14 +75,8 @@ const Tasks: React.FC = () => {
 
     const filteredTasks = useMemo(() => {
         let result = allTasks.filter(task => {
-            // Access check logic (simplified for consistent UI)
-            const matchUser = !currentUser ||
-                currentUser.role === 'БА' ||
-                task.responsibleUserId === currentUser.id ||
-                task.responsible === currentUser.name ||
-                task.responsible === currentUser.role;
-
-            // Simplified: show all if no filtering logic strictly required, but let's keep it open for demo
+            // Access check using utility function
+            const matchUser = !currentUser || isUserTask(task, currentUser);
 
             const matchSearch = !searchQuery ||
                 task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,27 +86,11 @@ const Tasks: React.FC = () => {
             const matchType = !typeFilter || task.taskType === typeFilter;
             const matchResp = !responsibleFilter || getResponsibleDisplay(task) === responsibleFilter;
 
-            let matchOverdue = true;
-            if (showOnlyOverdue) {
-                const deadline = new Date(task.normativeDeadline);
-                const now = new Date();
-                deadline.setHours(0, 0, 0, 0);
-                now.setHours(0, 0, 0, 0);
-                matchOverdue = deadline < now && task.status !== 'Выполнена' && task.status !== 'Завершена';
-            }
+            // Use utility functions for overdue and expiring checks
+            const matchOverdue = !showOnlyOverdue || isOverdueTask(task);
+            const matchExpiringSoon = !showOnlyExpiringSoon || isExpiringSoonTask(task);
 
-            let matchExpiringSoon = true;
-            if (showOnlyExpiringSoon) {
-                const now = new Date();
-                now.setHours(0, 0, 0, 0);
-                const afterTommorow = new Date(now);
-                afterTommorow.setDate(now.getDate() + 2); // simplistic check
-                const deadline = new Date(task.normativeDeadline);
-                deadline.setHours(0, 0, 0, 0);
-                matchExpiringSoon = deadline >= now && deadline <= afterTommorow;
-            }
-
-            return matchSearch && matchStatus && matchType && matchResp && matchOverdue && matchExpiringSoon;
+            return matchUser && matchSearch && matchStatus && matchType && matchResp && matchOverdue && matchExpiringSoon;
         });
 
         // Sort
@@ -149,48 +122,7 @@ const Tasks: React.FC = () => {
         }
     };
 
-    const getStatusClass = (status: string) => {
-        const map: { [key: string]: string } = {
-            'Назначена': 'status-assigned',
-            'В работе': 'status-in-progress',
-            'Завершена': 'status-completed',
-            'Срыв сроков': 'status-overdue'
-        };
-        return map[status] || '';
-    };
 
-    const getDeadlineClass = (deadlineStr: string) => {
-        if (!deadlineStr) return '';
-        const deadline = new Date(deadlineStr);
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        deadline.setHours(0, 0, 0, 0);
-
-        if (deadline < now) return 'deadline-overdue';
-
-        const threeDaysFromNow = new Date(now);
-        threeDaysFromNow.setDate(now.getDate() + 3);
-
-        if (deadline <= threeDaysFromNow) return 'deadline-soon';
-        return '';
-    };
-
-    const getTaskDeviation = (task: ProjectTask) => {
-        if (!task || !task.normativeDeadline || !task.actualDate) return undefined;
-        const dayMs = 1000 * 60 * 60 * 24;
-        const planDate = new Date(task.normativeDeadline);
-        const actualDate = new Date(task.actualDate);
-        const diff = (planDate.getTime() - actualDate.getTime()) / dayMs;
-
-        if (diff > 0) return { days: Math.round(diff), type: 'early' as const };
-        if (diff < 0) return { days: Math.round(Math.abs(diff)), type: 'late' as const };
-        return undefined;
-    };
-
-    const getInitials = (name: string) => {
-        if (!name) return '?';
-        return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
-    };
 
     const openEditModal = (task: ProjectTask) => {
         // Navigate to project details 
@@ -215,13 +147,7 @@ const Tasks: React.FC = () => {
 
     const totalTasks = allTasks.length;
     const inProgressCount = allTasks.filter(t => t.status === 'В работе').length;
-    const overdueCount = allTasks.filter(t => {
-        const deadline = new Date(t.normativeDeadline);
-        const now = new Date();
-        deadline.setHours(0, 0, 0, 0);
-        now.setHours(0, 0, 0, 0);
-        return deadline < now && t.status !== 'Выполнена' && t.status !== 'Завершена';
-    }).length;
+    const overdueCount = allTasks.filter(isOverdueTask).length;
 
     return (
         <div className="tasks-page">
@@ -321,7 +247,7 @@ const Tasks: React.FC = () => {
                                     <td><span className="project-id-badge">#{task.projectId}</span></td>
                                     <td className="text-cell">{task.taskType}</td>
                                     <td>
-                                        <span className={`status-badge ${getStatusClass(task.status)}`}>
+                                        <span className={`status-badge ${getTaskStatusClass(task.status)}`}>
                                             {task.status}
                                         </span>
                                     </td>

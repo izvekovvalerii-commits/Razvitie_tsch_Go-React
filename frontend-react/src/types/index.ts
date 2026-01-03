@@ -1,10 +1,12 @@
 export interface User {
     id: number;
     name: string;
-    email: string;
+    email?: string;
     role: string;
+    avatar?: string;
     permissions?: string[];
 }
+
 
 export interface Notification {
     id: number;
@@ -109,10 +111,13 @@ export interface UserActivity {
     userName: string;
     userRole: string;
     action: string;
-    taskId: number;
-    taskName: string;
-    projectId: number;
+    taskId?: number; // Make optional as action might not be on a task
+    taskName?: string;
+    projectId?: number;
     timestamp: string;
     details?: string;
     projectName?: string;
+    entityId?: number;
+    entityName?: string;
+    entityType?: string;
 }
