@@ -41,7 +41,7 @@ func (l *NotificationListener) OnProjectTasksGenerated(event events.Event) error
 
 func (l *NotificationListener) checkAndNotifyAssignment(task *models.ProjectTask) error {
 	// Логика: Если статус "Назначена" и есть ответственный -> уведомляем
-	if task.Status == models.TaskStatusAssigned && task.ResponsibleUserID != nil {
+	if task.Status == string(models.TaskStatusAssigned) && task.ResponsibleUserID != nil {
 		projectName := "неизвестном проекте"
 		if project, err := l.projectRepo.FindByID(task.ProjectID); err == nil && project.Store != nil {
 			projectName = "проекте " + project.Store.Name

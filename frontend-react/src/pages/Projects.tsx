@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Project, Store } from '../types';
 import { PROJECT_TYPES, PROJECT_STATUSES, CFO_LIST, MANAGERS } from '../constants';
 import { getAvatarColor, getProjectStatusClass } from '../utils/uiHelpers';
+import { Modal } from '../components/common/Modal';
 import './Projects.css';
 
 const Projects: React.FC = () => {
@@ -376,70 +377,70 @@ const Projects: React.FC = () => {
             )}
 
             {/* Create Modal */}
-            {showCreateModal && (
-                <div className="modal" onClick={closeCreateModal}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h2>Создать новый проект</h2>
-                        <div className="form-group">
-                            <label>Выберите магазин *</label>
-                            <select
-                                value={selectedStoreId || ''}
-                                onChange={e => handleStoreSelect(e.target.value)}
-                            >
-                                <option value="">-- Выберите магазин --</option>
-                                {stores.map(s => <option key={s.id} value={s.id}>{s.name} - {s.city}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Тип проекта *</label>
-                            <select
-                                value={newProject.projectType}
-                                onChange={e => setNewProject({ ...newProject, projectType: e.target.value })}
-                            >
-                                <option value="">-- Выберите тип --</option>
-                                {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Код ГИС *</label>
-                            <input
-                                type="text"
-                                value={newProject.gisCode}
-                                onChange={e => setNewProject({ ...newProject, gisCode: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label>ЦФО *</label>
-                            <select
-                                value={newProject.cfo || ''}
-                                onChange={e => setNewProject({ ...newProject, cfo: e.target.value })}
-                            >
-                                <option value="">-- Выберите ЦФО --</option>
-                                {CFO_LIST.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Менеджер проекта (МП) *</label>
-                            <select
-                                value={newProject.mp}
-                                onChange={e => setNewProject({ ...newProject, mp: e.target.value })}
-                            >
-                                <option value="">-- Выберите менеджера --</option>
-                                {MANAGERS.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="modal-actions">
-                            <button className="btn-cancel" onClick={closeCreateModal}>Отмена</button>
-                            <button className="btn-create" onClick={handleCreateProject}>Создать</button>
-                        </div>
-                    </div>
+            <Modal
+                isOpen={showCreateModal}
+                onClose={closeCreateModal}
+                title="Создать новый проект"
+                footer={(
+                    <>
+                        <button className="btn-cancel" onClick={closeCreateModal}>Отмена</button>
+                        <button className="btn-create" onClick={handleCreateProject}>Создать</button>
+                    </>
+                )}
+            >
+                <div className="form-group">
+                    <label>Выберите магазин *</label>
+                    <select
+                        value={selectedStoreId || ''}
+                        onChange={e => handleStoreSelect(e.target.value)}
+                    >
+                        <option value="">-- Выберите магазин --</option>
+                        {stores.map(s => <option key={s.id} value={s.id}>{s.name} - {s.city}</option>)}
+                    </select>
                 </div>
-            )}
+
+                <div className="form-group">
+                    <label>Тип проекта *</label>
+                    <select
+                        value={newProject.projectType}
+                        onChange={e => setNewProject({ ...newProject, projectType: e.target.value })}
+                    >
+                        <option value="">-- Выберите тип --</option>
+                        {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>Код ГИС *</label>
+                    <input
+                        type="text"
+                        value={newProject.gisCode}
+                        onChange={e => setNewProject({ ...newProject, gisCode: e.target.value })}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>ЦФО *</label>
+                    <select
+                        value={newProject.cfo || ''}
+                        onChange={e => setNewProject({ ...newProject, cfo: e.target.value })}
+                    >
+                        <option value="">-- Выберите ЦФО --</option>
+                        {CFO_LIST.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>Менеджер проекта (МП) *</label>
+                    <select
+                        value={newProject.mp}
+                        onChange={e => setNewProject({ ...newProject, mp: e.target.value })}
+                    >
+                        <option value="">-- Выберите менеджера --</option>
+                        {MANAGERS.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                    </select>
+                </div>
+            </Modal>
         </div>
     );
 };

@@ -214,7 +214,10 @@ const Hero: React.FC = () => {
                             </div>
                             <div className="feed-content">
                                 <div className="feed-header-row">
-                                    <span className="feed-user">{activity.userName}</span>
+                                    <div className="feed-user-info">
+                                        <span className="feed-user">{activity.userName}</span>
+                                        <span className="feed-role">{activity.userRole}</span>
+                                    </div>
                                     <span className="feed-time-compact">{new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                                 <div className="feed-text-action">

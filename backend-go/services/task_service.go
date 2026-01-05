@@ -8,20 +8,29 @@ import (
 )
 
 type TaskService struct {
-	repo            repositories.TaskRepository
-	projectRepo     repositories.ProjectRepository
-	userRepo        repositories.UserRepository
-	workflowService WorkflowServiceInterface
-	eventBus        events.EventBus
+	repo                 repositories.TaskRepository
+	projectRepo          repositories.ProjectRepository
+	userRepo             repositories.UserRepository
+	workflowService      WorkflowServiceInterface
+	eventBus             events.EventBus
+	projectStatusService *ProjectStatusService
 }
 
-func NewTaskService(repo repositories.TaskRepository, projectRepo repositories.ProjectRepository, userRepo repositories.UserRepository, workflowService WorkflowServiceInterface, eventBus events.EventBus) *TaskService {
+func NewTaskService(
+	repo repositories.TaskRepository,
+	projectRepo repositories.ProjectRepository,
+	userRepo repositories.UserRepository,
+	workflowService WorkflowServiceInterface,
+	eventBus events.EventBus,
+	projectStatusService *ProjectStatusService,
+) *TaskService {
 	return &TaskService{
-		repo:            repo,
-		projectRepo:     projectRepo,
-		userRepo:        userRepo,
-		workflowService: workflowService,
-		eventBus:        eventBus,
+		repo:                 repo,
+		projectRepo:          projectRepo,
+		userRepo:             userRepo,
+		workflowService:      workflowService,
+		eventBus:             eventBus,
+		projectStatusService: projectStatusService,
 	}
 }
 
@@ -90,7 +99,7 @@ func (s *TaskService) UpdateStatus(id uint, status string, actorId uint) error {
 	task.Status = status
 	task.UpdatedAt = &now
 
-	if status == models.TaskStatusCompleted {
+	if status == string(models.TaskStatusCompleted) {
 		if err := s.workflowService.ValidateTaskCompletion(*task); err != nil {
 			return err
 		}
@@ -114,8 +123,22 @@ func (s *TaskService) UpdateStatus(id uint, status string, actorId uint) error {
 
 	// Trigger workflow logic directly (core business logic)
 	// Alternatively, this could be moved to a WorkflowListener listening to TaskStatusChanged
-	if status == models.TaskStatusCompleted && task.Code != nil {
-		go s.workflowService.ProcessTaskCompletion(task.ProjectID, *task.Code)
+	if status == string(models.TaskStatusCompleted) && task.Code != nil {
+		if err := s.workflowService.ProcessTaskCompletion(task.ProjectID, *task.Code); err != nil {
+			// Log error but don't fail the request? Or fail?
+			// Ideally just log, as the status update itself succeeded.
+			// logger.Error("Workflow processing failed", err)
+		}
+	}
+
+	// Автоматически проверяем и обновляем статус проекта при изменении задачи
+	if s.projectStatusService != nil {
+		go func() {
+			if err := s.projectStatusService.UpdateProjectStatus(task.ProjectID, actorId); err != nil {
+				// Логируем ошибку, но не блокируем основной флоу
+				// logger.Warn("Failed to auto-update project status:", err)
+			}
+		}()
 	}
 
 	return nil

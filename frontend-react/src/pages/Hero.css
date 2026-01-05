@@ -677,10 +677,28 @@
     margin-bottom: 4px;
 }
 
+.feed-user-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .feed-user {
     font-weight: 700;
     font-size: 13px;
     color: #1e293b;
+}
+
+.feed-role {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1px solid #e2e8f0;
 }
 
 .feed-time-compact {

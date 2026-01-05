@@ -13,9 +13,20 @@ export const getAvatarColor = (name: string | undefined): string => {
         '#ec4899', // pink
         '#14b8a6', // teal
         '#f97316', // orange
+        '#6366f1', // indigo
+        '#84cc16', // lime
+        '#06b6d4', // cyan
+        '#d946ef', // fuchsia
     ];
 
-    const index = name.charCodeAt(0) % colors.length;
+    // Простой хеш-функция для лучшего распределения цветов
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        hash = hash & hash; // Convert to 32bit integer
+    }
+
+    const index = Math.abs(hash) % colors.length;
     return colors[index];
 };
 
@@ -41,7 +52,9 @@ export const getTaskStatusClass = (status: string): string => {
         'В работе': 'status-in-progress',
         'Завершена': 'status-completed',
         'Выполнена': 'status-completed',
-        'Срыв сроков': 'status-overdue'
+        'Срыв сроков': 'status-overdue',
+        'Ожидание': 'status-ожидание',
+        'На согласовании': 'status-на-согласовании'
     };
 
     return map[status] || `status-${status.toLowerCase().replace(/\s+/g, '-')}`;

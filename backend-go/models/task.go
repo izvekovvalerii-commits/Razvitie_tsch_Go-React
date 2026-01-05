@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"time"
 )
 
@@ -45,4 +46,52 @@ type ProjectTask struct {
 
 func (ProjectTask) TableName() string {
 	return "ProjectTasks"
+}
+
+// Validate проверяет корректность данных задачи
+func (t *ProjectTask) Validate() error {
+	// Проверка обязательных полей
+	if t.ProjectID == 0 {
+		return errors.New("projectId обязателен")
+	}
+
+	if t.Name == "" {
+		return errors.New("название задачи обязательно")
+	}
+
+	if t.NormativeDeadline.IsZero() {
+		return errors.New("нормативный срок обязателен")
+	}
+
+	// Валидация статуса задачи
+	if t.Status != "" && !IsValidTaskStatus(t.Status) {
+		return errors.New("недопустимый статус задачи")
+	}
+
+	// Проверка логики дат
+	if t.ActualDate != nil && t.ActualDate.Before(t.NormativeDeadline) {
+		// Задача выполнена раньше срока - это нормально
+	}
+
+	return nil
+}
+
+// SetDefaultValues устанавливает значения по умолчанию
+func (t *ProjectTask) SetDefaultValues() {
+	if t.Status == "" {
+		t.Status = string(TaskStatusAssigned)
+	}
+}
+
+// IsCompleted проверяет, завершена ли задача
+func (t *ProjectTask) IsCompleted() bool {
+	return t.Status == string(TaskStatusCompleted)
+}
+
+// IsOverdue проверяет, просрочена ли задача
+func (t *ProjectTask) IsOverdue() bool {
+	if t.IsCompleted() {
+		return false
+	}
+	return time.Now().After(t.NormativeDeadline)
 }

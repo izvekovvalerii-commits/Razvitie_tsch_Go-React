@@ -35,10 +35,12 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 	notifRepo := repositories.NewNotificationRepository(database.DB)
 	userRepo := repositories.NewUserRepository(database.DB)
 	activityRepo := repositories.NewUserActivityRepository(database.DB)
+	commentRepo := repositories.NewCommentRepository(database.DB)
 
 	// Services
 	notifService := services.NewNotificationService(notifRepo, hub)
 	activityService := services.NewActivityService(activityRepo)
+	commentService := services.NewCommentService(commentRepo, taskRepo, notifService)
 
 	// Event Bus & Listeners
 	eventBus := events.NewEventBus()
@@ -52,20 +54,24 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 	webSocketListener := listeners.NewWebSocketListener(hub)
 	webSocketListener.Register(eventBus)
 
+	// Project Status Service для автоматического управления статусами
+	projectStatusService := services.NewProjectStatusService(projectRepo, taskRepo, activityRepo)
+
 	workflowService = services.NewWorkflowService(userRepo, projectRepo, notifService)
-	taskService := services.NewTaskService(taskRepo, projectRepo, userRepo, workflowService, eventBus)
+	taskService := services.NewTaskService(taskRepo, projectRepo, userRepo, workflowService, eventBus, projectStatusService)
 	projectService := services.NewProjectService(projectRepo, workflowService, database.DB, eventBus)
 	storeService := services.NewStoreService(storeRepo)
 
 	// Initialize controllers
 	storesController := controllers.NewStoresController(storeService)
-	tasksController := controllers.NewTasksController(taskService)
+	tasksController := controllers.NewTasksController(taskService, activityService)
 	projectsController := controllers.NewProjectsController(projectService)
 	documentsController := controllers.NewDocumentsController(cfg)
 	notifController := controllers.NewNotificationController(notifService)
 	rbacController := controllers.NewRBACController()
 	authController := &controllers.AuthController{}
 	dashboardController := controllers.NewDashboardController(activityService, taskService, projectService)
+	commentsController := controllers.NewCommentsController(commentService)
 
 	// API group
 	api := router.Group("/api")
@@ -111,6 +117,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 			tasks.PUT("/:id", middleware.RequireTaskEditPermission(), tasksController.UpdateTask)
 			tasks.PATCH("/:id/status", middleware.RequireTaskEditPermission(), tasksController.UpdateTaskStatus)
 			tasks.DELETE("/:id", middleware.RequireTaskEditPermission(), tasksController.DeleteTask)
+			tasks.GET("/:id/history", tasksController.GetHistory)
 			tasks.DELETE("/cleanup-old", tasksController.CleanupOldTasks)
 		}
 
@@ -145,6 +152,13 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 		dashboard := api.Group("/dashboard")
 		{
 			dashboard.GET("/activity", dashboardController.GetRecentActivity)
+		}
+
+		// Comments routes
+		comments := api.Group("/comments")
+		{
+			comments.GET("/task/:taskId", commentsController.GetTaskComments)
+			comments.POST("", commentsController.CreateComment)
 		}
 
 		// RBAC routes (Admin only)

@@ -49,7 +49,7 @@ func (r *projectRepository) Update(project *models.Project) error {
 }
 
 func (r *projectRepository) UpdateStatus(id uint, status string) error {
-	result := r.db.Model(&models.Project{}).Where("id = ?", id).Update("status", status)
+	result := r.db.Model(&models.Project{}).Where("\"Id\" = ?", id).Update("\"Status\"", status)
 	if result.Error != nil {
 		return result.Error
 	}

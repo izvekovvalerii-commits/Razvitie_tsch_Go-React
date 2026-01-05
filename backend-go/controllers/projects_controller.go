@@ -56,6 +56,15 @@ func (ctrl *ProjectsController) CreateProject(c *gin.Context) {
 		return
 	}
 
+	// Установка значений по умолчанию
+	project.SetDefaultValues()
+
+	// Дополнительная валидация на уровне модели
+	if err := project.Validate(); err != nil {
+		c.Error(middleware.NewAppError(http.StatusBadRequest, "Ошибка валидации: "+err.Error(), err))
+		return
+	}
+
 	// Создание проекта через сервис (с транзакцией)
 	user := c.MustGet("user").(*models.User)
 	if err := ctrl.projectService.CreateProject(&project, user.ID); err != nil {
@@ -105,11 +114,17 @@ func (ctrl *ProjectsController) UpdateProjectStatus(c *gin.Context) {
 	}
 
 	var request struct {
-		Status string `json:"status" binding:"required,oneof=Создан Аудит 'Бюджет сформирован' 'Утвержден ИК' 'Подписан договор' РСР Открыт Слетел"`
+		Status string `json:"status" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный статус проекта", err))
+		c.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный формат запроса", err))
+		return
+	}
+
+	// Валидация статуса через константы
+	if !models.IsValidProjectStatus(request.Status) {
+		c.Error(middleware.NewAppError(http.StatusBadRequest, "Недопустимый статус проекта", nil))
 		return
 	}
 

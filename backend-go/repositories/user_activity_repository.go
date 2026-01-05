@@ -36,4 +36,20 @@ func (r *UserActivityRepository) GetRecent(limit int) ([]models.UserActivity, er
 	return activities, nil
 }
 
+func (r *UserActivityRepository) GetByEntity(entityType string, entityId uint) ([]models.UserActivity, error) {
+	var activities []models.UserActivity
+
+	err := r.DB.Model(&models.UserActivity{}).
+		Preload("User").
+		Where("\"EntityType\" = ? AND \"EntityId\" = ?", entityType, entityId).
+		Order("\"CreatedAt\" desc").
+		Find(&activities).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return activities, nil
+}
+
 // Updated

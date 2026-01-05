@@ -28,3 +28,7 @@ func (s *ActivityService) LogActivity(userId uint, action, entityType string, en
 func (s *ActivityService) GetRecentActivities(limit int) ([]models.UserActivity, error) {
 	return s.Repo.GetRecent(limit)
 }
+
+func (s *ActivityService) GetTaskHistory(taskId uint) ([]models.UserActivity, error) {
+	return s.Repo.GetByEntity(models.EntityTask, taskId)
+}

@@ -108,16 +108,30 @@ export interface ProjectDocument {
 export interface UserActivity {
     id: number;
     userId: number;
-    userName: string;
-    userRole: string;
+    user?: User;
     action: string;
-    taskId?: number; // Make optional as action might not be on a task
-    taskName?: string;
+    entityType: string;
+    entityId: number;
+    entityName: string;
     projectId?: number;
-    timestamp: string;
-    details?: string;
-    projectName?: string;
-    entityId?: number;
-    entityName?: string;
-    entityType?: string;
+    project?: Project;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface TaskComment {
+    id: number;
+    taskId: number;
+    userId: number;
+    user?: User;
+    content: string;
+    createdAt: string;
+}
+
+export interface TeamMember {
+    name: string;
+    role: string;
+    phone: string;
+    initials: string;
+    color: string;
 }

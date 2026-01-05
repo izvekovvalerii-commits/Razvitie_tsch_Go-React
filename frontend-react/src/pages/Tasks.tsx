@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { tasksService } from '../services/tasks';
 import { useAuth } from '../hooks/useAuth';
 import { ProjectTask } from '../types';
-import { TASK_STATUSES, TASK_TYPES } from '../constants';
+import { TASK_STATUSES } from '../constants';
 import {
     isUserTask,
     isOverdueTask,
@@ -225,7 +225,7 @@ const Tasks: React.FC = () => {
                                     Статус {sortColumn === 'status' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
                                 </th>
                                 <th style={{ width: '15%' }} onClick={() => handleSort('responsible')} className="sortable-header">
-                                    Ответственный {sortColumn === 'responsible' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                                    👤 Ответственный {sortColumn === 'responsible' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
                                 </th>
                                 <th style={{ width: '8%' }} onClick={() => handleSort('normativeDeadline')} className="sortable-header">
                                     План {sortColumn === 'normativeDeadline' && <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>}

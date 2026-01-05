@@ -10,13 +10,34 @@ import (
 )
 
 type TasksController struct {
-	taskService *services.TaskService
+	taskService     *services.TaskService
+	activityService *services.ActivityService
 }
 
-func NewTasksController(taskService *services.TaskService) *TasksController {
+func NewTasksController(taskService *services.TaskService, activityService *services.ActivityService) *TasksController {
 	return &TasksController{
-		taskService: taskService,
+		taskService:     taskService,
+		activityService: activityService,
 	}
+}
+
+// GetHistory godoc
+// @Summary Get task history
+// @Router /api/tasks/{id}/history [get]
+func (tc *TasksController) GetHistory(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	history, err := tc.activityService.GetTaskHistory(uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
 }
 
 // GetAllTasks godoc

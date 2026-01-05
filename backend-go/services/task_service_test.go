@@ -21,7 +21,7 @@ func TestTaskService_UpdateTask(t *testing.T) {
 	projectRepo := repositories.NewProjectRepository(db)
 
 	eventBus := events.NewEventBus()
-	service := services.NewTaskService(repo, projectRepo, userRepo, mockWorkflow, eventBus)
+	service := services.NewTaskService(repo, projectRepo, userRepo, mockWorkflow, eventBus, nil)
 
 	// Create
 	task := &models.ProjectTask{Name: "Task 1", Status: "Создана"}
@@ -47,7 +47,7 @@ func TestTaskService_UpdateStatus_Completion(t *testing.T) {
 	projectRepo := repositories.NewProjectRepository(db)
 
 	eventBus := events.NewEventBus()
-	service := services.NewTaskService(repo, projectRepo, userRepo, mockWorkflow, eventBus)
+	service := services.NewTaskService(repo, projectRepo, userRepo, mockWorkflow, eventBus, nil)
 
 	// Create
 	code := "TEST-CODE"
@@ -55,12 +55,12 @@ func TestTaskService_UpdateStatus_Completion(t *testing.T) {
 	db.Create(task)
 
 	// Update Status to Completed
-	err := service.UpdateStatus(task.ID, models.TaskStatusCompleted, 1)
+	err := service.UpdateStatus(task.ID, string(models.TaskStatusCompleted), 1)
 	assert.NoError(t, err)
 
 	var updated models.ProjectTask
 	db.First(&updated, task.ID)
-	assert.Equal(t, models.TaskStatusCompleted, updated.Status)
+	assert.Equal(t, string(models.TaskStatusCompleted), updated.Status)
 	assert.NotNil(t, updated.ActualDate)
 }
 
@@ -80,7 +80,7 @@ func TestTaskService_DeleteTask_LogsActivity(t *testing.T) {
 	listener := listeners.NewActivityListener(activityService)
 	listener.Register(eventBus)
 
-	service := services.NewTaskService(repo, projectRepo, userRepo, mockWorkflow, eventBus)
+	service := services.NewTaskService(repo, projectRepo, userRepo, mockWorkflow, eventBus, nil)
 
 	// Create
 	task := &models.ProjectTask{Name: "Task To Delete", Status: "Создана"}

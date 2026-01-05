@@ -1,10 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"portal-razvitie/config"
 	"portal-razvitie/database"
+	"portal-razvitie/logger"
 	"portal-razvitie/repositories"
 	"portal-razvitie/routes"
 	"portal-razvitie/services"
@@ -22,29 +29,34 @@ import (
 func main() {
 	// Load configuration
 	cfg := config.Load()
-	log.Println("🚀 Starting Portal Razvitie API Server...")
+
+	// Initialize logger
+	logger.Init(cfg.Environment)
+	logger.Info().Msg("🚀 Starting Portal Razvitie API Server...")
 
 	// Connect to database
 	if err := database.Connect(cfg); err != nil {
-		log.Fatal("❌ Failed to connect to database:", err)
+		logger.Fatal().Err(err).Msg("Failed to connect to database")
 	}
+	logger.Info().Msg("✅ Database connected")
 
 	// Run migrations
 	if err := database.AutoMigrate(); err != nil {
-		log.Fatal("❌ Failed to run migrations:", err)
+		logger.Fatal().Err(err).Msg("Failed to run migrations")
 	}
+	logger.Info().Msg("✅ Migrations completed")
 
 	// Seed database
 	if err := database.SeedStores(); err != nil {
-		log.Printf("⚠️ Warning: Failed to seed stores: %v", err)
+		logger.Warn().Err(err).Msg("Failed to seed stores")
 	}
 
 	if err := database.SeedRBAC(); err != nil {
-		log.Printf("⚠️ Warning: Failed to seed RBAC: %v", err)
+		logger.Warn().Err(err).Msg("Failed to seed RBAC")
 	}
 
 	if err := database.SeedUsers(); err != nil {
-		log.Printf("⚠️ Warning: Failed to seed users: %v", err)
+		logger.Warn().Err(err).Msg("Failed to seed users")
 	}
 
 	// Initialize repositories
@@ -55,6 +67,7 @@ func main() {
 	// Initialize and run WebSocket Hub
 	hub := websocket.NewHub()
 	go hub.Run()
+	logger.Info().Msg("✅ WebSocket Hub started")
 
 	// Initialize notification service
 	notifService := services.NewNotificationService(notifRepo, hub)
@@ -66,6 +79,9 @@ func main() {
 	workflowService.SetProjectRepo(projectRepo)
 
 	// Initialize Gin router
+	if cfg.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	router := gin.Default()
 
 	// Configure CORS
@@ -82,15 +98,54 @@ func main() {
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "OK"})
+		c.JSON(200, gin.H{"status": "OK", "service": "portal-razvitie"})
 	})
 
-	// Start server
+	// Create HTTP server
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)
-	log.Printf("✅ Server is running on http://localhost:%s\n", cfg.ServerPort)
-	log.Printf("�� API Documentation: http://localhost:%s/swagger/index.html\n", cfg.ServerPort)
-
-	if err := router.Run(addr); err != nil {
-		log.Fatal("❌ Failed to start server:", err)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	// Start server in a goroutine
+	go func() {
+		logger.Info().
+			Str("port", cfg.ServerPort).
+			Str("environment", cfg.Environment).
+			Msg("✅ Server is running")
+		logger.Info().
+			Str("url", fmt.Sprintf("http://localhost:%s", cfg.ServerPort)).
+			Msg("📡 API endpoint")
+		logger.Info().
+			Str("url", fmt.Sprintf("http://localhost:%s/swagger/index.html", cfg.ServerPort)).
+			Msg("📚 API Documentation")
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal().Err(err).Msg("Failed to start server")
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	// Kill (no param) default send syscall.SIGTERM
+	// SIGINT - Ctrl+C
+	// SIGTERM - kill command
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logger.Info().Msg("🛑 Shutting down server...")
+
+	// The context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Fatal().Err(err).Msg("Server forced to shutdown")
+	}
+
+	logger.Info().Msg("👋 Server exited")
 }

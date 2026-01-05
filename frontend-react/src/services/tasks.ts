@@ -1,4 +1,4 @@
-import { ProjectTask } from '../types';
+import { ProjectTask, UserActivity } from '../types';
 import { apiFetch } from '../utils/api';
 import { checkApiResponse, serializeArrayField, deserializeArrayField } from '../utils/apiHelpers';
 
@@ -81,5 +81,16 @@ export const tasksService = {
         });
 
         await checkApiResponse(response, `Failed to update task status ${id}`);
+    },
+
+    getTaskHistory: async (taskId: number): Promise<UserActivity[]> => {
+        try {
+            const response = await apiFetch(`/tasks/${taskId}/history`);
+            if (!response.ok) throw new Error('Failed to fetch task history');
+            return await response.json();
+        } catch (e) {
+            console.error(e);
+            return [];
+        }
     }
 };

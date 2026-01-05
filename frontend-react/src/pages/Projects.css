@@ -377,8 +377,8 @@
 .create-btn-compact {
     height: 36px;
     padding: 0 16px;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    color: white;
+    background: linear-gradient(135deg, #FFD700 0%, #FFC700 100%);
+    color: #1a1f36;
     border: none;
     border-radius: 10px;
     font-size: 13px;
@@ -388,13 +388,13 @@
     gap: 6px;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
 }
 
 .create-btn-compact:hover {
-    background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+    background: linear-gradient(135deg, #FFC700 0%, #FFB700 100%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4);
 }
 
 .create-btn-compact .btn-icon {
@@ -502,43 +502,216 @@
 
 /* Specific Status Styles */
 .status-indicator.status-создан {
-    background: #ecfdf5;
-    color: #047857;
-    border: 1px solid #a7f3d0;
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
 }
 
 .status-indicator.status-создан .status-dot {
-    background: #059669;
+    background: #0284c7;
 }
 
-.status-indicator.status-аудит {
-    background: #fffbeb;
+/* Подготовка к аудиту */
+.status-indicator.status-подготовка-к-аудиту {
+    background: #fef9c3;
+    color: #a16207;
+    border: 1px solid #fef08a;
+}
+
+.status-indicator.status-подготовка-к-аудиту .status-dot {
+    background: #ca8a04;
+}
+
+/* Аудит объекта */
+.status-indicator.status-аудит-объекта {
+    background: #fef3c7;
     color: #b45309;
     border: 1px solid #fde68a;
 }
 
-.status-indicator.status-аудит .status-dot {
+.status-indicator.status-аудит-объекта .status-dot {
     background: #d97706;
 }
 
-.status-indicator.status-в-работе {
-    background: #eff6ff;
-    color: #1d4ed8;
-    border: 1px solid #bfdbfe;
+/* Алкогольная лицензия */
+.status-indicator.status-алкогольная-лицензия {
+    background: #fef08a;
+    color: #a16207;
+    border: 1px solid #fef08a;
 }
 
-.status-indicator.status-в-работе .status-dot {
-    background: #2563eb;
+.status-indicator.status-алкогольная-лицензия .status-dot {
+    background: #ca8a04;
+}
+
+/* Площадка ТБО */
+.status-indicator.status-площадка-тбо {
+    background: #fcd34d;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.status-indicator.status-площадка-тбо .status-dot {
+    background: #b45309;
+}
+
+/* Контур планировки */
+.status-indicator.status-контур-планировки {
+    background: #ddd6fe;
+    color: #6d28d9;
+    border: 1px solid #c4b5fd;
+}
+
+.status-indicator.status-контур-планировки .status-dot {
+    background: #7c3aed;
+}
+
+/* Визуализация */
+.status-indicator.status-визуализация {
+    background: #e9d5ff;
+    color: #7e22ce;
+    border: 1px solid #d8b4fe;
+}
+
+.status-indicator.status-визуализация .status-dot {
+    background: #9333ea;
+}
+
+/* Оценка логистики */
+.status-indicator.status-оценка-логистики {
+    background: #c7d2fe;
+    color: #4338ca;
+    border: 1px solid #a5b4fc;
+}
+
+.status-indicator.status-оценка-логистики .status-dot {
+    background: #4f46e5;
+}
+
+/* Планировка с расстановкой */
+.status-indicator.status-планировка-с-расстановкой {
+    background: #bfdbfe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+.status-indicator.status-планировка-с-расстановкой .status-dot {
+    background: #3b82f6;
+}
+
+/* Расчет бюджета оборудования */
+.status-indicator.status-расчет-бюджета-оборудования {
+    background: #bae6fd;
+    color: #0c4a6e;
+    border: 1px solid #7dd3fc;
+}
+
+.status-indicator.status-расчет-бюджета-оборудования .status-dot {
+    background: #0e7490;
+}
+
+/* Расчет бюджета СБ */
+.status-indicator.status-расчет-бюджета-сб {
+    background: #a5f3fc;
+    color: #134e4a;
+    border: 1px solid #5eead4;
+}
+
+.status-indicator.status-расчет-бюджета-сб .status-dot {
+    background: #14b8a6;
+}
+
+/* ТЗ и расчет бюджета РСР */
+.status-indicator.status-тз-и-расчет-бюджета-рср {
+    background: #99f6e4;
+    color: #0f766e;
+    border: 1px solid #5eead4;
+}
+
+.status-indicator.status-тз-и-расчет-бюджета-рср .status-dot {
+    background: #0d9488;
+}
+
+/* Расчет бюджета ПиС */
+.status-indicator.status-расчет-бюджета-пис {
+    background: #a7f3d0;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+.status-indicator.status-расчет-бюджета-пис .status-dot {
+    background: #059669;
+}
+
+/* Общий бюджет проекта */
+.status-indicator.status-общий-бюджет-проекта {
+    background: #d1fae5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.status-indicator.status-общий-бюджет-проекта .status-dot {
+    background: #10b981;
+}
+
+.status-indicator.status-подписан-договор {
+    background: #cffafe;
+    color: #0891b2;
+    border: 1px solid #a5f3fc;
+}
+
+.status-indicator.status-подписан-договор .status-dot {
+    background: #06b6d4;
+}
+
+.status-indicator.status-рср {
+    background: #fed7aa;
+    color: #c2410c;
+    border: 1px solid #fdba74;
+}
+
+.status-indicator.status-рср .status-dot {
+    background: #ea580c;
+}
+
+.status-indicator.status-открыт {
+    background: #bbf7d0;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.status-indicator.status-открыт .status-dot {
+    background: #16a34a;
 }
 
 .status-indicator.status-закрыт {
-    background: #f3f4f6;
+    background: #e5e7eb;
     color: #4b5563;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #d1d5db;
 }
 
 .status-indicator.status-закрыт .status-dot {
     background: #6b7280;
+}
+
+.status-indicator.status-архив {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+}
+
+.status-indicator.status-архив .status-dot {
+    background: #9ca3af;
+}
+
+.status-indicator.status-слетел {
+    background: #fecaca;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+}
+
+.status-indicator.status-слетел .status-dot {
+    background: #dc2626;
 }
 
 /* Info Grid */

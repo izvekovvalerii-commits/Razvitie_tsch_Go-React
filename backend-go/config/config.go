@@ -9,14 +9,15 @@ import (
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	ServerPort string
-	CORSOrigin string
-	UploadDir  string
+	DBHost      string
+	DBPort      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	ServerPort  string
+	CORSOrigin  string
+	UploadDir   string
+	Environment string // development, production
 }
 
 func Load() *Config {
@@ -26,14 +27,15 @@ func Load() *Config {
 	}
 
 	config := &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "postgres"),
-		DBName:     getEnv("DB_NAME", "PortalRazvitie"),
-		ServerPort: getEnv("SERVER_PORT", "5000"),
-		CORSOrigin: getEnv("CORS_ORIGIN", "http://localhost:4200"),
-		UploadDir:  getEnv("UPLOAD_DIR", "./uploads"),
+		DBHost:      getEnv("DB_HOST", "localhost"),
+		DBPort:      getEnv("DB_PORT", "5432"),
+		DBUser:      getEnv("DB_USER", "postgres"),
+		DBPassword:  getEnv("DB_PASSWORD", "postgres"),
+		DBName:      getEnv("DB_NAME", "PortalRazvitie"),
+		ServerPort:  getEnv("SERVER_PORT", "5000"),
+		CORSOrigin:  getEnv("CORS_ORIGIN", "http://localhost:4200"),
+		UploadDir:   getEnv("UPLOAD_DIR", "./uploads"),
+		Environment: getEnv("ENVIRONMENT", "development"),
 	}
 
 	return config
