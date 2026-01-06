@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -130,14 +131,46 @@ func (h *Hub) ServeWs(c *gin.Context, userID uint) {
 	connection := &Connection{WS: conn, UserID: userID}
 	h.register <- connection
 
+	// Настройка таймаутов
+	const (
+		writeWait  = 10 * time.Second
+		pongWait   = 60 * time.Second
+		pingPeriod = 50 * time.Second // должно быть меньше pongWait
+	)
+
+	// Устанавливаем обработчик pong
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	// Goroutine для чтения (с защитой от зависания)
 	go func() {
 		defer func() {
 			h.unregister <- connection
 		}()
+
 		for {
 			_, _, err := conn.ReadMessage()
 			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Printf("WS error: %v", err)
+				}
 				break
+			}
+		}
+	}()
+
+	// Goroutine для ping (keep-alive)
+	go func() {
+		ticker := time.NewTicker(pingPeriod)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
 			}
 		}
 	}()

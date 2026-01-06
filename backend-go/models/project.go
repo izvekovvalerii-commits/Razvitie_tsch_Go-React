@@ -23,6 +23,10 @@ type Project struct {
 	CreatedAt   time.Time  `gorm:"column:CreatedAt" json:"createdAt"`
 	UpdatedAt   *time.Time `gorm:"column:UpdatedAt" json:"updatedAt"`
 	Store       *Store     `gorm:"foreignKey:StoreId;references:Id" json:"store,omitempty"`
+
+	// Вычисляемые поля для прогресс-бара
+	TotalTasks     int64 `gorm:"-" json:"totalTasks"`
+	CompletedTasks int64 `gorm:"-" json:"completedTasks"`
 }
 
 func (Project) TableName() string {

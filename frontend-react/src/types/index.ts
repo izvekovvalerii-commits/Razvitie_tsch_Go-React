@@ -53,6 +53,9 @@ export interface Project {
     // BPMN fields
     currentStage?: string;
     templateId?: number;
+    // Stats
+    totalTasks?: number;
+    completedTasks?: number;
 }
 
 export interface ProjectTask {

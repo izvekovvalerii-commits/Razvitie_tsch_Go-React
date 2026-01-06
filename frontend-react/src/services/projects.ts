@@ -47,7 +47,25 @@ export const projectsService = {
             method: 'DELETE'
         });
         if (!response.ok) {
-            throw new Error(`Failed to delete project ${id}: ${response.statusText}`);
+            let errorMessage = `Failed to delete project ${id}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch {
+                // If response body is not JSON, use status text
+                errorMessage = `${errorMessage}: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
+        }
+    },
+
+    updateProjectStatus: async (id: number, status: string): Promise<void> => {
+        const response = await apiFetch(`/projects/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status })
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to update project status: ${response.statusText}`);
         }
     }
 };

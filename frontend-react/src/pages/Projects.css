@@ -405,33 +405,40 @@
 /* Projects Grid */
 .projects-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
     padding-bottom: 40px;
 }
 
 @media (min-width: 1400px) {
     .projects-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+@media (min-width: 1800px) {
+    .projects-grid {
+        grid-template-columns: repeat(6, 1fr);
     }
 }
 
 .project-card-enhanced {
     background: white;
-    border: 1px solid #eef2f6;
+    border: 1px solid #f1f5f9;
     border-radius: 12px;
-    padding: 20px;
-    transition: all 0.2s ease-out;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    padding: 14px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     position: relative;
     cursor: pointer;
+    overflow: hidden;
 }
 
 .project-card-enhanced:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.1);
     border-color: #FFD700;
     box-shadow: 0 0 0 1px #FFD700;
 }
@@ -444,9 +451,9 @@
 }
 
 .card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a1f36;
+    font-size: 15px;
+    font-weight: 700 !important;
+    color: #334155;
     margin: 0 0 4px 0;
     line-height: 1.4;
     transition: color 0.2s;
@@ -454,44 +461,46 @@
 
 .project-card-enhanced:hover .card-title {
     color: #b45309;
+    /* Dark Amber/Brown interaction */
 }
 
 .card-code {
-    font-size: 11px;
-    color: #64748b;
+    font-size: 10px;
+    color: #334155 !important;
     font-family: 'Monaco', 'Consolas', monospace;
-    /* Keep nice code font */
-    background: #f1f5f9;
+    background: #f8fafc;
     padding: 2px 6px;
     border-radius: 4px;
+    border: 1px solid #e2e8f0;
     display: inline-block;
 }
 
 .project-type-badge {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 9px;
+    font-weight: 600;
     text-transform: uppercase;
-    padding: 4px 8px;
-    border-radius: 6px;
-    background: #fffbeb;
-    color: #92400e;
-    border: 1px solid #fde68a;
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
     margin-left: 8px;
 }
 
 /* Status */
 .card-status-section {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .status-indicator {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 6px;
+    padding: 4px 10px;
     border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500 !important;
+    color: #334155 !important;
 }
 
 .status-dot {
@@ -500,10 +509,34 @@
     border-radius: 50%;
 }
 
-/* Specific Status Styles */
+/* Info Grid */
+.card-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+    margin-bottom: 16px;
+    flex: 1;
+}
+
+.info-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #334155 !important;
+    margin-bottom: 2px;
+    font-weight: 500 !important;
+}
+
+.info-value {
+    font-size: 11px;
+    color: #334155 !important;
+    font-weight: 500 !important;
+    line-height: 1.4;
+}
+
+/* Создан */
 .status-indicator.status-создан {
     background: #e0f2fe;
-    color: #0369a1;
     border: 1px solid #bae6fd;
 }
 
@@ -514,7 +547,6 @@
 /* Подготовка к аудиту */
 .status-indicator.status-подготовка-к-аудиту {
     background: #fef9c3;
-    color: #a16207;
     border: 1px solid #fef08a;
 }
 
@@ -525,7 +557,6 @@
 /* Аудит объекта */
 .status-indicator.status-аудит-объекта {
     background: #fef3c7;
-    color: #b45309;
     border: 1px solid #fde68a;
 }
 
@@ -536,7 +567,6 @@
 /* Алкогольная лицензия */
 .status-indicator.status-алкогольная-лицензия {
     background: #fef08a;
-    color: #a16207;
     border: 1px solid #fef08a;
 }
 
@@ -547,7 +577,6 @@
 /* Площадка ТБО */
 .status-indicator.status-площадка-тбо {
     background: #fcd34d;
-    color: #92400e;
     border: 1px solid #fde68a;
 }
 
@@ -558,7 +587,6 @@
 /* Контур планировки */
 .status-indicator.status-контур-планировки {
     background: #ddd6fe;
-    color: #6d28d9;
     border: 1px solid #c4b5fd;
 }
 
@@ -569,7 +597,6 @@
 /* Визуализация */
 .status-indicator.status-визуализация {
     background: #e9d5ff;
-    color: #7e22ce;
     border: 1px solid #d8b4fe;
 }
 
@@ -580,7 +607,6 @@
 /* Оценка логистики */
 .status-indicator.status-оценка-логистики {
     background: #c7d2fe;
-    color: #4338ca;
     border: 1px solid #a5b4fc;
 }
 
@@ -591,7 +617,6 @@
 /* Планировка с расстановкой */
 .status-indicator.status-планировка-с-расстановкой {
     background: #bfdbfe;
-    color: #1e40af;
     border: 1px solid #93c5fd;
 }
 
@@ -602,7 +627,6 @@
 /* Расчет бюджета оборудования */
 .status-indicator.status-расчет-бюджета-оборудования {
     background: #bae6fd;
-    color: #0c4a6e;
     border: 1px solid #7dd3fc;
 }
 
@@ -613,7 +637,6 @@
 /* Расчет бюджета СБ */
 .status-indicator.status-расчет-бюджета-сб {
     background: #a5f3fc;
-    color: #134e4a;
     border: 1px solid #5eead4;
 }
 
@@ -624,7 +647,6 @@
 /* ТЗ и расчет бюджета РСР */
 .status-indicator.status-тз-и-расчет-бюджета-рср {
     background: #99f6e4;
-    color: #0f766e;
     border: 1px solid #5eead4;
 }
 
@@ -635,7 +657,6 @@
 /* Расчет бюджета ПиС */
 .status-indicator.status-расчет-бюджета-пис {
     background: #a7f3d0;
-    color: #065f46;
     border: 1px solid #6ee7b7;
 }
 
@@ -646,7 +667,6 @@
 /* Общий бюджет проекта */
 .status-indicator.status-общий-бюджет-проекта {
     background: #d1fae5;
-    color: #059669;
     border: 1px solid #a7f3d0;
 }
 
@@ -656,7 +676,6 @@
 
 .status-indicator.status-подписан-договор {
     background: #cffafe;
-    color: #0891b2;
     border: 1px solid #a5f3fc;
 }
 
@@ -666,7 +685,6 @@
 
 .status-indicator.status-рср {
     background: #fed7aa;
-    color: #c2410c;
     border: 1px solid #fdba74;
 }
 
@@ -676,7 +694,6 @@
 
 .status-indicator.status-открыт {
     background: #bbf7d0;
-    color: #15803d;
     border: 1px solid #86efac;
 }
 
@@ -686,7 +703,6 @@
 
 .status-indicator.status-закрыт {
     background: #e5e7eb;
-    color: #4b5563;
     border: 1px solid #d1d5db;
 }
 
@@ -696,7 +712,6 @@
 
 .status-indicator.status-архив {
     background: #f3f4f6;
-    color: #6b7280;
     border: 1px solid #e5e7eb;
 }
 
@@ -706,7 +721,6 @@
 
 .status-indicator.status-слетел {
     background: #fecaca;
-    color: #b91c1c;
     border: 1px solid #fca5a5;
 }
 
@@ -714,37 +728,12 @@
     background: #dc2626;
 }
 
-/* Info Grid */
-.card-info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px 20px;
-    margin-bottom: 20px;
-    flex: 1;
-}
-
-.info-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #94a3b8;
-    margin-bottom: 4px;
-    font-weight: 700;
-}
-
-.info-value {
-    font-size: 13px;
-    color: #334155;
-    font-weight: 500;
-    line-height: 1.4;
-}
-
 /* Card Footer */
 .card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 16px;
+    padding-top: 12px;
     border-top: 1px solid #f1f5f9;
     margin-top: auto;
 }
@@ -756,27 +745,27 @@
 }
 
 .avatar-xs {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
 }
 
 .resp-name {
-    font-size: 12px;
-    color: #475569;
-    font-weight: 500;
+    font-size: 11px;
+    color: #334155 !important;
+    font-weight: 500 !important;
 }
 
 .card-action-icon {
     color: #cbd5e1;
-    font-size: 16px;
+    font-size: 14px;
     transition: all 0.2s;
 }
 
@@ -1082,3 +1071,437 @@
         padding-bottom: 8px;
     }
 }
+
+/* --- Kanban Board Styles --- */
+
+.kanban-board-scroll-area {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 24px;
+}
+
+.kanban-board-scroll-area::-webkit-scrollbar {
+    height: 10px;
+}
+
+.kanban-board-scroll-area::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+}
+
+.kanban-board-scroll-area::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 5px;
+    border: 2px solid #f1f5f9;
+}
+
+.kanban-board-container {
+    display: inline-flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 4px;
+    min-height: calc(100vh - 200px);
+}
+
+.kanban-column {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 240px);
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.kanban-column-header {
+    padding: 12px 14px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.header-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.status-indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.column-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.column-count-badge {
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: 8px;
+}
+
+.kanban-column-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.kanban-card {
+    background: white;
+    border: 1px solid #eef2f6;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: grab;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.kanban-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+}
+
+.kanban-card.dragging {
+    opacity: 0.5;
+    background: #f8fafc;
+    border-style: dashed;
+    border-color: #94a3b8;
+}
+
+.kanban-card-top {
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.k-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.k-card-type {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 700;
+    background: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.k-card-gis {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 12px;
+    font-family: 'Monaco', monospace;
+    background: #f8fafc;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.kanban-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 8px;
+}
+
+.k-resp-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.k-resp-name {
+    font-size: 11px;
+    color: #475569;
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.k-area {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* Custom Scrollbar for column body */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+}
+
+/* --- Progress Bar Styles --- */
+.progress-bar-container {
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    height: 6px;
+    width: 100%;
+    margin-top: 12px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #10b981, #059669);
+    transition: width 0.5s ease-out;
+}
+
+.progress-text {
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 4px;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* --- Compact Toolbar Updates --- */
+
+/* Reduce padding and gap to fit on one screen */
+.projects-page {
+    /* Slightly reduce padding if needed */
+    padding: 16px 24px 32px;
+}
+
+.unified-controls-row {
+    /* Allow wrapping for very small screens, but aim for single line */
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 8px 12px;
+}
+
+/* Reduce width of quick filter buttons */
+.quick-filter-btn {
+    min-width: 80px;
+    /* Reduced from 95px */
+    padding: 6px 10px;
+}
+
+.quick-filter-btn .filter-count {
+    font-size: 18px;
+    /* Slightly smaller */
+}
+
+.controls-right-group {
+    gap: 10px;
+    /* Reduced from 12px */
+}
+
+/* Make dropdowns smaller */
+.compact-select {
+    height: 36px;
+    /* Ensure consistency */
+    padding: 0 10px;
+    font-size: 13px;
+    /* Allow them to shrink if needed */
+    flex-shrink: 1;
+    min-width: 120px;
+    /* Reduced from 160px/default */
+}
+
+/* Search bar should be flexible */
+.search-wrapper-compact {
+    max-width: 240px;
+    /* Limit width */
+    flex-shrink: 1;
+}
+
+.search-input-compact {
+    font-size: 13px;
+}
+
+/* View toggle */
+.view-toggle-compact {
+    flex-shrink: 0;
+}
+
+.toggle-btn-compact {
+    width: 30px;
+    /* Reduced */
+    height: 30px;
+}
+
+/* Create button */
+.create-btn-compact {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Force reload вторник,  6 января 2026 г. 09:03:33 (MSK) */
+/* ===== Kanban Filters ===== */
+.kanban-filters {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    align-items: center;
+}
+
+.k-search-input {
+    flex: 1;
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.k-search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.k-filter-select {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.k-filter-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.k-clear-filters {
+    padding: 8px 16px;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.k-clear-filters:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+/* ===== Kanban Card Actions ===== */
+.k-card-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+.kanban-card:hover .k-card-actions {
+    opacity: 1;
+}
+
+.k-action-btn {
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.k-action-btn:hover {
+    background: #f8fafc;
+    transform: scale(1.05);
+}
+
+.k-action-delete:hover {
+    background: #fee2e2;
+}
+
+/* ===== Progress Bar ===== */
+.k-card-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.k-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.k-progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, #3b82f6, #60a5fa);
+    transition: width 0.3s ease, background-color 0.3s ease;
+    border-radius: 3px;
+}
+
+.k-progress-text {
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+/* Force reload понедельник,  6 января 2026 г. 10:06:00 (MSK) */

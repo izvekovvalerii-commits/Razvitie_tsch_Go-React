@@ -76,7 +76,8 @@ func (l *ActivityListener) OnProjectDeleted(event events.Event) error {
 	if !ok {
 		return nil
 	}
-	return l.activityService.LogActivity(e.ActorID, "удалил проект", models.EntityProject, e.ProjectID, e.ProjectName, &e.ProjectID)
+	// Не устанавливаем projectId, так как проект уже удален
+	return l.activityService.LogActivity(e.ActorID, "удалил проект", models.EntityProject, e.ProjectID, e.ProjectName, nil)
 }
 
 func (l *ActivityListener) OnProjectUpdated(event events.Event) error {

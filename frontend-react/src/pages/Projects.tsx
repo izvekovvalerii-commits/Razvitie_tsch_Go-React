@@ -1,190 +1,70 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { projectsService } from '../services/projects';
-import { storesService } from '../services/stores';
 import { useAuth } from '../hooks/useAuth';
-import { Project, Store } from '../types';
-import { PROJECT_TYPES, PROJECT_STATUSES, CFO_LIST, MANAGERS } from '../constants';
+import { PROJECT_TYPES, PROJECT_STATUSES } from '../constants';
 import { getAvatarColor, getProjectStatusClass } from '../utils/uiHelpers';
-import { Modal } from '../components/common/Modal';
+import { CreateProjectModal } from '../components/CreateProjectModal';
+import { KanbanBoard } from '../components/KanbanBoard';
+import { useProjectsData } from '../hooks/useProjectsData';
 import './Projects.css';
 
 const Projects: React.FC = () => {
     const navigate = useNavigate();
     const { hasPermission } = useAuth();
 
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [stores, setStores] = useState<Store[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Custom Hook Logic
+    const {
+        projects,
+        stores,
+        loading,
+        filteredProjects,
+        filters,
+        setFilters,
+        createProject,
+        updateStatus
+    } = useProjectsData();
 
-    // Filters & View
-    const [searchQuery, setSearchQuery] = useState('');
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-    const [selectedType, setSelectedType] = useState('');
-    const [selectedStatus, setSelectedStatus] = useState('');
-    const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'audit'>('all');
-
-    // Modal
+    // UI State
+    const [viewMode, setViewMode] = useState<'grid' | 'table' | 'board'>('grid');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [newProject, setNewProject] = useState<Partial<Project>>({
-        projectType: '',
-        status: 'Создан',
-        mp: '',
-        cfo: '',
-        nor: 'Начальник отдела развития',
-        stMRiZ: 'Старший менеджер',
-        rnr: 'Руководитель направления развития',
-        gisCode: ''
-    });
-    const [selectedStoreId, setSelectedStoreId] = useState<number | undefined>(undefined);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [pData, sData] = await Promise.all([
-                    projectsService.getProjects(),
-                    storesService.getStores()
-                ]);
-                setProjects(pData);
-                setStores(sData);
-            } catch (error) {
-                console.error('Error loading data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
-
-    const filteredProjects = useMemo(() => {
-        let result = projects;
-
-        // 1. Quick Filter
-        if (quickFilter === 'active') {
-            result = result.filter(p => !['Слетел', 'Закрыт', 'Архив'].includes(p.status));
-        } else if (quickFilter === 'audit') {
-            result = result.filter(p => p.status === 'Аудит');
-        }
-
-        // 2. Type Filter
-        if (selectedType) {
-            result = result.filter(p => p.projectType === selectedType);
-        }
-
-        // 3. Status Filter
-        if (selectedStatus) {
-            result = result.filter(p => p.status === selectedStatus);
-        }
-
-        // 4. Search
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            result = result.filter(p =>
-                (p.gisCode && p.gisCode.toLowerCase().includes(q)) ||
-                (p.address && p.address.toLowerCase().includes(q)) ||
-                (p.store?.name && p.store.name.toLowerCase().includes(q))
-            );
-        }
-
-        return result;
-    }, [projects, selectedType, selectedStatus, searchQuery, quickFilter]);
-
-    const handleCreateProject = async () => {
-        if (!selectedStoreId || !newProject.projectType || !newProject.gisCode) {
-            alert('Заполните обязательные поля');
-            return;
-        }
-
-        const store = stores.find(s => s.id === Number(selectedStoreId));
-        if (!store) return;
-
-        const projectToCreate: Project = {
-            id: 0, // Mock will assign ID
-            storeId: store.id,
-            projectType: newProject.projectType!,
-            status: 'Создан',
-            gisCode: newProject.gisCode!,
-            address: store.address,
-            totalArea: store.totalArea,
-            tradeArea: store.tradeArea,
-            region: store.region,
-            cfo: newProject.cfo || 'Центральный ФО',
-            mp: newProject.mp || '',
-            nor: newProject.nor!,
-            stMRiZ: newProject.stMRiZ!,
-            rnr: newProject.rnr!,
-            store: store // Store object
-        };
-
-        try {
-            const createdProject = await projectsService.createProject(projectToCreate);
-            console.log('Project created:', createdProject.id);
-            const updated = await projectsService.getProjects();
-            setProjects(updated);
-            closeCreateModal();
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    const handleStoreSelect = (id: string) => {
-        const sid = Number(id);
-        setSelectedStoreId(sid);
-        const store = stores.find(s => s.id === sid);
-        if (store) {
-            setNewProject(prev => ({
-                ...prev,
-                address: store.address,
-                region: store.region
-            }));
-        }
-    };
-
-    const closeCreateModal = () => {
-        setShowCreateModal(false);
-        setSelectedStoreId(undefined);
-        setNewProject({
-            projectType: '',
-            status: 'Создан',
-            mp: '',
-            gisCode: ''
-        });
-    };
 
     const canCreate = hasPermission('project:create');
 
+    const handleDeleteProject = async (id: number) => {
+        // Логика удаления будет здесь, пока заглушка
+        console.log('Deleting project:', id);
+    };
 
+    // Calculators
+    const activeCount = projects.filter(p => !['Открыт', 'Закрыт', 'Архив', 'Слетел'].includes(p.status)).length;
+    const auditCount = projects.filter(p => ['Подготовка к аудиту', 'Аудит объекта'].includes(p.status)).length;
 
     if (loading) return <div className="projects-page"><p>Загрузка...</p></div>;
-
-    const activeCount = projects.filter(p => !['Слетел', 'Закрыт', 'Архив'].includes(p.status)).length;
-    const auditCount = projects.filter(p => p.status === 'Аудит').length;
 
     return (
         <div className="projects-page">
             {/* Unified Controls Block */}
             <div className="unified-controls-row">
                 {/* Left: Quick Filters (Stats) */}
-                {!loading && projects.length > 0 && (
+                {projects.length > 0 && (
                     <div className="quick-filters-inline">
                         <button
-                            className={`quick-filter-btn ${quickFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => setQuickFilter('all')}
+                            className={`quick-filter-btn ${filters.quickFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => setFilters.setQuickFilter('all')}
                         >
                             <span className="filter-label">Всего</span>
                             <span className="filter-count">{projects.length}</span>
                         </button>
                         <button
-                            className={`quick-filter-btn ${quickFilter === 'active' ? 'active' : ''}`}
-                            onClick={() => setQuickFilter('active')}
+                            className={`quick-filter-btn ${filters.quickFilter === 'active' ? 'active' : ''}`}
+                            onClick={() => setFilters.setQuickFilter('active')}
                         >
                             <span className="filter-label">В работе</span>
                             <span className="filter-count">{activeCount}</span>
                         </button>
                         <button
-                            className={`quick-filter-btn ${quickFilter === 'audit' ? 'active' : ''}`}
-                            onClick={() => setQuickFilter('audit')}
+                            className={`quick-filter-btn ${filters.quickFilter === 'audit' ? 'active' : ''}`}
+                            onClick={() => setFilters.setQuickFilter('audit')}
                         >
                             <span className="filter-label">Аудит</span>
                             <span className="filter-count">{auditCount}</span>
@@ -197,16 +77,16 @@ const Projects: React.FC = () => {
                     {/* Dropdown Filters */}
                     <select
                         className="compact-select"
-                        value={selectedType}
-                        onChange={(e) => setSelectedType(e.target.value)}
+                        value={filters.selectedType}
+                        onChange={(e) => setFilters.setSelectedType(e.target.value)}
                     >
                         <option value="">Все типы</option>
                         {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                     <select
                         className="compact-select"
-                        value={selectedStatus}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
+                        value={filters.selectedStatus}
+                        onChange={(e) => setFilters.setSelectedStatus(e.target.value)}
                     >
                         <option value="">Все статусы</option>
                         {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -218,8 +98,8 @@ const Projects: React.FC = () => {
                         <input
                             type="text"
                             placeholder="Поиск (ГИС, адрес)..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            value={filters.searchQuery}
+                            onChange={(e) => setFilters.setSearchQuery(e.target.value)}
                             className="search-input-compact"
                         />
                     </div>
@@ -229,14 +109,23 @@ const Projects: React.FC = () => {
                         <button
                             className={`toggle-btn-compact ${viewMode === 'table' ? 'active' : ''}`}
                             onClick={() => setViewMode('table')}
+                            title="Таблица"
                         >
                             ☰
                         </button>
                         <button
                             className={`toggle-btn-compact ${viewMode === 'grid' ? 'active' : ''}`}
                             onClick={() => setViewMode('grid')}
+                            title="Сетка"
                         >
                             ⊞
+                        </button>
+                        <button
+                            className={`toggle-btn-compact ${viewMode === 'board' ? 'active' : ''}`}
+                            onClick={() => setViewMode('board')}
+                            title="Канбан-доска"
+                        >
+                            📋
                         </button>
                     </div>
 
@@ -250,21 +139,7 @@ const Projects: React.FC = () => {
             </div>
 
             {/* Content */}
-            {loading ? (
-                <div className={`projects-${viewMode} skeleton-container`}>
-                    {Array(6).fill(0).map((_, i) => (
-                        viewMode === 'grid' ? (
-                            <div key={i} className="project-card-enhanced skeleton-card">
-                                <div className="skeleton-header"></div>
-                                <div className="skeleton-body"></div>
-                                <div className="skeleton-footer"></div>
-                            </div>
-                        ) : (
-                            <div key={i} className="skeleton-row-bar"></div>
-                        )
-                    ))}
-                </div>
-            ) : filteredProjects.length > 0 ? (
+            {filteredProjects.length > 0 ? (
                 <>
                     {/* Table View */}
                     {viewMode === 'table' && (
@@ -335,7 +210,7 @@ const Projects: React.FC = () => {
                                     <div className="card-info-grid">
                                         <div className="info-col">
                                             <div className="info-label">Адрес</div>
-                                            <div className="info-value">{(project.address || project.store?.address)?.slice(0, 50)}...</div>
+                                            <div className="info-value">{(project.address || project.store?.address)?.slice(0, 35)}...</div>
                                         </div>
                                         <div className="info-col">
                                             <div className="info-label">Город</div>
@@ -351,6 +226,27 @@ const Projects: React.FC = () => {
                                         </div>
                                     </div>
 
+                                    {/* Progress Bar with Real Data */}
+                                    <div className="progress-section" style={{ marginBottom: 16 }}>
+                                        <div className="progress-bar-container">
+                                            <div
+                                                className="progress-bar-fill"
+                                                style={{
+                                                    width: `${project.totalTasks ? Math.round((project.completedTasks || 0) / project.totalTasks * 100) : 0}%`
+                                                }}
+                                            ></div>
+                                        </div>
+                                        <div className="progress-text">
+                                            <span>Прогресс</span>
+                                            <span>
+                                                {project.totalTasks ? Math.round((project.completedTasks || 0) / project.totalTasks * 100) : 0}%
+                                                <span style={{ color: '#94a3b8', marginLeft: 4 }}>
+                                                    ({project.completedTasks || 0} / {project.totalTasks || 0})
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+
                                     <div className="card-footer">
                                         <div className="responsible-preview">
                                             <div className="avatar-xs" style={{ backgroundColor: getAvatarColor(project.mp), marginRight: 6 }}>{project.mp ? project.mp[0] : '?'}</div>
@@ -361,6 +257,17 @@ const Projects: React.FC = () => {
                                 </div>
                             ))}
                         </div>
+                    )}
+
+                    {/* Kanban Board View */}
+                    {viewMode === 'board' && (
+                        <KanbanBoard
+                            projects={filteredProjects}
+                            onStatusChange={updateStatus}
+                            onDelete={handleDeleteProject}
+                            searchQuery={filters.searchQuery}
+                            onSearchChange={setFilters.setSearchQuery}
+                        />
                     )}
                 </>
             ) : (
@@ -376,71 +283,15 @@ const Projects: React.FC = () => {
                 </div>
             )}
 
-            {/* Create Modal */}
-            <Modal
+            {/* Create Component */}
+            <CreateProjectModal
                 isOpen={showCreateModal}
-                onClose={closeCreateModal}
-                title="Создать новый проект"
-                footer={(
-                    <>
-                        <button className="btn-cancel" onClick={closeCreateModal}>Отмена</button>
-                        <button className="btn-create" onClick={handleCreateProject}>Создать</button>
-                    </>
-                )}
-            >
-                <div className="form-group">
-                    <label>Выберите магазин *</label>
-                    <select
-                        value={selectedStoreId || ''}
-                        onChange={e => handleStoreSelect(e.target.value)}
-                    >
-                        <option value="">-- Выберите магазин --</option>
-                        {stores.map(s => <option key={s.id} value={s.id}>{s.name} - {s.city}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>Тип проекта *</label>
-                    <select
-                        value={newProject.projectType}
-                        onChange={e => setNewProject({ ...newProject, projectType: e.target.value })}
-                    >
-                        <option value="">-- Выберите тип --</option>
-                        {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>Код ГИС *</label>
-                    <input
-                        type="text"
-                        value={newProject.gisCode}
-                        onChange={e => setNewProject({ ...newProject, gisCode: e.target.value })}
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label>ЦФО *</label>
-                    <select
-                        value={newProject.cfo || ''}
-                        onChange={e => setNewProject({ ...newProject, cfo: e.target.value })}
-                    >
-                        <option value="">-- Выберите ЦФО --</option>
-                        {CFO_LIST.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>Менеджер проекта (МП) *</label>
-                    <select
-                        value={newProject.mp}
-                        onChange={e => setNewProject({ ...newProject, mp: e.target.value })}
-                    >
-                        <option value="">-- Выберите менеджера --</option>
-                        {MANAGERS.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-                    </select>
-                </div>
-            </Modal>
+                onClose={() => setShowCreateModal(false)}
+                stores={stores}
+                onSave={async (newProject) => {
+                    await createProject(newProject);
+                }}
+            />
         </div>
     );
 };

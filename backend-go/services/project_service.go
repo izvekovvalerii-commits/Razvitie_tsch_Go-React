@@ -115,12 +115,19 @@ func (s *ProjectService) Delete(id uint, actorId uint) error {
 		if project.Store != nil {
 			name = project.Store.Name
 		}
-		// Publish event BEFORE deletion because repository might use soft delete or hard delete
-		s.eventBus.Publish(events.ProjectDeletedEvent{
-			ProjectID:   id,
-			ProjectName: name,
-			ActorID:     actorId,
-		})
 	}
-	return s.repo.Delete(id)
+
+	// Сначала удаляем проект
+	if err := s.repo.Delete(id); err != nil {
+		return err
+	}
+
+	// Только после успешного удаления публикуем событие
+	s.eventBus.Publish(events.ProjectDeletedEvent{
+		ProjectID:   id,
+		ProjectName: name,
+		ActorID:     actorId,
+	})
+
+	return nil
 }
