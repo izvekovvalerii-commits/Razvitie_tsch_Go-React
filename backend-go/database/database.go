@@ -12,8 +12,6 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-var DB *gorm.DB
-
 // CustomNamingStrategy implements GORM naming strategy for PascalCase
 type CustomNamingStrategy struct{}
 
@@ -57,37 +55,32 @@ func (CustomNamingStrategy) UniqueName(table, column string) string {
 	return "uni_" + table + "_" + column
 }
 
-func Connect(cfg *config.Config) error {
-	var err error
-
-	DB, err = gorm.Open(postgres.Open(cfg.GetDSN()), &gorm.Config{
+// Connect establishes a database connection and returns the GORM DB instance
+func Connect(cfg *config.Config) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(cfg.GetDSN()), &gorm.Config{
 		Logger:         logger.Default.LogMode(logger.Info),
 		NamingStrategy: &CustomNamingStrategy{},
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Println("✅ Database connection established")
 
 	var dbName, inetServerAddr string
-	DB.Raw("SELECT current_database()").Scan(&dbName)
-	DB.Raw("SELECT inet_server_addr() || ':' || inet_server_port()").Scan(&inetServerAddr)
+	db.Raw("SELECT current_database()").Scan(&dbName)
+	db.Raw("SELECT inet_server_addr() || ':' || inet_server_port()").Scan(&inetServerAddr)
 	log.Printf("📂 Connected to database: '%s' at '%s'", dbName, inetServerAddr)
 
-	// Check existing stores count
-	var count int64
-	DB.Table("Stores").Count(&count)
-	log.Printf("📊 Existing stores in DB: %d", count)
-
-	return nil
+	return db, nil
 }
 
-func AutoMigrate() error {
+// AutoMigrate runs database migrations for the given DB instance
+func AutoMigrate(db *gorm.DB) error {
 	log.Println("🔄 Running database migrations...")
 
-	err := DB.AutoMigrate(
+	err := db.AutoMigrate(
 		&models.Store{},
 		&models.User{},
 		&models.Project{},
@@ -106,8 +99,4 @@ func AutoMigrate() error {
 
 	log.Println("✅ Database migrations completed")
 	return nil
-}
-
-func GetDB() *gorm.DB {
-	return DB
 }

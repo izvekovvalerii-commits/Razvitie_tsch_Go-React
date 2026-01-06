@@ -21,7 +21,8 @@ const Projects: React.FC = () => {
         filters,
         setFilters,
         createProject,
-        updateStatus
+        updateStatus,
+        deleteProject
     } = useProjectsData();
 
     // UI State
@@ -31,8 +32,13 @@ const Projects: React.FC = () => {
     const canCreate = hasPermission('project:create');
 
     const handleDeleteProject = async (id: number) => {
-        // Логика удаления будет здесь, пока заглушка
-        console.log('Deleting project:', id);
+        try {
+            await deleteProject(id);
+        } catch (error: any) {
+            console.error('Failed to delete project:', error);
+            // Используем стандартный alert или тост
+            alert(error.message || 'Ошибка удаления проекта');
+        }
     };
 
     // Calculators
@@ -210,24 +216,24 @@ const Projects: React.FC = () => {
                                     <div className="card-info-grid">
                                         <div className="info-col">
                                             <div className="info-label">Адрес</div>
-                                            <div className="info-value">{(project.address || project.store?.address)?.slice(0, 35)}...</div>
+                                            <div className="info-value" style={{ fontSize: '14px' }}>{(project.address || project.store?.address)?.slice(0, 22)}...</div>
                                         </div>
                                         <div className="info-col">
                                             <div className="info-label">Город</div>
-                                            <div className="info-value">{project.store?.city || project.region || project.store?.region}</div>
+                                            <div className="info-value" style={{ fontSize: '14px' }}>{project.store?.city || project.region || project.store?.region}</div>
                                         </div>
                                         <div className="info-col">
                                             <div className="info-label">Площадь</div>
-                                            <div className="info-value">{project.totalArea} м²</div>
+                                            <div className="info-value" style={{ fontSize: '14px' }}>{project.totalArea} м²</div>
                                         </div>
                                         <div className="info-col">
                                             <div className="info-label">Регион</div>
-                                            <div className="info-value">{project.region || project.store?.region}</div>
+                                            <div className="info-value" style={{ fontSize: '14px' }}>{project.region || project.store?.region}</div>
                                         </div>
                                     </div>
 
                                     {/* Progress Bar with Real Data */}
-                                    <div className="progress-section" style={{ marginBottom: 16 }}>
+                                    <div className="progress-section" style={{ marginBottom: 8 }}>
                                         <div className="progress-bar-container">
                                             <div
                                                 className="progress-bar-fill"

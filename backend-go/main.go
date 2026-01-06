@@ -12,9 +12,7 @@ import (
 	"portal-razvitie/config"
 	"portal-razvitie/database"
 	"portal-razvitie/logger"
-	"portal-razvitie/repositories"
 	"portal-razvitie/routes"
-	"portal-razvitie/services"
 	"portal-razvitie/websocket"
 
 	"github.com/gin-contrib/cors"
@@ -35,48 +33,35 @@ func main() {
 	logger.Info().Msg("🚀 Starting Portal Razvitie API Server...")
 
 	// Connect to database
-	if err := database.Connect(cfg); err != nil {
+	db, err := database.Connect(cfg)
+	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to connect to database")
 	}
 	logger.Info().Msg("✅ Database connected")
 
 	// Run migrations
-	if err := database.AutoMigrate(); err != nil {
+	if err := database.AutoMigrate(db); err != nil {
 		logger.Fatal().Err(err).Msg("Failed to run migrations")
 	}
 	logger.Info().Msg("✅ Migrations completed")
 
 	// Seed database
-	if err := database.SeedStores(); err != nil {
+	if err := database.SeedStores(db); err != nil {
 		logger.Warn().Err(err).Msg("Failed to seed stores")
 	}
 
-	if err := database.SeedRBAC(); err != nil {
+	if err := database.SeedRBAC(db); err != nil {
 		logger.Warn().Err(err).Msg("Failed to seed RBAC")
 	}
 
-	if err := database.SeedUsers(); err != nil {
+	if err := database.SeedUsers(db); err != nil {
 		logger.Warn().Err(err).Msg("Failed to seed users")
 	}
-
-	// Initialize repositories
-	userRepo := repositories.NewUserRepository(database.DB)
-	projectRepo := repositories.NewProjectRepository(database.DB)
-	notifRepo := repositories.NewNotificationRepository(database.DB)
 
 	// Initialize and run WebSocket Hub
 	hub := websocket.NewHub()
 	go hub.Run()
 	logger.Info().Msg("✅ WebSocket Hub started")
-
-	// Initialize notification service
-	notifService := services.NewNotificationService(notifRepo, hub)
-
-	// Initialize workflow service with all dependencies
-	workflowService := &services.WorkflowService{}
-	workflowService.SetUserRepo(userRepo)
-	workflowService.SetNotificationService(notifService)
-	workflowService.SetProjectRepo(projectRepo)
 
 	// Initialize Gin router
 	if cfg.Environment == "production" {
@@ -94,7 +79,7 @@ func main() {
 	}))
 
 	// Setup routes (включая middleware)
-	routes.SetupRoutes(router, cfg, workflowService, hub)
+	routes.SetupRoutes(router, cfg, db, hub)
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {

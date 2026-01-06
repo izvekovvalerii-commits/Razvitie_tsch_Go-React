@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"portal-razvitie/database"
 	"portal-razvitie/models"
 	"portal-razvitie/repositories"
 	"strings"
@@ -24,13 +23,15 @@ type WorkflowService struct {
 	userRepo     repositories.UserRepository
 	notifService *NotificationService
 	projectRepo  repositories.ProjectRepository
+	db           *gorm.DB
 }
 
-func NewWorkflowService(userRepo repositories.UserRepository, projectRepo repositories.ProjectRepository, notifService *NotificationService) *WorkflowService {
+func NewWorkflowService(userRepo repositories.UserRepository, projectRepo repositories.ProjectRepository, notifService *NotificationService, db *gorm.DB) *WorkflowService {
 	return &WorkflowService{
 		userRepo:     userRepo,
 		projectRepo:  projectRepo,
 		notifService: notifService,
+		db:           db,
 	}
 }
 
@@ -44,6 +45,10 @@ func (s *WorkflowService) SetNotificationService(notifService *NotificationServi
 
 func (s *WorkflowService) SetProjectRepo(repo repositories.ProjectRepository) {
 	s.projectRepo = repo
+}
+
+func (s *WorkflowService) SetDB(db *gorm.DB) {
+	s.db = db
 }
 
 // Helper to format nullable date
@@ -182,7 +187,7 @@ func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint
 
 // GenerateProjectTasks wrapper for backward compatibility
 func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error) {
-	return s.GenerateProjectTasksWithTx(database.DB, projectID, projectCreatedAt)
+	return s.GenerateProjectTasksWithTx(s.db, projectID, projectCreatedAt)
 }
 
 // ProcessTaskCompletion checks if subsequent tasks should be activated and reschedules dependent tasks
@@ -190,7 +195,7 @@ func (s *WorkflowService) ProcessTaskCompletion(projectID uint, completedTaskCod
 	log.Printf("[Workflow] Processing completion for task %s in project %d", completedTaskCode, projectID)
 
 	var projectTasks []models.ProjectTask
-	if err := database.DB.Where("\"ProjectId\" = ?", projectID).Find(&projectTasks).Error; err != nil {
+	if err := s.db.Where("\"ProjectId\" = ?", projectID).Find(&projectTasks).Error; err != nil {
 		return err
 	}
 
@@ -268,7 +273,7 @@ func (s *WorkflowService) ProcessTaskCompletion(projectID uint, completedTaskCod
 						oldDeadline.Format("2006-01-02"),
 						newDeadline.Format("2006-01-02"))
 
-					if err := database.DB.Save(task).Error; err != nil {
+					if err := s.db.Save(task).Error; err != nil {
 						log.Printf("Error updating task %s: %v", def.Code, err)
 					}
 				}
@@ -282,7 +287,7 @@ func (s *WorkflowService) ProcessTaskCompletion(projectID uint, completedTaskCod
 					now := time.Now().UTC()
 					task.StartedAt = &now
 
-					if err := database.DB.Save(task).Error; err != nil {
+					if err := s.db.Save(task).Error; err != nil {
 						log.Printf("Error activating task: %v", err)
 					}
 
@@ -469,7 +474,7 @@ func (s *WorkflowService) ValidateTaskCompletion(task models.ProjectTask) error 
 
 func (s *WorkflowService) checkDocExists(projectID uint, docType string) error {
 	var count int64
-	if err := database.DB.Model(&models.ProjectDocument{}).
+	if err := s.db.Model(&models.ProjectDocument{}).
 		Where("\"ProjectId\" = ? AND \"Type\" = ?", projectID, docType).
 		Count(&count).Error; err != nil {
 		return err
@@ -482,7 +487,7 @@ func (s *WorkflowService) checkDocExists(projectID uint, docType string) error {
 
 func (s *WorkflowService) checkDocExistsWithExt(projectID uint, docType string, allowedExts []string) error {
 	var docs []models.ProjectDocument
-	if err := database.DB.Where("\"ProjectId\" = ? AND \"Type\" = ?", projectID, docType).Find(&docs).Error; err != nil {
+	if err := s.db.Where("\"ProjectId\" = ? AND \"Type\" = ?", projectID, docType).Find(&docs).Error; err != nil {
 		return err
 	}
 

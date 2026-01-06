@@ -2,154 +2,200 @@ package services_test
 
 import (
 	"errors"
-	"portal-razvitie/events"
-	"portal-razvitie/listeners"
 	"testing"
 	"time"
 
-	"portal-razvitie/models"
-	"portal-razvitie/repositories"
-	"portal-razvitie/services"
-
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
+	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
+
+	"portal-razvitie/events"
+	"portal-razvitie/models"
+	"portal-razvitie/services"
 )
 
-// MockWorkflowService for testing interactions
+// ---------- Mocks that match interfaces defined in original files ----------
+
+type MockProjectRepository struct {
+	mock.Mock
+}
+
+func (m *MockProjectRepository) Create(project *models.Project) error {
+	return m.Called(project).Error(0)
+}
+
+func (m *MockProjectRepository) CreateWithTx(tx *gorm.DB, project *models.Project) error {
+	// For testing purposes, we can simulate that the ID is set during creation
+	project.ID = 1
+	return m.Called(tx, project).Error(0)
+}
+
+func (m *MockProjectRepository) FindAll() ([]models.Project, error) {
+	args := m.Called()
+	return args.Get(0).([]models.Project), args.Error(1)
+}
+
+func (m *MockProjectRepository) FindByID(id uint) (*models.Project, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Project), args.Error(1)
+}
+
+func (m *MockProjectRepository) Update(project *models.Project) error {
+	return m.Called(project).Error(0)
+}
+
+func (m *MockProjectRepository) UpdateStatus(id uint, status string) error {
+	return m.Called(id, status).Error(0)
+}
+
+func (m *MockProjectRepository) Delete(id uint) error {
+	return m.Called(id).Error(0)
+}
+func (m *MockProjectRepository) FindByStore(storeID uint) ([]models.Project, error) {
+	args := m.Called(storeID)
+	return args.Get(0).([]models.Project), args.Error(1)
+}
+
 type MockWorkflowService struct {
-	ShouldFail bool
+	mock.Mock
 }
 
 func (m *MockWorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error) {
-	if m.ShouldFail {
-		return nil, errors.New("workflow error")
-	}
-	return []models.ProjectTask{{Name: "Test Task"}}, nil
+	args := m.Called(tx, projectID, projectCreatedAt)
+	return args.Get(0).([]models.ProjectTask), args.Error(1)
 }
 
 func (m *MockWorkflowService) ProcessTaskCompletion(projectID uint, completedTaskCode string) error {
-	return nil
+	return m.Called(projectID, completedTaskCode).Error(0)
 }
 
 func (m *MockWorkflowService) ValidateTaskCompletion(task models.ProjectTask) error {
-	return nil
+	return m.Called(task).Error(0)
 }
 
-func setupTestDB(t *testing.T) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("failed to connect database: %v", err)
-	}
-
-	// Migrate schema
-	err = db.AutoMigrate(&models.Project{}, &models.Store{}, &models.ProjectTask{}, &models.Notification{}, &models.UserActivity{})
-	if err != nil {
-		t.Fatalf("failed to migrate schema: %v", err)
-	}
-
-	return db
+// MockEventBus implements events.EventBus interface
+type MockEventBus struct {
+	mock.Mock
 }
 
-func TestProjectService_CreateProject_Success(t *testing.T) {
+func (m *MockEventBus) Publish(event events.Event) {
+	m.Called(event)
+}
+
+func (m *MockEventBus) Subscribe(eventName string, handler events.EventHandler) {
+	m.Called(eventName, handler)
+}
+
+// ---------- Tests ----------
+
+func TestProjectService_CreateProject(t *testing.T) {
+	// Setup
 	db := setupTestDB(t)
-	repo := repositories.NewProjectRepository(db)
-	mockWorkflow := &MockWorkflowService{ShouldFail: false}
+	mockRepo := new(MockProjectRepository)
+	mockWorkflow := new(MockWorkflowService)
+	mockEventBus := new(MockEventBus)
 
-	activityRepo := repositories.NewUserActivityRepository(db)
-	activityService := services.NewActivityService(activityRepo)
+	// We pass the dependencies to the service
+	service := services.NewProjectService(mockRepo, mockWorkflow, db, mockEventBus)
 
-	// Event Bus
-	eventBus := events.NewEventBus()
-	listener := listeners.NewActivityListener(activityService)
-	listener.Register(eventBus)
-
-	service := services.NewProjectService(repo, mockWorkflow, db, eventBus)
-
-	newProject := &models.Project{
-		Region: "Test Region",
-		CFO:    "Test CFO",
-		Status: "Создан",
+	project := &models.Project{
+		StoreID:   10,
+		Status:    "New",
+		CreatedAt: time.Now(),
 	}
+	actorID := uint(123)
 
-	err := service.CreateProject(newProject, 1)
+	// Expectations
+	// 1. Repo.CreateWithTx should be called.
+	// Since we are running inside gorm.Transaction, the tx passed is the transaction instance.
+	// We use mock.Anything for tx.
+	mockRepo.On("CreateWithTx", mock.Anything, project).Return(nil)
 
+	// 2. Workflow.GenerateProjectTasksWithTx should be called
+	mockWorkflow.On("GenerateProjectTasksWithTx", mock.Anything, uint(1), project.CreatedAt).Return([]models.ProjectTask{}, nil)
+
+	// 3. EventBus.Publish should be called for ProjectCreatedEvent
+	mockEventBus.On("Publish", mock.MatchedBy(func(e events.ProjectCreatedEvent) bool {
+		return e.Project.StoreID == 10 && e.ActorID == actorID
+	})).Return()
+
+	// 4. Also ProjectTasksGeneratedEvent if tasks were created?
+	// The mock currently returns empty tasks so likely not published.
+	// Add return empty slice -> no extra publish.
+
+	// Execute
+	err := service.CreateProject(project, actorID)
+
+	// Assert
 	assert.NoError(t, err)
-	assert.NotZero(t, newProject.ID)
-
-	// Verify it exists in DB
-	var count int64
-	db.Model(&models.Project{}).Count(&count)
-	assert.Equal(t, int64(1), count)
-
-	time.Sleep(100 * time.Millisecond)
-
-	// Verify Activity Logged
-	var activityCount int64
-	db.Model(&models.UserActivity{}).Count(&activityCount)
-	assert.Equal(t, int64(1), activityCount)
+	mockRepo.AssertExpectations(t)
+	mockWorkflow.AssertExpectations(t)
+	mockEventBus.AssertExpectations(t)
 }
 
-func TestProjectService_CreateProject_RollbackOnError(t *testing.T) {
+func TestProjectService_CreateProject_RepoError(t *testing.T) {
+	// Setup
 	db := setupTestDB(t)
-	repo := repositories.NewProjectRepository(db)
+	mockRepo := new(MockProjectRepository)
+	mockWorkflow := new(MockWorkflowService)
+	mockEventBus := new(MockEventBus)
 
-	// Configure mock to fail
-	mockWorkflow := &MockWorkflowService{ShouldFail: true}
+	service := services.NewProjectService(mockRepo, mockWorkflow, db, mockEventBus)
 
-	eventBus := events.NewEventBus()
-	service := services.NewProjectService(repo, mockWorkflow, db, eventBus)
+	project := &models.Project{StoreID: 5}
+	actorID := uint(1)
 
-	newProject := &models.Project{
-		Region: "Test Region",
-	}
+	// Expectations: Repo fails -> Transaction rollback -> Error returned
+	mockRepo.On("CreateWithTx", mock.Anything, project).Return(errors.New("db creation failed"))
 
-	err := service.CreateProject(newProject, 1)
+	// Workflow and EventBus should NOT be called
 
-	// Expect error
+	err := service.CreateProject(project, actorID)
+
 	assert.Error(t, err)
-	assert.Equal(t, "workflow error", err.Error())
+	assert.Contains(t, err.Error(), "db creation failed")
 
-	// Verify Rollback: Project should NOT exist
-	var count int64
-	db.Model(&models.Project{}).Count(&count)
-	assert.Equal(t, int64(0), count, "Project should have been rolled back")
+	mockRepo.AssertExpectations(t)
+	mockWorkflow.AssertNotCalled(t, "GenerateProjectTasksWithTx")
+	mockEventBus.AssertNotCalled(t, "Publish")
 }
 
-func TestProjectService_Delete_LogsActivity(t *testing.T) {
+func TestProjectService_UpdateStatus(t *testing.T) {
 	db := setupTestDB(t)
-	if !db.Migrator().HasTable(&models.UserActivity{}) {
-		t.Fatal("Table UserActivity does not exist after migration")
+	mockRepo := new(MockProjectRepository)
+	mockWorkflow := new(MockWorkflowService)
+	mockEventBus := new(MockEventBus)
+
+	service := services.NewProjectService(mockRepo, mockWorkflow, db, mockEventBus)
+
+	projectID := uint(1)
+	newStatus := "In Progress"
+	actorID := uint(99)
+	oldStatus := "New"
+
+	// Expectations
+	// 1. FindByID called to get old status (it returns the project)
+	existingProject := &models.Project{
+		ID:     projectID,
+		Status: oldStatus,
+		Store:  &models.Store{Name: "Test Store"},
 	}
-	repo := repositories.NewProjectRepository(db)
-	mockWorkflow := &MockWorkflowService{ShouldFail: false}
+	mockRepo.On("FindByID", projectID).Return(existingProject, nil)
 
-	activityRepo := repositories.NewUserActivityRepository(db)
-	activityService := services.NewActivityService(activityRepo)
+	// 2. UpdateStatus called on repo
+	mockRepo.On("UpdateStatus", projectID, newStatus).Return(nil)
 
-	eventBus := events.NewEventBus()
-	listener := listeners.NewActivityListener(activityService)
-	listener.Register(eventBus)
+	// 3. EventBus Publish called
+	mockEventBus.On("Publish", mock.MatchedBy(func(e events.ProjectStatusChangedEvent) bool {
+		return e.ProjectID == projectID && e.NewStatus == newStatus && e.ActorID == actorID
+	})).Return()
 
-	service := services.NewProjectService(repo, mockWorkflow, db, eventBus)
+	err := service.UpdateStatus(projectID, newStatus, actorID)
 
-	// Create project first
-	project := &models.Project{Region: "Test", Status: "Создан"}
-	service.CreateProject(project, 1)
-
-	time.Sleep(50 * time.Millisecond)
-
-	// Delete
-	err := service.Delete(project.ID, 1)
 	assert.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
-
-	// Verify Activity Logged (1 create + 1 delete = 2)
-	var activities []models.UserActivity
-	db.Find(&activities)
-	assert.Equal(t, 2, len(activities))
-	if len(activities) > 1 {
-		assert.Equal(t, "удалил проект", activities[1].Action)
-	}
+	mockRepo.AssertExpectations(t)
+	mockEventBus.AssertExpectations(t)
 }

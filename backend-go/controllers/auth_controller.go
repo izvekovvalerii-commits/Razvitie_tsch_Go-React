@@ -2,13 +2,19 @@ package controllers
 
 import (
 	"net/http"
-	"portal-razvitie/database"
 	"portal-razvitie/models"
+	"portal-razvitie/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-type AuthController struct{}
+type AuthController struct {
+	authService *services.AuthService
+}
+
+func NewAuthController(authService *services.AuthService) *AuthController {
+	return &AuthController{authService: authService}
+}
 
 type UserWithPerms struct {
 	models.User
@@ -26,48 +32,27 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	var user models.User
-	if err := database.DB.Where("login = ?", body.Login).First(&user).Error; err != nil {
+	user, perms, err := ctrl.authService.Login(body.Login)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	// Fetch permissions from DB
-	var role models.Role
-	var perms []string
-	if err := database.DB.Preload("Permissions").Where(&models.Role{Code: user.Role}).First(&role).Error; err == nil {
-		for _, p := range role.Permissions {
-			perms = append(perms, p.Code)
-		}
-	}
-
-	c.JSON(http.StatusOK, UserWithPerms{User: user, Permissions: perms})
+	c.JSON(http.StatusOK, UserWithPerms{User: *user, Permissions: perms})
 }
 
 // GetUsers returns all available users (for the demo switcher)
 func (ctrl *AuthController) GetUsers(c *gin.Context) {
-	var users []models.User
-	if err := database.DB.Find(&users).Error; err != nil {
+	usersWithPerms, err := ctrl.authService.GetAllUsersWithPerms()
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Map to UserWithPerms
+	// Map generic struct to response struct (explicit mapping for clarity)
 	var response []UserWithPerms
-	for _, u := range users {
-		var role models.Role
-		var perms []string
-
-		if err := database.DB.Preload("Permissions").Where(&models.Role{Code: u.Role}).First(&role).Error; err == nil {
-			for _, p := range role.Permissions {
-				perms = append(perms, p.Code)
-			}
-		} else {
-			// Fallback (e.g. if code admin has no role yet)
-			perms = []string{}
-		}
-
-		response = append(response, UserWithPerms{User: u, Permissions: perms})
+	for _, up := range usersWithPerms {
+		response = append(response, UserWithPerms{User: up.User, Permissions: up.Permissions})
 	}
 
 	c.JSON(http.StatusOK, response)

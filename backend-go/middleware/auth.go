@@ -2,18 +2,14 @@ package middleware
 
 import (
 	"net/http"
-	"portal-razvitie/cache"
-	"portal-razvitie/database"
-	"portal-razvitie/models"
+	"portal-razvitie/services"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 // AuthMiddleware extracts the user ID from the X-User-ID header and loads user & permissions from DB
-func AuthMiddleware() gin.HandlerFunc {
-	permCache := cache.GetCache()
-
+func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uidStr := c.GetHeader("X-User-ID")
 		if uidStr == "" {
@@ -33,32 +29,43 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		var user models.User
-		if err := database.DB.First(&user, uid).Error; err != nil {
+		// Попытка получить данные из кэша
+		// Note: We might want to move caching logic into AuthService completely?
+		// For now, let's just use AuthService to fetch if cache miss.
+
+		// Optimization: Check authService has cached fetch?
+		// Current AuthService implementation does database fetch.
+		// Let's keep cache logic here OR move it to service.
+		// Moving to service is cleaner but bigger change.
+		// Let's try to cache user object separately if we want, but permissions are cached.
+
+		user, perms, err := authService.GetUserByIdWithPerms(uid)
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 			c.Abort()
 			return
 		}
 
-		// Пытаемся получить права из кэша
-		perms, found := permCache.Get(user.Role)
+		// Cache logic for permissions was:
+		// perms, found := permCache.Get(user.Role)
+		// But GetUserByIdWithPerms already fetches permissions from DB.
+		// If we want to use cache efficiently, we should check cache BEFORE fetch.
+		// But we need User role first.
 
-		if !found {
-			// Cache miss - загружаем из БД
-			var role models.Role
-			if err := database.DB.Preload("Permissions").Where(&models.Role{Code: user.Role}).First(&role).Error; err == nil {
-				perms = make([]string, 0, len(role.Permissions))
-				for _, p := range role.Permissions {
-					perms = append(perms, p.Code)
-				}
-				// Сохраняем в кэш
-				permCache.Set(user.Role, perms)
-			} else {
-				perms = []string{}
-			}
-		}
+		// Let's rely on AuthService for now, or adapt cache.
+		// The previous code cached permissions by ROLE code.
+		// So we fetched user, got role, checked cache.
 
-		c.Set("user", &user)
+		// Let's simplify and assume GetUserByIdWithPerms is efficient enough or we delegate caching to it later.
+		// Or we can just use the perms returned by AuthService.
+
+		// If we really want to keep the cache optimization:
+		// We would need GetUserById without Preload, then check Cache, then fetch perms if needed.
+		// But GetUserByIdWithPerms does preloading.
+		// Let's just use the returned perms and ignore middleware caching for now to reduce complexity.
+		// It's a "Clean Up", simpler is better.
+
+		c.Set("user", user)
 		c.Set("permissions", perms)
 		c.Next()
 	}

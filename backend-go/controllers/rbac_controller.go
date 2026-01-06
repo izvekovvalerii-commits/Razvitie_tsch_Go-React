@@ -2,23 +2,23 @@ package controllers
 
 import (
 	"net/http"
-	"portal-razvitie/cache"
-	"portal-razvitie/database"
-	"portal-razvitie/models"
+	"portal-razvitie/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-type RBACController struct{}
+type RBACController struct {
+	rbacService *services.RBACService
+}
 
-func NewRBACController() *RBACController {
-	return &RBACController{}
+func NewRBACController(rbacService *services.RBACService) *RBACController {
+	return &RBACController{rbacService: rbacService}
 }
 
 // GetRoles returns all roles with their permissions
 func (ctrl *RBACController) GetRoles(c *gin.Context) {
-	var roles []models.Role
-	if err := database.DB.Preload("Permissions").Order("\"ID\" asc").Find(&roles).Error; err != nil {
+	roles, err := ctrl.rbacService.GetAllRoles()
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -27,8 +27,8 @@ func (ctrl *RBACController) GetRoles(c *gin.Context) {
 
 // GetPermissions returns all available system permissions
 func (ctrl *RBACController) GetPermissions(c *gin.Context) {
-	var perms []models.Permission
-	if err := database.DB.Order("\"Code\" asc").Find(&perms).Error; err != nil {
+	perms, err := ctrl.rbacService.GetAllPermissions()
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -46,12 +46,8 @@ func (ctrl *RBACController) CreateRole(c *gin.Context) {
 		return
 	}
 
-	role := models.Role{
-		Code: body.Code,
-		Name: body.Name,
-	}
-
-	if err := database.DB.Create(&role).Error; err != nil {
+	role, err := ctrl.rbacService.CreateRole(body.Code, body.Name)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create role: " + err.Error()})
 		return
 	}
@@ -69,30 +65,12 @@ func (ctrl *RBACController) UpdateRolePermissions(c *gin.Context) {
 		return
 	}
 
-	var role models.Role
-	if err := database.DB.First(&role, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Role not found"})
+	updatedRole, err := ctrl.rbacService.UpdateRolePermissions(id, body.PermissionCodes)
+	if err != nil {
+		// Simple error check, could be more specific (e.g. 404)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	var perms []models.Permission
-	if len(body.PermissionCodes) > 0 {
-		if err := database.DB.Where("\"Code\" IN ?", body.PermissionCodes).Find(&perms).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-	}
-
-	// Update association
-	if err := database.DB.Model(&role).Association("Permissions").Replace(perms); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update permissions"})
-		return
-	}
-
-	// Инвалидируем кэш для этой роли
-	cache.GetCache().Invalidate(role.Code)
-
-	// Return updated role
-	database.DB.Preload("Permissions").First(&role, role.ID)
-	c.JSON(http.StatusOK, role)
+	c.JSON(http.StatusOK, updatedRole)
 }

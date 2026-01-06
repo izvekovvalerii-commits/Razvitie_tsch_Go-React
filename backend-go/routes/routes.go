@@ -3,7 +3,6 @@ package routes
 import (
 	"portal-razvitie/config"
 	"portal-razvitie/controllers"
-	"portal-razvitie/database"
 	"portal-razvitie/events"
 	"portal-razvitie/listeners"
 	"portal-razvitie/middleware"
@@ -14,9 +13,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *services.WorkflowService, hub *websocket.Hub) {
+func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *websocket.Hub) {
 	// Глобальные middleware
 	router.Use(middleware.RecoveryMiddleware())
 	router.Use(middleware.ErrorHandler())
@@ -29,13 +29,13 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 	})
 
 	// Initialize Repositories
-	projectRepo := repositories.NewProjectRepository(database.DB)
-	taskRepo := repositories.NewTaskRepository(database.DB)
-	storeRepo := repositories.NewStoreRepository(database.DB)
-	notifRepo := repositories.NewNotificationRepository(database.DB)
-	userRepo := repositories.NewUserRepository(database.DB)
-	activityRepo := repositories.NewUserActivityRepository(database.DB)
-	commentRepo := repositories.NewCommentRepository(database.DB)
+	projectRepo := repositories.NewProjectRepository(db)
+	taskRepo := repositories.NewTaskRepository(db)
+	storeRepo := repositories.NewStoreRepository(db)
+	notifRepo := repositories.NewNotificationRepository(db)
+	userRepo := repositories.NewUserRepository(db)
+	activityRepo := repositories.NewUserActivityRepository(db)
+	commentRepo := repositories.NewCommentRepository(db)
 
 	// Services
 	notifService := services.NewNotificationService(notifRepo, hub)
@@ -57,19 +57,23 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 	// Project Status Service для автоматического управления статусами
 	projectStatusService := services.NewProjectStatusService(projectRepo, taskRepo, activityRepo)
 
-	workflowService = services.NewWorkflowService(userRepo, projectRepo, notifService)
+	workflowService := services.NewWorkflowService(userRepo, projectRepo, notifService, db)
 	taskService := services.NewTaskService(taskRepo, projectRepo, userRepo, workflowService, eventBus, projectStatusService)
-	projectService := services.NewProjectService(projectRepo, workflowService, database.DB, eventBus)
+	projectService := services.NewProjectService(projectRepo, workflowService, db, eventBus)
 	storeService := services.NewStoreService(storeRepo)
+	authService := services.NewAuthService(db)
+	rbacService := services.NewRBACService(db)
+
+	docService := services.NewDocumentService(db)
 
 	// Initialize controllers
 	storesController := controllers.NewStoresController(storeService)
 	tasksController := controllers.NewTasksController(taskService, activityService)
 	projectsController := controllers.NewProjectsController(projectService)
-	documentsController := controllers.NewDocumentsController(cfg)
+	documentsController := controllers.NewDocumentsController(cfg, docService)
 	notifController := controllers.NewNotificationController(notifService)
-	rbacController := controllers.NewRBACController()
-	authController := &controllers.AuthController{}
+	rbacController := controllers.NewRBACController(rbacService)
+	authController := controllers.NewAuthController(authService)
 	dashboardController := controllers.NewDashboardController(activityService, taskService, projectService)
 	commentsController := controllers.NewCommentsController(commentService)
 
@@ -84,7 +88,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, workflowService *servic
 		}
 
 		// Apply global authentication middleware for all subsequent routes
-		api.Use(middleware.AuthMiddleware())
+		api.Use(middleware.AuthMiddleware(authService))
 
 		// Stores routes
 		stores := api.Group("/stores")

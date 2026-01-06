@@ -1,17 +1,20 @@
-import { useState, useEffect, useMemo } from 'react';
-import { projectsService } from '../services/projects';
-import { storesService } from '../services/stores';
-import { Project, Store } from '../types';
-import { useAuth } from './useAuth';
+import { useState, useMemo } from 'react';
+import { useProjects, useStores, useCreateProject, useUpdateProjectStatus, useDeleteProject } from './useQueries';
+import { Project } from '../types';
 import { useDebounce } from './useDebounce';
 
 export const useProjectsData = () => {
-    const { currentUser } = useAuth();
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [stores, setStores] = useState<Store[]>([]);
-    const [loading, setLoading] = useState(true);
+    // React Query Hooks
+    const { data: projects = [], isLoading: loadingProjects, refetch } = useProjects();
+    const { data: stores = [], isLoading: loadingStores } = useStores();
 
-    // Filters
+    const createMutation = useCreateProject();
+    const updateStatusMutation = useUpdateProjectStatus();
+    const deleteMutation = useDeleteProject();
+
+    const loading = loadingProjects || loadingStores;
+
+    // Filters State
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
@@ -20,55 +23,23 @@ export const useProjectsData = () => {
     // Debounced Search (300ms delay)
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [pData, sData] = await Promise.all([
-                projectsService.getProjects(),
-                storesService.getStores()
-            ]);
-            setProjects(pData);
-            setStores(sData);
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
+    // Actions
     const createProject = async (projectData: Project) => {
-        try {
-            const created = await projectsService.createProject(projectData);
-            setProjects(prev => [...prev, created]);
-            return created;
-        } catch (e) {
-            console.error(e);
-            throw e;
-        }
+        return await createMutation.mutateAsync(projectData);
     };
 
     const updateStatus = async (projectId: number, newStatus: string) => {
-        // Optimistic update
-        const oldProjects = [...projects];
-        setProjects(prev => prev.map(p => p.id === projectId ? { ...p, status: newStatus } : p));
-
-        try {
-            await projectsService.updateProjectStatus(projectId, newStatus);
-        } catch (e) {
-            console.error(e);
-            setProjects(oldProjects);
-            alert('Не удалось обновить статус');
-        }
+        return await updateStatusMutation.mutateAsync({ id: projectId, status: newStatus });
     };
 
+    const deleteProject = async (id: number) => {
+        return await deleteMutation.mutateAsync(id);
+    };
+
+    // Filter Logic
     const filteredProjects = useMemo(() => {
         let result = projects;
 
-        // 1. Quick Filter
         // 1. Quick Filter
         if (quickFilter === 'active') {
             // Включаем все статусы, кроме завершенных и отмененных
@@ -88,7 +59,7 @@ export const useProjectsData = () => {
             result = result.filter(p => p.status === selectedStatus);
         }
 
-        // 5. Search (Debounced)
+        // 4. Search (Debounced)
         if (debouncedSearchQuery) {
             const q = debouncedSearchQuery.toLowerCase();
             result = result.filter(p =>
@@ -99,7 +70,7 @@ export const useProjectsData = () => {
         }
 
         return result;
-    }, [projects, selectedType, selectedStatus, debouncedSearchQuery, quickFilter, currentUser]);
+    }, [projects, selectedType, selectedStatus, debouncedSearchQuery, quickFilter]);
 
     return {
         // Data
@@ -109,9 +80,10 @@ export const useProjectsData = () => {
         filteredProjects,
 
         // Actions
-        refresh: fetchData,
+        refresh: refetch,
         createProject,
         updateStatus,
+        deleteProject,
 
         // Filter State
         filters: {

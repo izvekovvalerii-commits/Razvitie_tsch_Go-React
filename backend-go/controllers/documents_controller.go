@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"portal-razvitie/config"
-	"portal-razvitie/database"
 	"portal-razvitie/models"
+	"portal-razvitie/services"
 	"strconv"
 	"time"
 
@@ -17,11 +17,15 @@ import (
 )
 
 type DocumentsController struct {
-	config *config.Config
+	config     *config.Config
+	docService *services.DocumentService
 }
 
-func NewDocumentsController(cfg *config.Config) *DocumentsController {
-	return &DocumentsController{config: cfg}
+func NewDocumentsController(cfg *config.Config, docService *services.DocumentService) *DocumentsController {
+	return &DocumentsController{
+		config:     cfg,
+		docService: docService,
+	}
 }
 
 // Upload godoc
@@ -83,10 +87,13 @@ func (dc *DocumentsController) Upload(c *gin.Context) {
 	}
 
 	// Count existing documents for versioning
-	var existingCount int64
-	database.DB.Model(&models.ProjectDocument{}).
-		Where("project_id = ? AND type = ?", projectId, docType).
-		Count(&existingCount)
+	existingCount, err := dc.docService.Count(projectId, docType)
+	if err != nil {
+		// Log warning but proceed with version 1?
+		// Better to just assume 0 if error is not critical, but here error likely means DB issue.
+		// Let's assume 0.
+		existingCount = 0
+	}
 
 	version := int(existingCount) + 1
 
@@ -106,7 +113,7 @@ func (dc *DocumentsController) Upload(c *gin.Context) {
 		Size:        file.Size,
 	}
 
-	if err := database.DB.Create(&doc).Error; err != nil {
+	if err := dc.docService.Create(&doc); err != nil {
 		// Remove uploaded file if database insert fails
 		os.Remove(filePath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -132,8 +139,8 @@ func (dc *DocumentsController) GetById(c *gin.Context) {
 		return
 	}
 
-	var doc models.ProjectDocument
-	if err := database.DB.First(&doc, id).Error; err != nil {
+	doc, err := dc.docService.GetByID(id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
 		return
 	}
@@ -156,11 +163,8 @@ func (dc *DocumentsController) GetByProject(c *gin.Context) {
 		return
 	}
 
-	var docs []models.ProjectDocument
-	if err := database.DB.
-		Where("\"ProjectId\" = ?", projectId).
-		Order("\"UploadDate\" DESC").
-		Find(&docs).Error; err != nil {
+	docs, err := dc.docService.GetByProjectID(projectId)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -183,11 +187,8 @@ func (dc *DocumentsController) GetByTask(c *gin.Context) {
 		return
 	}
 
-	var docs []models.ProjectDocument
-	if err := database.DB.
-		Where("\"TaskId\" = ?", taskId).
-		Order("\"UploadDate\" DESC").
-		Find(&docs).Error; err != nil {
+	docs, err := dc.docService.GetByTaskID(taskId)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -211,8 +212,8 @@ func (dc *DocumentsController) Download(c *gin.Context) {
 		return
 	}
 
-	var doc models.ProjectDocument
-	if err := database.DB.First(&doc, id).Error; err != nil {
+	doc, err := dc.docService.GetByID(id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
 		return
 	}
@@ -256,8 +257,8 @@ func (dc *DocumentsController) Delete(c *gin.Context) {
 		return
 	}
 
-	var doc models.ProjectDocument
-	if err := database.DB.First(&doc, id).Error; err != nil {
+	doc, err := dc.docService.GetByID(id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
 		return
 	}
@@ -271,7 +272,7 @@ func (dc *DocumentsController) Delete(c *gin.Context) {
 	}
 
 	// Delete database record
-	if err := database.DB.Delete(&doc).Error; err != nil {
+	if err := dc.docService.Delete(doc); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -4,11 +4,13 @@ import (
 	"log"
 	"portal-razvitie/models"
 	"time"
+
+	"gorm.io/gorm"
 )
 
-func SeedStores() error {
+func SeedStores(db *gorm.DB) error {
 	var count int64
-	if err := DB.Model(&models.Store{}).Count(&count).Error; err != nil {
+	if err := db.Model(&models.Store{}).Count(&count).Error; err != nil {
 		return err
 	}
 
@@ -118,7 +120,7 @@ func SeedStores() error {
 		},
 	}
 
-	if err := DB.Create(&mockStores).Error; err != nil {
+	if err := db.Create(&mockStores).Error; err != nil {
 		log.Printf("❌ Failed to seed stores: %v", err)
 		return err
 	}
@@ -133,9 +135,9 @@ func parseTime(s string) time.Time {
 }
 
 // SeedUsers populates the Users table with initial data
-func SeedUsers() error {
+func SeedUsers(db *gorm.DB) error {
 	var count int64
-	if err := DB.Model(&models.User{}).Count(&count).Error; err != nil {
+	if err := db.Model(&models.User{}).Count(&count).Error; err != nil {
 		return err
 	}
 
@@ -172,11 +174,11 @@ func SeedUsers() error {
 		},
 	}
 
-	return DB.Create(&users).Error
+	return db.Create(&users).Error
 }
 
 // SeedRBAC populates Roles and Permissions tables from the hardcoded configuration
-func SeedRBAC() error {
+func SeedRBAC(db *gorm.DB) error {
 	log.Println("🔐 Seeding RBAC data...")
 
 	// 1. Sync Permissions
@@ -209,13 +211,13 @@ func SeedRBAC() error {
 
 	for code := range uniquePerms {
 		var p models.Permission
-		if err := DB.Where(models.Permission{Code: code}).FirstOrCreate(&p).Error; err != nil {
+		if err := db.Where(models.Permission{Code: code}).FirstOrCreate(&p).Error; err != nil {
 			return err
 		}
 		// Update description
 		if desc, ok := permDescriptions[code]; ok && p.Description != desc {
 			p.Description = desc
-			if err := DB.Save(&p).Error; err != nil {
+			if err := db.Save(&p).Error; err != nil {
 				return err
 			}
 		}
@@ -224,13 +226,13 @@ func SeedRBAC() error {
 	// 2. Sync Roles and Links
 	for roleCode, permCodes := range models.RolePermissions {
 		var role models.Role
-		if err := DB.Where(models.Role{Code: roleCode}).FirstOrCreate(&role).Error; err != nil {
+		if err := db.Where(models.Role{Code: roleCode}).FirstOrCreate(&role).Error; err != nil {
 			return err
 		}
 
 		// Проверяем существующие права роли
 		var existingPerms []models.Permission
-		DB.Model(&role).Association("Permissions").Find(&existingPerms)
+		db.Model(&role).Association("Permissions").Find(&existingPerms)
 
 		// Обновляем права только если роль новая (нет прав)
 		if len(existingPerms) == 0 {
@@ -238,12 +240,12 @@ func SeedRBAC() error {
 
 			// Find permission objects for this role
 			var perms []models.Permission
-			if err := DB.Where("\"Code\" IN ?", permCodes).Find(&perms).Error; err != nil {
+			if err := db.Where("\"Code\" IN ?", permCodes).Find(&perms).Error; err != nil {
 				return err
 			}
 
 			// Replace associations (updates role_permissions table)
-			if err := DB.Model(&role).Association("Permissions").Replace(perms); err != nil {
+			if err := db.Model(&role).Association("Permissions").Replace(perms); err != nil {
 				return err
 			}
 		} else {
