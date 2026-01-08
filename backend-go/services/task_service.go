@@ -164,3 +164,11 @@ func (s *TaskService) CleanupOldTasks() (int64, error) {
 func (s *TaskService) GetRecentTasks(limit int) ([]models.ProjectTask, error) {
 	return s.repo.FindRecent(limit)
 }
+
+func (s *TaskService) GetTaskDefinitions() ([]models.TaskDefinition, error) {
+	return s.workflowService.GetTaskDefinitions()
+}
+
+func (s *TaskService) UpdateTaskDefinition(def *models.TaskDefinition) error {
+	return s.workflowService.UpdateTaskDefinition(def)
+}

@@ -491,6 +491,7 @@ const ProjectDetails: React.FC = () => {
                 onDocumentDelete={deleteDoc}
                 canTakeTask={selectedTask ? isUserResponsible(selectedTask) : false}
                 hasEditPermission={hasPermission('task:edit') || (selectedTask ? isUserResponsible(selectedTask) && hasPermission('task:edit_own') : false)}
+                isAdmin={currentUser?.role === 'admin'}
             />
 
 

@@ -10,7 +10,7 @@ import Stores from './pages/Stores';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import Tasks from './pages/Tasks';
-import AdminRoles from './pages/AdminRoles';
+import AdminPage from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -31,7 +31,9 @@ function App() {
                                 <Route path="/projects" element={<Projects />} />
                                 <Route path="/projects/:id" element={<ProjectDetails />} />
                                 <Route path="/tasks" element={<Tasks />} />
-                                <Route path="/admin/roles" element={<AdminRoles />} />
+                                <Route path="/admin" element={<AdminPage />} />
+                                <Route path="/admin/roles" element={<Navigate to="/admin" replace />} />
+                                <Route path="/admin/workflow" element={<Navigate to="/admin" replace />} />
                             </Route>
 
                             {/* Fallback */}

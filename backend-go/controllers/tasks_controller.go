@@ -213,5 +213,50 @@ func (tc *TasksController) DebugAssignments(c *gin.Context) {
 // @Summary Get workflow schema definition
 // @Router /api/workflow/schema [get]
 func (tc *TasksController) GetWorkflowSchema(c *gin.Context) {
-	c.JSON(http.StatusOK, services.StoreOpeningTasks)
+	defs, err := tc.taskService.GetTaskDefinitions()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, defs)
+}
+
+// UpdateWorkflowDefinition godoc
+// @Summary Update workflow task definition
+// @Router /api/workflow/schema [put]
+func (tc *TasksController) UpdateWorkflowDefinition(c *gin.Context) {
+	var input models.TaskDefinition
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// We only allow updating Duration for now, maybe Name/DependsOn later if needed.
+	// But let's trust the input for now or fetch existing first.
+	// Ideally we fetch by Code to ensure existence.
+	defs, _ := tc.taskService.GetTaskDefinitions()
+	var target *models.TaskDefinition
+	for i := range defs {
+		if defs[i].Code == input.Code {
+			target = &defs[i]
+			break
+		}
+	}
+
+	if target == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task definition not found"})
+		return
+	}
+
+	// Update allowed fields
+	target.Duration = input.Duration
+	// target.Name = input.Name -- if we want to allow renaming
+	// target.ResponsibleRole = input.ResponsibleRole -- etc.
+
+	if err := tc.taskService.UpdateTaskDefinition(target); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, target)
 }

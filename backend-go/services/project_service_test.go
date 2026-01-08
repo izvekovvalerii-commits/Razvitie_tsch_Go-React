@@ -76,6 +76,15 @@ func (m *MockWorkflowService) ValidateTaskCompletion(task models.ProjectTask) er
 	return m.Called(task).Error(0)
 }
 
+func (m *MockWorkflowService) GetTaskDefinitions() ([]models.TaskDefinition, error) {
+	args := m.Called()
+	return args.Get(0).([]models.TaskDefinition), args.Error(1)
+}
+
+func (m *MockWorkflowService) UpdateTaskDefinition(def *models.TaskDefinition) error {
+	return m.Called(def).Error(0)
+}
+
 // MockEventBus implements events.EventBus interface
 type MockEventBus struct {
 	mock.Mock

@@ -749,3 +749,84 @@
     border-color: #94a3b8;
     transform: translateY(-2px);
 }
+
+/* Task Deadline Badge - Цветовое выделение */
+.task-deadline-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+/* Обычный дедлайн (более 1 дня) */
+.task-deadline-badge:not(.urgent):not(.overdue) {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+/* Срочные задачи (истекают в течение 1 дня) */
+.task-deadline-badge.urgent {
+    background: linear-gradient(135deg, #fff3cd, #ffe69c);
+    color: #856404;
+    border: 1px solid #ffc107;
+    animation: pulseUrgent 2s ease-in-out infinite;
+}
+
+/* Просроченные задачи */
+.task-deadline-badge.overdue {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #991b1b;
+    border: 1px solid #ef4444;
+    font-weight: 700;
+    animation: pulseOverdue 2s ease-in-out infinite;
+}
+
+@keyframes pulseUrgent {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 6px rgba(255, 193, 7, 0);
+    }
+}
+
+@keyframes pulseOverdue {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+}
+
+/* Цветовое выделение всей карточки для просроченных и срочных */
+.task-card:has(.task-deadline-badge.overdue) {
+    background: linear-gradient(to right, #fef2f2, #ffffff);
+    border-left-color: #ef4444 !important;
+    border-left-width: 4px;
+}
+
+.task-card:has(.task-deadline-badge.urgent) {
+    background: linear-gradient(to right, #fffbeb, #ffffff);
+    border-left-color: #fbbf24 !important;
+    border-left-width: 4px;
+}
+
+.task-card:has(.task-deadline-badge.overdue):hover {
+    background: linear-gradient(to right, #fee2e2, #fef2f2);
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.15);
+}
+
+.task-card:has(.task-deadline-badge.urgent):hover {
+    background: linear-gradient(to right, #fef3c7, #fffbeb);
+    box-shadow: 0 10px 25px rgba(251, 191, 36, 0.15);
+}

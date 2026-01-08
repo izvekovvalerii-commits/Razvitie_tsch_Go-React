@@ -106,10 +106,10 @@ export const Header: React.FC = () => {
 
                     {hasPermission('role:manage') && (
                         <NavLink
-                            to="/admin/roles"
-                            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                            to="/admin"
+                            className={({ isActive }) => `nav-item ${isActive || location.pathname.startsWith('/admin') ? 'active' : ''}`}
                         >
-                            Роли
+                            Администрирование
                         </NavLink>
                     )}
                 </nav>

@@ -5,7 +5,8 @@ import { ProjectTask, User } from '../types';
  */
 export const isUserTask = (task: ProjectTask, currentUser: User | null): boolean => {
     if (!currentUser) return false;
-    if (currentUser.role === 'БА') return true;
+    // Админы и БА видят все задачи
+    if (currentUser.role === 'admin' || currentUser.role === 'БА') return true;
 
     return task.responsibleUserId === currentUser.id ||
         task.responsible === currentUser.name ||
@@ -58,7 +59,8 @@ export const isExpiringSoonTask = (task: ProjectTask): boolean => {
 export const filterUserTasks = (tasks: ProjectTask[], currentUser: User | null): ProjectTask[] => {
     if (!currentUser) return [];
 
-    if (currentUser.role === 'БА') {
+    // Админы и БА видят все задачи
+    if (currentUser.role === 'admin' || currentUser.role === 'БА') {
         return tasks;
     }
 

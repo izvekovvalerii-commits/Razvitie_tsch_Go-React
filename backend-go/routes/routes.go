@@ -140,6 +140,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 		workflow := api.Group("/workflow")
 		{
 			workflow.GET("/schema", tasksController.GetWorkflowSchema)
+			workflow.PUT("/schema", middleware.RequirePermission(models.PermRoleManage), tasksController.UpdateWorkflowDefinition)
 		}
 
 		// Notification routes

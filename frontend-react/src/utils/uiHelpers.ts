@@ -89,14 +89,15 @@ export const getDetailedStatusColor = (status: string): string => {
  */
 export const getRoleColor = (role: string): string => {
     const colors: { [key: string]: string } = {
-        'МП': '#42A5F5',
-        'МРиЗ': '#66BB6A',
-        'БА': '#FFA726',
-        'НОР': '#AB47BC',
-        'РНР': '#EF5350'
+        'admin': '#64748b', // Slate
+        'МП': '#3b82f6',    // Blue
+        'МРиЗ': '#10b981',  // Emerald
+        'БА': '#f59e0b',    // Amber
+        'НОР': '#a855f7',   // Purple
+        'РНР': '#ef4444'    // Red
     };
 
-    return colors[role] || '#999';
+    return colors[role] || '#94a3b8';
 };
 
 /**

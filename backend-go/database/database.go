@@ -91,6 +91,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Permission{},
 		&models.UserActivity{},
 		&models.TaskComment{},
+		&models.TaskDefinition{},
 	)
 
 	if err != nil {

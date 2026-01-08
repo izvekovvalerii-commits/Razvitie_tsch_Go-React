@@ -2,10 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { rbacService, RBACRole, RBACPermission } from '../services/rbac';
 import { useAuth } from '../hooks/useAuth';
 import { Modal } from '../components/common/Modal';
+import { getRoleColor, getInitials } from '../utils/uiHelpers';
 
-import './Projects.css'; // Reuse table styles
+// Reuse table styles
+import './Projects.css';
 
-const AdminRoles: React.FC = () => {
+interface AdminRolesProps {
+    isEmbedded?: boolean;
+}
+
+const AdminRoles: React.FC<AdminRolesProps> = ({ isEmbedded }) => {
     const { currentUser, refreshCurrentUser } = useAuth();
     const [roles, setRoles] = useState<RBACRole[]>([]);
     const [allPermissions, setAllPermissions] = useState<RBACPermission[]>([]);
@@ -55,7 +61,6 @@ const AdminRoles: React.FC = () => {
             // Refresh current user's permissions if they belong to the updated role
             if (currentUser && currentUser.role === selectedRole.code) {
                 await refreshCurrentUser();
-                alert('Ваши права были обновлены');
             }
 
             setSelectedRole(null);
@@ -78,46 +83,124 @@ const AdminRoles: React.FC = () => {
         }
     };
 
-    if (loading) return <div style={{ padding: 20 }}>Загрузка...</div>;
+    if (loading) return (
+        <div style={{ padding: 40, display: 'flex', justifyContent: 'center' }}>
+            <div className="spinner"></div>
+        </div>
+    );
 
     return (
-        <div className="projects-page admin-roles">
-            <div className="page-header">
-                <div className="header-left">
-                    <h1 className="page-title">Управление ролями</h1>
+        <div className="projects-page admin-roles" style={isEmbedded ? { padding: '24px 32px', maxWidth: 'none', margin: 0, height: '100%' } : {}}>
+            {!isEmbedded && (
+                <div className="page-header" style={{ marginBottom: '24px' }}>
+                    <div className="header-left">
+                        <h1 className="page-title">Управление ролями</h1>
+                    </div>
                 </div>
-                <div>
-                    <button className="create-btn" onClick={() => setShowCreate(true)}>+ Роль</button>
-                </div>
-            </div>
+            )}
 
-            <div className="projects-table-container">
-                <table className="compact-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Код</th>
-                            <th>Название</th>
-                            <th>Прав</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {roles.map(r => (
-                            <tr key={r.id}>
-                                <td>{r.id}</td>
-                                <td><span className="code-badge">{r.code}</span></td>
-                                <td>{r.name}</td>
-                                <td>{r.permissions.length}</td>
-                                <td>
-                                    <button className="btn-edit" style={{ padding: '4px 8px', cursor: 'pointer' }} onClick={() => handleEditRole(r)}>
-                                        Изменить права
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {/* Create New Role Card */}
+                <div
+                    onClick={() => setShowCreate(true)}
+                    style={{
+                        border: '2px dashed #e2e8f0',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '160px',
+                        cursor: 'pointer',
+                        background: '#f8fafc',
+                        transition: 'all 0.2s ease',
+                        color: '#64748b'
+                    }}
+                    className="create-role-card"
+                >
+                    <div style={{
+                        width: '40px', height: '40px', borderRadius: '50%', background: 'white',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: '14px' }}>Добавить роль</span>
+                </div>
+
+                {roles.map(r => (
+                    <div key={r.id} style={{
+                        background: 'white',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                        transition: 'all 0.2s',
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }} className="role-card">
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: getRoleColor(r.code) }}></div>
+
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                <div style={{
+                                    width: '44px', height: '44px', borderRadius: '10px',
+                                    background: getRoleColor(r.code),
+                                    color: 'white',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontWeight: 700, fontSize: '18px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                                }}>
+                                    {getInitials(r.name || r.code)}
+                                </div>
+                                <span style={{
+                                    fontSize: '11px', fontFamily: 'monospace', background: '#f1f5f9',
+                                    padding: '4px 8px', borderRadius: '6px', color: '#64748b', fontWeight: 600
+                                }}>
+                                    {r.code}
+                                </span>
+                            </div>
+
+                            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>
+                                {r.name || r.code}
+                            </h3>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '13px' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                                <span>{r.permissions.length} прав доступа</span>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+                            <button
+                                onClick={() => handleEditRole(r)}
+                                style={{
+                                    flex: 1,
+                                    padding: '8px',
+                                    background: '#f8fafc',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '6px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    color: '#475569',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.1s'
+                                }}
+                                className="role-action-btn"
+                            >
+                                Настроить права
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {/* Edit Permissions Modal */}
@@ -125,20 +208,32 @@ const AdminRoles: React.FC = () => {
                 <Modal
                     isOpen={true}
                     onClose={() => setSelectedRole(null)}
-                    title={`Права роли: ${selectedRole.name} (${selectedRole.code})`}
+                    title={`Права доступа: ${selectedRole.name}`}
                     size="lg"
                     footer={(
                         <>
                             <button className="btn-cancel" onClick={() => setSelectedRole(null)}>Отмена</button>
-                            <button className="btn-create" onClick={savePermissions}>Сохранить права</button>
+                            <button className="btn-create" onClick={savePermissions}>Сохранить изменения</button>
                         </>
                     )}
                 >
+                    <div style={{ padding: '16px', background: '#eff6ff', borderRadius: '8px', marginBottom: '24px', display: 'flex', gap: '12px', alignItems: 'center', border: '1px solid #dbeafe' }}>
+                        <div style={{ background: 'white', padding: '8px', borderRadius: '50%', color: '#2563eb' }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e3a8a' }}>Управление доступом</div>
+                            <div style={{ fontSize: '12px', color: '#60a5fa' }}>Выберите функции, доступные для роли <b>{selectedRole.code}</b></div>
+                        </div>
+                    </div>
+
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                         gap: '24px',
-                        maxHeight: '65vh',
+                        maxHeight: '60vh',
                         padding: '4px'
                     }}>
                         {/* Group permissions by prefix */}
@@ -149,45 +244,52 @@ const AdminRoles: React.FC = () => {
                             acc[group].push(p);
                             return acc;
                         }, {} as Record<string, RBACPermission[]>)).sort((a, b) => a[0].localeCompare(b[0])).map(([group, perms]) => (
-                            <div key={group}>
+                            <div key={group} className="permission-group">
                                 <h3 style={{
                                     fontSize: '11px',
-                                    fontWeight: 700,
+                                    fontWeight: 800,
                                     color: '#94a3b8',
                                     textTransform: 'uppercase',
                                     letterSpacing: '0.05em',
                                     marginBottom: '12px',
-                                    borderBottom: '1px solid #e2e8f0',
-                                    paddingBottom: '4px'
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
                                 }}>
-                                    {group}
+                                    <span>{group}</span>
+                                    <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
                                 </h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {perms.map(p => (
                                         <label key={p.code} style={{
                                             display: 'flex',
-                                            alignItems: 'flex-start',
+                                            alignItems: 'center',
                                             gap: '12px',
-                                            padding: '12px',
+                                            padding: '10px 12px',
                                             cursor: 'pointer',
-                                            background: rolePerms.has(p.code) ? '#fffbeb' : '#fff',
-                                            border: rolePerms.has(p.code) ? '1px solid #fcd34d' : '1px solid #f1f5f9',
+                                            background: rolePerms.has(p.code) ? '#f0fdf4' : 'white',
+                                            border: rolePerms.has(p.code) ? '1px solid #86efac' : '1px solid #e2e8f0',
                                             borderRadius: '8px',
-                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            boxShadow: rolePerms.has(p.code) ? '0 4px 6px -1px rgba(251, 191, 36, 0.1)' : 'none'
-                                        }}>
+                                            transition: 'all 0.15s ease'
+                                        }} className="perm-item">
+                                            <div style={{
+                                                width: '18px', height: '18px', borderRadius: '4px',
+                                                border: rolePerms.has(p.code) ? 'none' : '2px solid #cbd5e1',
+                                                background: rolePerms.has(p.code) ? '#16a34a' : 'transparent',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: 'white', flexShrink: 0
+                                            }}>
+                                                {rolePerms.has(p.code) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                                            </div>
                                             <input
                                                 type="checkbox"
                                                 checked={rolePerms.has(p.code)}
                                                 onChange={() => togglePerm(p.code)}
-                                                style={{ marginTop: '4px', cursor: 'pointer', width: '16px', height: '16px', accentColor: '#fbbf24' }}
+                                                style={{ display: 'none' }}
                                             />
-                                            <div style={{ lineHeight: 1.4, flex: 1 }}>
-                                                <div style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: 600, fontSize: '13px', color: '#334155' }}>
                                                     {p.description || p.code}
-                                                </div>
-                                                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px', fontFamily: 'monospace' }}>
-                                                    {p.code}
                                                 </div>
                                             </div>
                                         </label>
@@ -200,26 +302,63 @@ const AdminRoles: React.FC = () => {
             )}
 
             {/* Create Role Modal */}
-            <Modal
+            {showCreate && <Modal
                 isOpen={showCreate}
                 onClose={() => setShowCreate(false)}
-                title="Создать новую роль"
+                title="Новая роль"
+                size="sm"
                 footer={(
                     <>
                         <button className="btn-cancel" onClick={() => setShowCreate(false)}>Отмена</button>
-                        <button className="btn-create" onClick={handleCreateRole}>Создать</button>
+                        <button className="btn-create" onClick={handleCreateRole}>Создать роль</button>
                     </>
                 )}
             >
-                <div className="form-group">
-                    <label>Код (например, MANAGER)</label>
-                    <input value={newRoleCode} onChange={e => setNewRoleCode(e.target.value)} />
+                <div>
+                    <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>
+                            Создание новой роли позволит назначать её пользователям и настраивать специфические наборы прав.
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Код роли (лат.)</label>
+                        <input
+                            value={newRoleCode}
+                            onChange={e => setNewRoleCode(e.target.value.toUpperCase())}
+                            placeholder="Например: SUPERVISOR"
+                            className="modern-input"
+                        />
+                        <small style={{ color: '#94a3b8', fontSize: '11px' }}>Используется в коде для проверок. Только латинские буквы.</small>
+                    </div>
+                    <div className="form-group">
+                        <label>Название</label>
+                        <input
+                            value={newRoleName}
+                            onChange={e => setNewRoleName(e.target.value)}
+                            placeholder="Например: Супервайзер"
+                            className="modern-input"
+                        />
+                    </div>
                 </div>
-                <div className="form-group">
-                    <label>Название (например, Менеджер)</label>
-                    <input value={newRoleName} onChange={e => setNewRoleName(e.target.value)} />
-                </div>
-            </Modal>
+            </Modal>}
+
+            <style>{`
+                .create-role-card:hover {
+                    border-color: #94a3b8 !important;
+                    background: #f1f5f9 !important;
+                    color: #475569 !important;
+                }
+                .role-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+                }
+                .role-action-btn:hover {
+                    background: #f1f5f9 !important;
+                    border-color: #cbd5e1 !important;
+                    color: #0f172a !important;
+                }
+            `}</style>
         </div>
     );
 };

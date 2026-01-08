@@ -92,5 +92,24 @@ export const tasksService = {
             console.error(e);
             return [];
         }
+    },
+
+    getWorkflowSchema: async (): Promise<any[]> => {
+        try {
+            const response = await apiFetch('/workflow/schema');
+            if (!response.ok) throw new Error('Failed to fetch workflow schema');
+            return await response.json();
+        } catch (e) {
+            console.error(e);
+            return [];
+        }
+    },
+
+    updateWorkflowDefinition: async (def: any): Promise<void> => {
+        const response = await apiFetch('/workflow/schema', {
+            method: 'PUT',
+            body: JSON.stringify(def)
+        });
+        await checkApiResponse(response, 'Failed to update workflow definition');
     }
 };

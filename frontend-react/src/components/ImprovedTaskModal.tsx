@@ -18,6 +18,7 @@ interface ImprovedTaskModalProps {
     canTakeTask: boolean;
     hasEditPermission: boolean;
     project: Project | null;
+    isAdmin?: boolean;
 }
 
 const REQUIRED_DOCS_MAP: Record<string, { type: string; exts?: string[] }[]> = {
@@ -68,7 +69,8 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
     onDocumentUpload,
     onDocumentDelete,
     canTakeTask,
-    hasEditPermission
+    hasEditPermission,
+    isAdmin = false
     // project 
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>('basic');
@@ -379,11 +381,28 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                                             type="date"
                                             className="modern-input"
                                             value={formatDateValue(editedTask.normativeDeadline)}
-                                            readOnly
+                                            readOnly={!isAdmin}
+                                            onChange={e => {
+                                                const val = handleDateChange(e.target.value);
+                                                if (val && isAdmin) setEditedTask({ ...editedTask, normativeDeadline: val });
+                                            }}
                                         />
-                                        <small className="field-hint">
-                                            {editedTask.days ? `${editedTask.days} дн.` : ''}
-                                        </small>
+                                        {isAdmin ? (
+                                            <div style={{ marginTop: '8px' }}>
+                                                <label style={{ fontSize: '12px', color: '#64748b' }}>Длительность (дней):</label>
+                                                <input
+                                                    type="number"
+                                                    className="modern-input"
+                                                    style={{ marginTop: '4px' }}
+                                                    value={editedTask.days || 0}
+                                                    onChange={e => setEditedTask({ ...editedTask, days: parseInt(e.target.value) || 0 })}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <small className="field-hint">
+                                                {editedTask.days ? `${editedTask.days} дн.` : ''}
+                                            </small>
+                                        )}
                                     </div>
 
                                     <div className="field-group">

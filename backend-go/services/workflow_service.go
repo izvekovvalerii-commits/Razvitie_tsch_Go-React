@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -17,6 +18,8 @@ type WorkflowServiceInterface interface {
 	GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error)
 	ProcessTaskCompletion(projectID uint, completedTaskCode string) error
 	ValidateTaskCompletion(task models.ProjectTask) error
+	GetTaskDefinitions() ([]models.TaskDefinition, error)
+	UpdateTaskDefinition(def *models.TaskDefinition) error
 }
 
 type WorkflowService struct {
@@ -27,12 +30,14 @@ type WorkflowService struct {
 }
 
 func NewWorkflowService(userRepo repositories.UserRepository, projectRepo repositories.ProjectRepository, notifService *NotificationService, db *gorm.DB) *WorkflowService {
-	return &WorkflowService{
+	svc := &WorkflowService{
 		userRepo:     userRepo,
 		projectRepo:  projectRepo,
 		notifService: notifService,
 		db:           db,
 	}
+	svc.SeedDefinitions()
+	return svc
 }
 
 func (s *WorkflowService) SetUserRepo(repo repositories.UserRepository) {
@@ -59,39 +64,51 @@ func formatDate(t *time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-type TaskDefinition struct {
-	Code              string
-	Name              string
-	Duration          int
-	DependsOn         []string
-	ResponsibleRole   string // "МП", "МРиЗ", "БА"
-	ResponsibleUserID *int   // Optional fixed user ID
-	TaskType          string // "UserTask", "ServiceTask"
-	Stage             string
-}
-
-// Full workflow definition specific to the "Child" portal requirements
-var StoreOpeningTasks = []TaskDefinition{
+// Default definitions for seeding
+var DefaultStoreOpeningTasks = []models.TaskDefinition{
 	// Этап 1: Инициализация и Аудит
-	{Code: "TASK-PREP-AUDIT", Name: "Подготовка к аудиту", Duration: 2, DependsOn: []string{}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Инициализация"},
-	{Code: "TASK-AUDIT", Name: "Аудит объекта", Duration: 1, DependsOn: []string{"TASK-PREP-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Аудит"},
+	{Code: "TASK-PREP-AUDIT", Name: "Подготовка к аудиту", Duration: 2, DependsOn: pq.StringArray{}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Инициализация"},
+	{Code: "TASK-AUDIT", Name: "Аудит объекта", Duration: 1, DependsOn: pq.StringArray{"TASK-PREP-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Аудит"},
 
 	// Этап 2: Параллельные ветки после аудита
-	{Code: "TASK-ALCO-LIC", Name: "Алкогольная лицензия", Duration: 2, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Лицензирование"},
-	{Code: "TASK-WASTE", Name: "Площадка ТБО", Duration: 2, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "ТБО"},
-	{Code: "TASK-CONTOUR", Name: "Контур планировки", Duration: 1, DependsOn: []string{"TASK-AUDIT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Проектирование"},
+	{Code: "TASK-ALCO-LIC", Name: "Алкогольная лицензия", Duration: 2, DependsOn: pq.StringArray{"TASK-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Лицензирование"},
+	{Code: "TASK-WASTE", Name: "Площадка ТБО", Duration: 2, DependsOn: pq.StringArray{"TASK-AUDIT"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "ТБО"},
+	{Code: "TASK-CONTOUR", Name: "Контур планировки", Duration: 1, DependsOn: pq.StringArray{"TASK-AUDIT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Проектирование"},
 
 	// Этап 3: Детальное проектирование (после контура)
-	{Code: "TASK-VISUALIZATION", Name: "Визуализация", Duration: 1, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Проектирование"},
-	{Code: "TASK-LOGISTICS", Name: "Оценка логистики", Duration: 2, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Логистика"},
-	{Code: "TASK-LAYOUT", Name: "Планировка с расстановкой", Duration: 2, DependsOn: []string{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Проектирование"},
+	{Code: "TASK-VISUALIZATION", Name: "Визуализация", Duration: 1, DependsOn: pq.StringArray{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Проектирование"},
+	{Code: "TASK-LOGISTICS", Name: "Оценка логистики", Duration: 2, DependsOn: pq.StringArray{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Логистика"},
+	{Code: "TASK-LAYOUT", Name: "Планировка с расстановкой", Duration: 2, DependsOn: pq.StringArray{"TASK-CONTOUR"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Проектирование"},
 
 	// Этап 4: Бюджетирование
-	{Code: "TASK-BUDGET-EQUIP", Name: "Расчет бюджета оборудования", Duration: 2, DependsOn: []string{"TASK-VISUALIZATION", "TASK-LAYOUT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
-	{Code: "TASK-BUDGET-SECURITY", Name: "Расчет бюджета СБ", Duration: 2, DependsOn: []string{"TASK-LAYOUT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
-	{Code: "TASK-BUDGET-RSR", Name: "ТЗ и расчет бюджета РСР", Duration: 1, DependsOn: []string{"TASK-BUDGET-SECURITY"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
-	{Code: "TASK-BUDGET-PIS", Name: "Расчет бюджета ПиС", Duration: 1, DependsOn: []string{"TASK-BUDGET-RSR", "TASK-BUDGET-EQUIP"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
-	{Code: "TASK-TOTAL-BUDGET", Name: "Общий бюджет проекта", Duration: 1, DependsOn: []string{"TASK-BUDGET-PIS"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-BUDGET-EQUIP", Name: "Расчет бюджета оборудования", Duration: 2, DependsOn: pq.StringArray{"TASK-VISUALIZATION", "TASK-LAYOUT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-BUDGET-SECURITY", Name: "Расчет бюджета СБ", Duration: 2, DependsOn: pq.StringArray{"TASK-LAYOUT"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-BUDGET-RSR", Name: "ТЗ и расчет бюджета РСР", Duration: 1, DependsOn: pq.StringArray{"TASK-BUDGET-SECURITY"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-BUDGET-PIS", Name: "Расчет бюджета ПиС", Duration: 1, DependsOn: pq.StringArray{"TASK-BUDGET-RSR", "TASK-BUDGET-EQUIP"}, ResponsibleRole: models.RoleMRiZ, TaskType: "UserTask", Stage: "Бюджет"},
+	{Code: "TASK-TOTAL-BUDGET", Name: "Общий бюджет проекта", Duration: 1, DependsOn: pq.StringArray{"TASK-BUDGET-PIS"}, ResponsibleRole: models.RoleMP, TaskType: "UserTask", Stage: "Бюджет"},
+}
+
+func (s *WorkflowService) SeedDefinitions() {
+	var count int64
+	s.db.Model(&models.TaskDefinition{}).Count(&count)
+	if count == 0 {
+		log.Println("🌱 Seeding default task definitions...")
+		for _, def := range DefaultStoreOpeningTasks {
+			if err := s.db.Create(&def).Error; err != nil {
+				log.Printf("Error seeding task definition %s: %v", def.Code, err)
+			}
+		}
+	}
+}
+
+func (s *WorkflowService) GetTaskDefinitions() ([]models.TaskDefinition, error) {
+	var defs []models.TaskDefinition
+	err := s.db.Order("\"ID\"").Find(&defs).Error
+	return defs, err
+}
+
+func (s *WorkflowService) UpdateTaskDefinition(def *models.TaskDefinition) error {
+	return s.db.Save(def).Error
 }
 
 // GenerateProjectTasksWithTx creates the full task roadmap for a new project using a transaction
@@ -99,7 +116,14 @@ func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint
 	var createdTasks []models.ProjectTask
 	taskMap := make(map[string]*models.ProjectTask) // Map By Code
 
-	for _, def := range StoreOpeningTasks {
+	var taskDefs []models.TaskDefinition
+	// Use the main DB to get definitions if tx does not have access (though it should)
+	// Using s.db is safer for reading config, tx for writing tasks
+	if err := s.db.Order("\"ID\"").Find(&taskDefs).Error; err != nil {
+		return nil, fmt.Errorf("failed to load task definitions: %w", err)
+	}
+
+	for _, def := range taskDefs {
 		// 1. Calculate Start Date Logic
 		startDate := projectCreatedAt
 
@@ -177,7 +201,6 @@ func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint
 		createdTasks = append(createdTasks, newTask)
 
 		// Store for next iterations
-		// Note: We need the ID if we were linking them by ID in DB, but here we link logic by Code map
 		taskCopy := newTask
 		taskMap[def.Code] = &taskCopy
 	}
@@ -207,9 +230,15 @@ func (s *WorkflowService) ProcessTaskCompletion(projectID uint, completedTaskCod
 		}
 	}
 
+	// Load Definitions from DB
+	var taskDefs []models.TaskDefinition
+	if err := s.db.Order("\"ID\"").Find(&taskDefs).Error; err != nil {
+		return fmt.Errorf("failed to load task definitions: %w", err)
+	}
+
 	// 2. TIMELINE RECALCULATION (Global Propagating Pass)
-	// Iterate valid definitions in topological order (StoreOpeningTasks is ordered)
-	for _, def := range StoreOpeningTasks {
+	// Iterate valid definitions in topological order
+	for _, def := range taskDefs {
 		task := taskMap[def.Code]
 		if task == nil {
 			continue
