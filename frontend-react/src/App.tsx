@@ -11,6 +11,8 @@ import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import Tasks from './pages/Tasks';
 import AdminPage from './pages/AdminPage';
+import { TaskTemplateList } from './pages/admin/TaskTemplateList';
+import { TaskTemplateBuilder } from './pages/admin/TaskTemplateBuilder';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -32,6 +34,8 @@ function App() {
                                 <Route path="/projects/:id" element={<ProjectDetails />} />
                                 <Route path="/tasks" element={<Tasks />} />
                                 <Route path="/admin" element={<AdminPage />} />
+                                <Route path="/admin/task-templates" element={<TaskTemplateList />} />
+                                <Route path="/admin/task-templates/:id" element={<TaskTemplateBuilder />} />
                                 <Route path="/admin/roles" element={<Navigate to="/admin" replace />} />
                                 <Route path="/admin/workflow" element={<Navigate to="/admin" replace />} />
                             </Route>

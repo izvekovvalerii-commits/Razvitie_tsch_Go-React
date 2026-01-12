@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminRoles from './AdminRoles';
 import WorkflowSettings from './WorkflowSettings';
 import './Projects.css'; // Common styles
 
 const AdminPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'roles' | 'workflow'>('roles');
+    const navigate = useNavigate();
 
     return (
         <div className="admin-page-container">
@@ -41,6 +43,22 @@ const AdminPage: React.FC = () => {
                     <div className="tile-content">
                         <span className="tile-title">Регламент процессов</span>
                         <span className="tile-desc">Настройка этапов и сроков задач</span>
+                    </div>
+                </button>
+
+                <button
+                    className="admin-tile"
+                    onClick={() => navigate('/admin/task-templates')}
+                >
+                    <div className="tile-icon" style={{ background: '#dcfce7', color: '#166534' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </div>
+                    <div className="tile-content">
+                        <span className="tile-title">Конструктор задач</span>
+                        <span className="tile-desc">Создание шаблонов и форм</span>
                     </div>
                 </button>
             </div>
