@@ -18,7 +18,7 @@ func TestNotificationService_SendAndRead(t *testing.T) {
 	service := services.NewNotificationService(repo, hub)
 
 	// Send
-	err := service.SendNotification(1, "Test", "Msg", "INFO", "")
+	err := service.SendNotification(1, "Test", "Msg", "INFO", "", nil, nil)
 	assert.NoError(t, err)
 
 	// Check count

@@ -1,5 +1,5 @@
-import { useAuth } from '../context/AuthContext'; import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ProjectTask, ProjectDocument } from '../types';
 import { projectsService } from '../services/projects';
 import { tasksService } from '../services/tasks';
@@ -24,6 +24,7 @@ const ProjectDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { currentUser, hasPermission } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // State management via Custom Hook
     const {
@@ -72,6 +73,23 @@ const ProjectDetails: React.FC = () => {
     // Modals
     const [showEditTaskModal, setShowEditTaskModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<ProjectTask | null>(null);
+
+    // Handle editTask query parameter (from notifications)
+    useEffect(() => {
+        const editTaskId = searchParams.get('editTask');
+        if (editTaskId && tasks.length > 0 && !showEditTaskModal) {
+            const taskId = parseInt(editTaskId);
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                console.log('📬 Opening task from notification:', task);
+                setSelectedTask(task);
+                setShowEditTaskModal(true);
+                // Remove the parameter from URL
+                searchParams.delete('editTask');
+                setSearchParams(searchParams, { replace: true });
+            }
+        }
+    }, [searchParams, tasks, showEditTaskModal, setSearchParams]);
 
 
     // --- Actions ---

@@ -348,12 +348,16 @@ func (s *WorkflowService) sendAssignmentNotification(projectID uint, task *model
 		}
 	}
 	message := fmt.Sprintf("Вам назначена задача: %s в %s", task.Name, projectName)
+	projectIdUint := uint(projectID)
+	taskIdUint := uint(task.ID)
 	if err := s.notifService.SendNotification(
 		uint(*task.ResponsibleUserID),
 		"Новая задача",
 		message,
 		"TASK_ASSIGNED",
 		fmt.Sprintf("/projects/%d", projectID),
+		&projectIdUint,
+		&taskIdUint,
 	); err != nil {
 		log.Printf("⚠️ Failed to send notification for task %s: %v", *task.Code, err)
 	} else {

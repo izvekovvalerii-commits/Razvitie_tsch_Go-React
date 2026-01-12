@@ -20,15 +20,17 @@ func NewNotificationService(repo repositories.NotificationRepository, hub *webso
 }
 
 // SendNotification creates a notification and pushes it via WS
-func (s *NotificationService) SendNotification(userID uint, title, message, notifType, link string) error {
+func (s *NotificationService) SendNotification(userID uint, title, message, notifType, link string, relatedProjectId, relatedTaskId *uint) error {
 	log.Printf("📧 Sending notification to user %d: title='%s' message='%s'", userID, title, message)
 
 	notif := &models.Notification{
-		UserID:  userID,
-		Title:   title,
-		Message: message,
-		Type:    notifType,
-		Link:    link,
+		UserID:           userID,
+		Title:            title,
+		Message:          message,
+		Type:             notifType,
+		Link:             link,
+		RelatedProjectID: relatedProjectId,
+		RelatedTaskID:    relatedTaskId,
 	}
 
 	if err := s.repo.Create(notif); err != nil {
@@ -44,6 +46,10 @@ func (s *NotificationService) SendNotification(userID uint, title, message, noti
 
 func (s *NotificationService) GetUserNotifications(userID uint, limit int) ([]models.Notification, error) {
 	return s.repo.FindByUserID(userID, limit)
+}
+
+func (s *NotificationService) GetByID(id uint) (*models.Notification, error) {
+	return s.repo.FindByID(id)
 }
 
 func (s *NotificationService) GetUnreadCount(userID uint) (int64, error) {

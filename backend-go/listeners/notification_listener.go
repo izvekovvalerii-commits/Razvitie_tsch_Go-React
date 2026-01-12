@@ -47,7 +47,9 @@ func (l *NotificationListener) checkAndNotifyAssignment(task *models.ProjectTask
 			projectName = "проекте " + project.Store.Name
 		}
 		message := "Вам назначена задача: " + task.Name + " в " + projectName
-		return l.notifService.SendNotification(uint(*task.ResponsibleUserID), "Новая задача", message, "TASK_ASSIGNED", "")
+		projectIdUint := uint(task.ProjectID)
+		taskIdUint := uint(task.ID)
+		return l.notifService.SendNotification(uint(*task.ResponsibleUserID), "Новая задача", message, "TASK_ASSIGNED", "", &projectIdUint, &taskIdUint)
 	}
 	return nil
 }

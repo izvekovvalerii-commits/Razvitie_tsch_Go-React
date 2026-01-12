@@ -42,7 +42,9 @@ func (s *CommentService) CreateComment(taskId, userId uint, content string) (*mo
 		if responsibleId != userId {
 			title := "Новый комментарий"
 			message := fmt.Sprintf("К вашей задаче «%s» добавлен новый комментарий", task.Name)
-			_ = s.notifService.SendNotification(responsibleId, title, message, "COMMENT", "")
+			projectId := uint(task.ProjectID)
+			taskIdUint := uint(taskId)
+			_ = s.notifService.SendNotification(responsibleId, title, message, "COMMENT", "", &projectId, &taskIdUint)
 		}
 	}
 

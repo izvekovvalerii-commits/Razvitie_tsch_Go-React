@@ -47,10 +47,25 @@ export const Header: React.FC = () => {
     };
 
     const handleMarkAsRead = (notification: any) => {
+        console.log('🔔 Notification clicked:', notification);
+        console.log('📋 relatedTaskId:', notification.relatedTaskId);
+        console.log('📁 relatedProjectId:', notification.relatedProjectId);
+
         markAsRead(notification.id);
-        if (notification.relatedProjectId) {
+
+        // If notification is related to a specific task
+        if (notification.relatedTaskId && notification.relatedProjectId) {
+            console.log('✅ Navigating to task:', `/projects/${notification.relatedProjectId}?editTask=${notification.relatedTaskId}`);
+            navigate(`/projects/${notification.relatedProjectId}?editTask=${notification.relatedTaskId}`);
+            setShowNotifications(false);
+        }
+        // If notification is related only to a project
+        else if (notification.relatedProjectId) {
+            console.log('✅ Navigating to project:', `/projects/${notification.relatedProjectId}`);
             navigate(`/projects/${notification.relatedProjectId}`);
             setShowNotifications(false);
+        } else {
+            console.log('⚠️ No navigation - notification has no related entities');
         }
     };
 

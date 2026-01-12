@@ -19,4 +19,8 @@ type Notification struct {
 	Link    string     `json:"link"` // e.g. "/projects/123"
 	IsRead  bool       `gorm:"default:false" json:"isRead"`
 	ReadAt  *time.Time `json:"readAt"`
+
+	// Related entities for navigation
+	RelatedProjectID *uint `json:"relatedProjectId,omitempty"`
+	RelatedTaskID    *uint `json:"relatedTaskId,omitempty"`
 }

@@ -22,7 +22,8 @@ export const useNotifications = (userId?: number) => {
                         date: new Date(n.createdAt),
                         isRead: n.isRead,
                         type: n.type,
-                        relatedProjectId: n.link && n.link.includes('projects') ? parseInt(n.link.split('/').pop()) : undefined
+                        relatedProjectId: n.relatedProjectId,
+                        relatedTaskId: n.relatedTaskId
                     }));
                     setNotifications(mapped);
                 }
@@ -39,7 +40,8 @@ export const useNotifications = (userId?: number) => {
                 date: new Date(n.createdAt),
                 isRead: n.isRead,
                 type: n.type,
-                relatedProjectId: n.link && n.link.includes('projects') ? parseInt(n.link.split('/').pop() || '0') : undefined
+                relatedProjectId: n.relatedProjectId,
+                relatedTaskId: n.relatedTaskId
             };
             setNotifications(prev => [newNotif, ...prev]);
         }
@@ -80,8 +82,8 @@ export const useNotifications = (userId?: number) => {
     const deleteNotification = (id: number) => {
         // Optimistic: remove from UI immediately
         setNotifications(prev => prev.filter(n => n.id !== id));
-        // Actually delete from DB
-        apiFetch(`/notifications/${id}`, {
+        // Actually delete from DB with ownership verification
+        apiFetch(`/notifications/${id}?userId=${userId}`, {
             method: 'DELETE'
         }).catch(err => {
             console.error('Failed to delete notification', err);

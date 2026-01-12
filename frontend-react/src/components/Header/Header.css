@@ -39,13 +39,13 @@
 .logo {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     text-decoration: none;
     cursor: pointer;
     color: inherit;
     transition: opacity 0.2s;
     position: relative;
-    top: 14px;
+    top: 10px;
 }
 
 .logo:hover {
@@ -53,7 +53,8 @@
 }
 
 .logo:hover .logo-icon {
-    transform: rotate(10deg) scale(1.15);
+    transform: rotate(10deg) scale(1.1);
+    /* Reduced scale slightly */
     background: linear-gradient(135deg, #FFC107 0%, #FFD700 100%);
     box-shadow: 0 8px 20px rgba(255, 215, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.3);
     animation: logoGlow 1.5s ease-in-out infinite;
@@ -72,10 +73,12 @@
 }
 
 .logo-icon {
-    width: 56px;
-    height: 56px;
+    width: 44px;
+    /* Reduced from 56px */
+    height: 44px;
+    /* Reduced from 56px */
     background: linear-gradient(135deg, #FFD700 0%, #F5C518 50%, #FFC107 100%);
-    border-radius: 14px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -112,8 +115,10 @@
 }
 
 .logo-icon img {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    /* Reduced from 36px */
+    height: 28px;
+    /* Reduced from 36px */
     object-fit: contain;
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));

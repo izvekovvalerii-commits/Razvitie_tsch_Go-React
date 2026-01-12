@@ -9,6 +9,7 @@ import (
 
 type NotificationRepository interface {
 	Create(notification *models.Notification) error
+	FindByID(id uint) (*models.Notification, error)
 	FindByUserID(userID uint, limit int) ([]models.Notification, error)
 	MarkAsRead(id uint) error
 	MarkAllAsRead(userID uint) error
@@ -27,6 +28,15 @@ func NewNotificationRepository(db *gorm.DB) NotificationRepository {
 
 func (r *notificationRepository) Create(notification *models.Notification) error {
 	return r.db.Create(notification).Error
+}
+
+func (r *notificationRepository) FindByID(id uint) (*models.Notification, error) {
+	var notification models.Notification
+	err := r.db.Where("\"ID\" = ?", id).First(&notification).Error
+	if err != nil {
+		return nil, err
+	}
+	return &notification, nil
 }
 
 func (r *notificationRepository) FindByUserID(userID uint, limit int) ([]models.Notification, error) {
