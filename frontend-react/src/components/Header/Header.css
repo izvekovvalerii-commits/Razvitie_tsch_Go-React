@@ -249,6 +249,18 @@
 }
 
 /* --- User Profile --- */
+.user-actions-unified {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 12px 8px 16px;
+    border-left: 1px solid #e2e8f0;
+    height: auto;
+    background: #ffffff;
+    border-radius: 12px;
+    margin-left: 12px;
+}
+
 .user-profile {
     display: flex;
     align-items: center;

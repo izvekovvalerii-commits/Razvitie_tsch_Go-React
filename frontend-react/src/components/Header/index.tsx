@@ -129,91 +129,91 @@ export const Header: React.FC = () => {
                     )}
                 </nav>
 
-                {/* Right Actions Panel */}
-                <div className="header-actions">
-                    {/* Icon Actions */}
-                    <div className="action-icons">
-                        <div className="notification-wrapper" ref={notificationRef}>
-                            <button className="icon-btn notification-btn" onClick={handleToggleNotifications} title="Уведомления">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                                    strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                                </svg>
-                                {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
-                            </button>
+                {/* Right Actions Panel - Unified User Block */}
+                {currentUser && (
+                    <div className="header-actions">
+                        <div className="user-actions-unified">
+                            {/* Notifications */}
+                            <div className="notification-wrapper" ref={notificationRef}>
+                                <button className="icon-btn notification-btn" onClick={handleToggleNotifications} title="Уведомления">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                                        strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                    </svg>
+                                    {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+                                </button>
 
-                            {/* Notifications Dropdown */}
-                            {showNotifications && (
-                                <div className="notifications-dropdown">
-                                    <div className="notifications-header">
-                                        <h3>Уведомления</h3>
-                                        <div className="notifications-actions">
-                                            {unreadCount > 0 && (
-                                                <button className="text-btn" onClick={() => markAllAsRead()}>
-                                                    Прочитать все
-                                                </button>
-                                            )}
-                                            {notifications.length > 0 && (
-                                                <button className="text-btn" onClick={() => clearAll()}>
-                                                    Очистить
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {notifications.length > 0 ? (
-                                        <div className="notifications-list">
-                                            {notifications.map(notification => (
-                                                <div
-                                                    key={notification.id}
-                                                    className={`notification-item ${!notification.isRead ? 'unread' : ''}`}
-                                                    onClick={() => handleMarkAsRead(notification)}
-                                                >
-                                                    <div className="notification-icon">
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                                            <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z" />
-                                                        </svg>
-                                                    </div>
-                                                    <div className="notification-content">
-                                                        <div className="notification-message">{notification.message}</div>
-                                                        <div className="notification-time">{getTimeAgo(notification.date)}</div>
-                                                    </div>
-                                                    <button
-                                                        className="notification-delete"
-                                                        onClick={(e) => handleDeleteNotification(notification.id, e)}
-                                                    >
-                                                        ×
+                                {/* Notifications Dropdown */}
+                                {showNotifications && (
+                                    <div className="notifications-dropdown">
+                                        <div className="notifications-header">
+                                            <h3>Уведомления</h3>
+                                            <div className="notifications-actions">
+                                                {unreadCount > 0 && (
+                                                    <button className="text-btn" onClick={() => markAllAsRead()}>
+                                                        Прочитать все
                                                     </button>
-                                                </div>
-                                            ))}
+                                                )}
+                                                {notifications.length > 0 && (
+                                                    <button className="text-btn" onClick={() => clearAll()}>
+                                                        Очистить
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <div className="notifications-empty">
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                                            </svg>
-                                            <p>Нет уведомлений</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* User Profile */}
-                    {currentUser && (
-                        <div className="user-profile">
+                                        {notifications.length > 0 ? (
+                                            <div className="notifications-list">
+                                                {notifications.map(notification => (
+                                                    <div
+                                                        key={notification.id}
+                                                        className={`notification-item ${!notification.isRead ? 'unread' : ''}`}
+                                                        onClick={() => handleMarkAsRead(notification)}
+                                                    >
+                                                        <div className="notification-icon">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                                <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z" />
+                                                            </svg>
+                                                        </div>
+                                                        <div className="notification-content">
+                                                            <div className="notification-message">{notification.message}</div>
+                                                            <div className="notification-time">{getTimeAgo(notification.date)}</div>
+                                                        </div>
+                                                        <button
+                                                            className="notification-delete"
+                                                            onClick={(e) => handleDeleteNotification(notification.id, e)}
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="notifications-empty">
+                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                                </svg>
+                                                <p>Нет уведомлений</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* User Profile */}
                             <div className="user-info-header">
                                 <span className="user-name">{currentUser.name}</span>
                                 <span className="user-role" style={{ color: getRoleColor(currentUser.role) }}>
                                     {currentUser.role}
                                 </span>
                             </div>
+
                             <div className="user-avatar" style={{ background: getRoleColor(currentUser.role) }}>
                                 {currentUser.name.charAt(0)}
                             </div>
+
                             <button className="logout-btn" onClick={() => { logout(); navigate('/login'); }} title="Выйти">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                                     strokeLinecap="round" strokeLinejoin="round">
@@ -223,8 +223,8 @@ export const Header: React.FC = () => {
                                 </svg>
                             </button>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </header>
     );
