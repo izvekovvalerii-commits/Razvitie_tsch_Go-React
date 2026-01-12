@@ -9,6 +9,7 @@ import (
 type TaskRepository interface {
 	FindAll() ([]models.ProjectTask, error)
 	FindByProjectID(projectID uint) ([]models.ProjectTask, error)
+	FindByResponsibleUserID(userID uint) ([]models.ProjectTask, error)
 	FindByID(id uint) (*models.ProjectTask, error)
 	Create(task *models.ProjectTask) error
 	Update(task *models.ProjectTask) error
@@ -34,6 +35,12 @@ func (r *taskRepository) FindAll() ([]models.ProjectTask, error) {
 func (r *taskRepository) FindByProjectID(projectID uint) ([]models.ProjectTask, error) {
 	var tasks []models.ProjectTask
 	err := r.db.Where("\"ProjectId\" = ?", projectID).Order("\"NormativeDeadline\" ASC").Find(&tasks).Error
+	return tasks, err
+}
+
+func (r *taskRepository) FindByResponsibleUserID(userID uint) ([]models.ProjectTask, error) {
+	var tasks []models.ProjectTask
+	err := r.db.Where("\"ResponsibleUserId\" = ?", userID).Order("\"NormativeDeadline\" ASC").Find(&tasks).Error
 	return tasks, err
 }
 

@@ -42,6 +42,10 @@ func (s *TaskService) GetProjectTasks(projectId uint) ([]models.ProjectTask, err
 	return s.repo.FindByProjectID(projectId)
 }
 
+func (s *TaskService) GetTasksByResponsibleUser(userId uint) ([]models.ProjectTask, error) {
+	return s.repo.FindByResponsibleUserID(userId)
+}
+
 func (s *TaskService) GetTask(id uint) (*models.ProjectTask, error) {
 	return s.repo.FindByID(id)
 }

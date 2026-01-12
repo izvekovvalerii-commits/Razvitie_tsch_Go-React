@@ -41,11 +41,30 @@ func (tc *TasksController) GetHistory(c *gin.Context) {
 }
 
 // GetAllTasks godoc
-// @Summary Get all tasks
+// @Summary Get all tasks (filtered by user role)
 // @Produce json
 // @Router /api/tasks [get]
 func (tc *TasksController) GetAllTasks(c *gin.Context) {
-	tasks, err := tc.taskService.GetAllTasks()
+	// Get current user from context (set by AuthMiddleware)
+	userInterface, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	user := userInterface.(*models.User)
+
+	var tasks []models.ProjectTask
+	var err error
+
+	// Admin and БА see all tasks
+	if user.Role == "admin" || user.Role == "БА" {
+		tasks, err = tc.taskService.GetAllTasks()
+	} else {
+		// Other roles see only their assigned tasks
+		tasks, err = tc.taskService.GetTasksByResponsibleUser(user.ID)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
