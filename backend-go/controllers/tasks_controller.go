@@ -73,7 +73,7 @@ func (tc *TasksController) GetAllTasks(c *gin.Context) {
 }
 
 // GetProjectTasks godoc
-// @Summary Get tasks by project ID
+// @Summary Get tasks by project ID (filtered by user role)
 // @Router /api/tasks/project/{projectId} [get]
 func (tc *TasksController) GetProjectTasks(c *gin.Context) {
 	projectId, err := strconv.Atoi(c.Param("projectId"))
@@ -82,10 +82,22 @@ func (tc *TasksController) GetProjectTasks(c *gin.Context) {
 		return
 	}
 
+	user := c.MustGet("user").(*models.User)
 	tasks, err := tc.taskService.GetProjectTasks(uint(projectId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Filter tasks based on user role (unless admin or БА)
+	if user.Role != "admin" && user.Role != "БА" {
+		filteredTasks := make([]models.ProjectTask, 0)
+		for _, task := range tasks {
+			if task.ResponsibleUserID != nil && *task.ResponsibleUserID == int(user.ID) {
+				filteredTasks = append(filteredTasks, task)
+			}
+		}
+		tasks = filteredTasks
 	}
 
 	c.JSON(http.StatusOK, tasks)
@@ -132,6 +144,20 @@ func (tc *TasksController) UpdateTask(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
+
+	// Check ownership (unless admin or БА)
+	if user.Role != "admin" && user.Role != "БА" {
+		existingTask, err := tc.taskService.GetTask(uint(id))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+			return
+		}
+		if existingTask.ResponsibleUserID == nil || *existingTask.ResponsibleUserID != int(user.ID) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You can only update your own tasks"})
+			return
+		}
+	}
+
 	if err := tc.taskService.UpdateTask(&task, user.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -160,6 +186,20 @@ func (tc *TasksController) UpdateTaskStatus(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
+
+	// Check ownership (unless admin or БА)
+	if user.Role != "admin" && user.Role != "БА" {
+		task, err := tc.taskService.GetTask(uint(id))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+			return
+		}
+		if task.ResponsibleUserID == nil || *task.ResponsibleUserID != int(user.ID) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You can only update status of your own tasks"})
+			return
+		}
+	}
+
 	if err := tc.taskService.UpdateStatus(uint(id), statusUpdate.Status, user.ID); err != nil {
 		// Could distinguish between validation errors and internal errors
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -196,6 +236,20 @@ func (tc *TasksController) DeleteTask(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
+
+	// Check ownership (unless admin or БА)
+	if user.Role != "admin" && user.Role != "БА" {
+		task, err := tc.taskService.GetTask(uint(id))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+			return
+		}
+		if task.ResponsibleUserID == nil || *task.ResponsibleUserID != int(user.ID) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You can only delete your own tasks"})
+			return
+		}
+	}
+
 	if err := tc.taskService.DeleteTask(uint(id), user.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
