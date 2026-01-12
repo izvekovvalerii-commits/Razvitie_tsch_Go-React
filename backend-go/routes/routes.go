@@ -36,6 +36,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 	userRepo := repositories.NewUserRepository(db)
 	activityRepo := repositories.NewUserActivityRepository(db)
 	commentRepo := repositories.NewCommentRepository(db)
+	taskTemplateRepo := repositories.NewTaskTemplateRepository(db)
 
 	// Services
 	notifService := services.NewNotificationService(notifRepo, hub)
@@ -65,6 +66,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 	rbacService := services.NewRBACService(db)
 
 	docService := services.NewDocumentService(db)
+	taskTemplateService := services.NewTaskTemplateService(taskTemplateRepo)
 
 	// Initialize controllers
 	storesController := controllers.NewStoresController(storeService)
@@ -76,6 +78,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 	authController := controllers.NewAuthController(authService)
 	dashboardController := controllers.NewDashboardController(activityService, taskService, projectService)
 	commentsController := controllers.NewCommentsController(commentService)
+	taskTemplateController := controllers.NewTaskTemplateController(taskTemplateService)
 
 	// API group
 	api := router.Group("/api")
@@ -174,6 +177,21 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 			rbac.POST("/roles", rbacController.CreateRole)
 			rbac.POST("/roles/:id/permissions", rbacController.UpdateRolePermissions)
 			rbac.GET("/permissions", rbacController.GetPermissions)
+		}
+
+		// Task Templates routes (Admin only)
+		taskTemplates := api.Group("/task-templates")
+		{
+			taskTemplates.Use(middleware.RequirePermission(models.PermRoleManage))
+			taskTemplates.GET("", taskTemplateController.GetAllTemplates)
+			taskTemplates.GET("/active", taskTemplateController.GetActiveTemplates)
+			taskTemplates.GET("/category", taskTemplateController.GetTemplatesByCategory)
+			taskTemplates.GET("/:id", taskTemplateController.GetTemplateByID)
+			taskTemplates.POST("", taskTemplateController.CreateTemplate)
+			taskTemplates.PUT("/:id", taskTemplateController.UpdateTemplate)
+			taskTemplates.DELETE("/:id", taskTemplateController.DeleteTemplate)
+			taskTemplates.POST("/:id/clone", taskTemplateController.CloneTemplate)
+			taskTemplates.PATCH("/:id/toggle", taskTemplateController.ToggleTemplateStatus)
 		}
 	}
 }
