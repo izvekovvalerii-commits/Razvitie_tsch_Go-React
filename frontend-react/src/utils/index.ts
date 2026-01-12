@@ -5,10 +5,8 @@
 
 // Task utilities
 export {
-    isUserTask,
     isOverdueTask,
     isExpiringSoonTask,
-    filterUserTasks,
     filterOverdueTasks,
     filterExpiringSoonTasks,
     getDaysUntilDeadline,

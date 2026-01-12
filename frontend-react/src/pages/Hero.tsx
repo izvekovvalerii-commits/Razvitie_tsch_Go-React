@@ -6,7 +6,6 @@ import { projectsService } from '../services/projects';
 import { dashboardService } from '../services/dashboard';
 import { ProjectTask, Project, UserActivity } from '../types';
 import {
-    filterUserTasks,
     filterOverdueTasks,
     filterExpiringSoonTasks,
     getDaysUntilDeadline
@@ -96,7 +95,8 @@ const Hero: React.FC = () => {
     const processTasks = (allTasks: ProjectTask[]) => {
         if (!currentUser) return;
 
-        const userTasks = filterUserTasks(allTasks, currentUser);
+        // Backend already returns tasks filtered by user role - no need to filter again
+        const userTasks = allTasks;
         userTasks.sort((a, b) => new Date(a.normativeDeadline).getTime() - new Date(b.normativeDeadline).getTime());
 
         setMyTasks(userTasks);

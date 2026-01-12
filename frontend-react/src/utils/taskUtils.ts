@@ -1,17 +1,4 @@
-import { ProjectTask, User } from '../types';
-
-/**
- * Проверяет, является ли задача задачей текущего пользователя
- */
-export const isUserTask = (task: ProjectTask, currentUser: User | null): boolean => {
-    if (!currentUser) return false;
-    // Админы и БА видят все задачи
-    if (currentUser.role === 'admin' || currentUser.role === 'БА') return true;
-
-    return task.responsibleUserId === currentUser.id ||
-        task.responsible === currentUser.name ||
-        task.responsible === currentUser.role;
-};
+import { ProjectTask } from '../types';
 
 /**
  * Проверяет, является ли задача просроченной
@@ -51,20 +38,6 @@ export const isExpiringSoonTask = (task: ProjectTask): boolean => {
     deadline.setHours(0, 0, 0, 0);
 
     return deadline >= tomorrow && deadline < dayAfterTomorrow;
-};
-
-/**
- * Фильтрует задачи пользователя
- */
-export const filterUserTasks = (tasks: ProjectTask[], currentUser: User | null): ProjectTask[] => {
-    if (!currentUser) return [];
-
-    // Админы и БА видят все задачи
-    if (currentUser.role === 'admin' || currentUser.role === 'БА') {
-        return tasks;
-    }
-
-    return tasks.filter(task => isUserTask(task, currentUser));
 };
 
 /**

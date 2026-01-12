@@ -5,7 +5,6 @@ import { useAuth } from '../hooks/useAuth';
 import { ProjectTask } from '../types';
 import { TASK_STATUSES } from '../constants';
 import {
-    isUserTask,
     isOverdueTask,
     isExpiringSoonTask,
     getDeadlineClass,
@@ -75,8 +74,7 @@ const Tasks: React.FC = () => {
 
     const filteredTasks = useMemo(() => {
         let result = allTasks.filter(task => {
-            // Access check using utility function
-            const matchUser = !currentUser || isUserTask(task, currentUser);
+            // Backend already filters tasks by user role - no need to check access here
 
             const matchSearch = !searchQuery ||
                 task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,7 +88,7 @@ const Tasks: React.FC = () => {
             const matchOverdue = !showOnlyOverdue || isOverdueTask(task);
             const matchExpiringSoon = !showOnlyExpiringSoon || isExpiringSoonTask(task);
 
-            return matchUser && matchSearch && matchStatus && matchType && matchResp && matchOverdue && matchExpiringSoon;
+            return matchSearch && matchStatus && matchType && matchResp && matchOverdue && matchExpiringSoon;
         });
 
         // Sort
