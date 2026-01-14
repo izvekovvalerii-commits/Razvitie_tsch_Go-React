@@ -48,6 +48,15 @@ func (l *ActivityListener) OnTaskUpdated(event events.Event) error {
 	if !ok {
 		return nil
 	}
+
+	// Check if approval status changed
+	isApprovedNow := e.Task.IsApproved != nil && *e.Task.IsApproved
+	wasApprovedBefore := e.OldTask != nil && (e.OldTask.IsApproved != nil && *e.OldTask.IsApproved)
+
+	if isApprovedNow && !wasApprovedBefore {
+		return l.activityService.LogActivity(e.ActorID, "согласовал задачу", models.EntityTask, e.Task.ID, e.Task.Name, &e.Task.ProjectID)
+	}
+
 	return l.activityService.LogActivity(e.ActorID, "обновил задачу", models.EntityTask, e.Task.ID, e.Task.Name, &e.Task.ProjectID)
 }
 

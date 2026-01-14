@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from './common/Modal'; // Assuming generic Modal is here
 import { Project, Store } from '../types';
 import { PROJECT_TYPES, CFO_LIST, MANAGERS } from '../constants';
+import { projectTemplateService, ProjectTemplate } from '../services/projectTemplates';
 
 interface CreateProjectModalProps {
     isOpen: boolean;
@@ -18,6 +19,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [selectedStoreId, setSelectedStoreId] = useState<number | undefined>(undefined);
+    const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>(undefined);
+
     const [newProject, setNewProject] = useState<Partial<Project>>({
         projectType: '',
         status: 'Создан',
@@ -28,6 +32,30 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         rnr: 'Руководитель направления развития',
         gisCode: ''
     });
+
+    // Загрузка шаблонов при открытии модального окна
+    useEffect(() => {
+        if (isOpen) {
+            const loadTemplates = async () => {
+                try {
+                    const data = await projectTemplateService.getAll();
+                    setTemplates(data);
+
+                    // Попытка найти шаблон по умолчанию
+                    const defaultTemplate = data.find(t => t.isDefault);
+                    if (defaultTemplate) {
+                        setSelectedTemplateId(defaultTemplate.id);
+                    } else if (data.length > 0) {
+                        // Если дефолтного нет, выбираем первый
+                        setSelectedTemplateId(data[0].id);
+                    }
+                } catch (error) {
+                    console.error('Failed to load project templates:', error);
+                }
+            };
+            loadTemplates();
+        }
+    }, [isOpen]);
 
     const handleStoreSelect = (id: string) => {
         const sid = Number(id);
@@ -45,6 +73,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     const handleSave = async () => {
         if (!selectedStoreId || !newProject.projectType || !newProject.gisCode) {
             alert('Заполните обязательные поля');
+            return;
+        }
+
+        if (!selectedTemplateId) {
+            alert('Выберите шаблон проекта');
             return;
         }
 
@@ -66,7 +99,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             nor: newProject.nor!,
             stMRiZ: newProject.stMRiZ!,
             rnr: newProject.rnr!,
-            store: store // Store object
+            store: store, // Store object
+            templateId: selectedTemplateId // Передаем ID шаблона
         } as Project;
 
         setIsSaving(true);
@@ -88,6 +122,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             gisCode: ''
         });
         setSelectedStoreId(undefined);
+        // Не сбрасываем selectedTemplateId здесь, чтобы он остался для следующего открытия или перезагрузился в useEffect
         setIsSaving(false);
         onClose();
     };
@@ -115,6 +150,24 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 >
                     <option value="">-- Выберите магазин --</option>
                     {stores.map(s => <option key={s.id} value={s.id}>{s.name} - {s.city}</option>)}
+                </select>
+            </div>
+
+            <div className="form-group">
+                <label>Шаблон проекта *</label>
+                <select
+                    value={selectedTemplateId || ''}
+                    onChange={e => setSelectedTemplateId(Number(e.target.value))}
+                    className="modern-input"
+                >
+                    <option value="">-- Выберите шаблон --</option>
+                    {templates.map(t => (
+                        <option key={t.id} value={t.id}>
+                            {t.name}
+                            {t.isDefault ? ' (По умолчанию)' : ''}
+                            {!t.isActive ? ' (Неактивен)' : ''}
+                        </option>
+                    ))}
                 </select>
             </div>
 

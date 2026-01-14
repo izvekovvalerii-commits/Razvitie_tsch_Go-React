@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Project, ProjectTask, ProjectDocument, TeamMember, User } from '../types';
 import { projectsService } from '../services/projects';
 import { tasksService } from '../services/tasks';
-import { workflowService } from '../services/workflow';
 import { documentsService } from '../services/documents';
 import { useWebSocket } from './useWebSocket';
 
@@ -10,7 +9,6 @@ export const useProjectData = (projectId: string | undefined, currentUser: User 
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<ProjectTask[]>([]);
     const [loading, setLoading] = useState(true);
-    const [workflowConfig, setWorkflowConfig] = useState<any[]>([]);
     const [projectDocs, setProjectDocs] = useState<ProjectDocument[]>([]);
     const [projectTeam, setProjectTeam] = useState<TeamMember[]>([]);
 
@@ -87,24 +85,22 @@ export const useProjectData = (projectId: string | undefined, currentUser: User 
         if (!projectId) return;
         setLoading(true);
         try {
-            // Load project, tasks AND workflow schema in parallel
-            const [proj, projTasks, schema] = await Promise.all([
+            // Load project and tasks in parallel
+            const [proj, projTasks] = await Promise.all([
                 projectsService.getProjectById(Number(projectId)),
-                tasksService.getTasksByProjectId(Number(projectId)),
-                workflowService.getWorkflowSchema()
+                tasksService.getTasksByProjectId(Number(projectId))
             ]);
 
-            setWorkflowConfig(schema);
+            // We no longer need dynamic workflow schema configuration
+            // setWorkflowConfig(schema); 
 
             if (proj) setProject(proj);
             if (projTasks) {
-                // Sort tasks by defined process order
+                // Sort tasks by defined order field
                 const sorted = projTasks.sort((a, b) => {
-                    const indexA = schema.findIndex((def: any) => def.code === a.code);
-                    const indexB = schema.findIndex((def: any) => def.code === b.code);
-                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                    if (indexA !== -1) return -1;
-                    if (indexB !== -1) return 1;
+                    const orderA = a.order ?? 9999;
+                    const orderB = b.order ?? 9999;
+                    if (orderA !== orderB) return orderA - orderB;
                     return a.id - b.id;
                 });
                 setTasks(sorted);
@@ -137,7 +133,6 @@ export const useProjectData = (projectId: string | undefined, currentUser: User 
         tasks,
         setTasks, // Exposed for optimistic updates or manual changes
         loading,
-        workflowConfig,
         projectDocs,
         setProjectDocs,
         projectTeam,

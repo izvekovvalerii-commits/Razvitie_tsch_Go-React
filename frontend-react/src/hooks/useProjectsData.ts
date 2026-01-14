@@ -33,7 +33,9 @@ export const useProjectsData = () => {
     };
 
     const deleteProject = async (id: number) => {
-        return await deleteMutation.mutateAsync(id);
+        await deleteMutation.mutateAsync(id);
+        // Force refetch to ensure UI is in sync
+        await refetch();
     };
 
     // Filter Logic

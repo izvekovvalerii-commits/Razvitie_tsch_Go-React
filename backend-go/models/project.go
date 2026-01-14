@@ -24,6 +24,10 @@ type Project struct {
 	UpdatedAt   *time.Time `gorm:"column:UpdatedAt" json:"updatedAt"`
 	Store       *Store     `gorm:"foreignKey:StoreId;references:Id" json:"store,omitempty"`
 
+	// Поля для BPMN и шаблонов
+	CurrentStage string `gorm:"column:CurrentStage" json:"currentStage"`
+	TemplateID   *uint  `gorm:"column:TemplateID" json:"templateId"`
+
 	// Вычисляемые поля для прогресс-бара
 	TotalTasks     int64 `gorm:"-" json:"totalTasks"`
 	CompletedTasks int64 `gorm:"-" json:"completedTasks"`

@@ -1,7 +1,6 @@
 import { useAuth } from '../context/AuthContext'; import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ProjectTask, ProjectDocument } from '../types';
-import { projectsService } from '../services/projects';
 import { tasksService } from '../services/tasks';
 
 import { documentsService } from '../services/documents';
@@ -9,9 +8,12 @@ import { GanttChart } from '../components/GanttChart/GanttChart';
 import { ImprovedTaskModal } from '../components/ImprovedTaskModal';
 
 import { useProjectData } from '../hooks/useProjectData';
+import { useDeleteProject } from '../hooks/useQueries';
 
 
 import './ProjectDetails.css';
+import { CreateTaskFromTemplateModal } from '../components/CreateTaskFromTemplateModal';
+import { TaskTemplate } from '../types/taskTemplate';
 
 
 
@@ -28,7 +30,7 @@ const ProjectDetails: React.FC = () => {
 
     // State management via Custom Hook
     const {
-        project, tasks, loading, workflowConfig,
+        project, tasks, loading,
         projectDocs, setProjectDocs, projectTeam,
         refresh: loadProjectTasks,
         isUserResponsible
@@ -39,40 +41,66 @@ const ProjectDetails: React.FC = () => {
     // Gantt State
     const [isGanttExpanded, setIsGanttExpanded] = useState(true);
     const [ganttViewMode, setGanttViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('day');
-    const ganttTasks = useMemo(() => tasks.map(t => {
-        let deps: string[] = [];
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
 
-        // 1. Try to get from task itself (backend source)
-        if (t.dependsOn) {
-            if (Array.isArray(t.dependsOn)) {
-                deps = t.dependsOn;
-            } else if (typeof t.dependsOn === 'string') {
-                try {
-                    deps = JSON.parse(t.dependsOn);
-                } catch (e) {
-                    console.error("Failed to parse dependsOn JSON", e);
+    const handleCreateFromTemplate = (template: TaskTemplate) => {
+        const newTask: ProjectTask = {
+            id: 0,
+            projectId: project!.id,
+            name: template.name,
+            taskType: 'UserTask',
+            status: 'Назначена',
+            normativeDeadline: new Date(Date.now() + 86400000 * 2).toISOString(), // +2 days
+            code: template.code + '-' + Date.now().toString().slice(-4),
+            taskTemplateId: template.id,
+            taskTemplate: template,
+            responsible: 'МР',
+            customFieldsValues: '{}'
+        };
+        setSelectedTask(newTask);
+        setShowTemplateModal(false);
+        setShowEditTaskModal(true);
+    };
+
+    const ganttTasks = useMemo(() => {
+        // Sort tasks by Order if available, otherwise by ID
+        const sortedTasks = [...tasks].sort((a, b) => {
+            const orderA = a.order !== undefined ? a.order : Number.MAX_SAFE_INTEGER;
+            const orderB = b.order !== undefined ? b.order : Number.MAX_SAFE_INTEGER;
+            return orderA - orderB || a.id - b.id;
+        });
+
+        return sortedTasks.map(t => {
+            let deps: string[] = [];
+
+            // 1. Try to get from task itself (backend source)
+            if (t.dependsOn) {
+                if (Array.isArray(t.dependsOn)) {
+                    deps = t.dependsOn;
+                } else if (typeof t.dependsOn === 'string') {
+                    try {
+                        deps = JSON.parse(t.dependsOn);
+                    } catch (e) {
+                        console.error("Failed to parse dependsOn JSON", e);
+                    }
                 }
             }
-        }
 
-        // 2. Fallback to config (for old tasks)
-        if (deps.length === 0 && workflowConfig.length > 0) {
-            const def = workflowConfig.find((d: any) => (d.Code || d.code) === t.code);
-            if (def) {
-                deps = def.DependsOn || def.dependsOn || [];
-            }
-        }
+            // 2. Fallback to config (for old tasks)
 
-        return {
-            ...t,
-            dependsOn: deps
-        };
-    }), [tasks, workflowConfig]);
+            return {
+                ...t,
+                dependsOn: deps
+            };
+        });
+    }, [tasks]);
 
 
     // Modals
     const [showEditTaskModal, setShowEditTaskModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<ProjectTask | null>(null);
+
+
 
     // Handle editTask query parameter (from notifications)
     useEffect(() => {
@@ -93,17 +121,18 @@ const ProjectDetails: React.FC = () => {
 
 
     // --- Actions ---
+    const deleteProjectMutation = useDeleteProject();
+
     const handleDeleteProject = async () => {
         if (!project || !confirm('Вы уверены, что хотите удалить этот проект?')) return;
         try {
-            await projectsService.deleteProject(project.id);
+            await deleteProjectMutation.mutateAsync(project.id);
             navigate('/projects');
         } catch (e) {
             console.error('Failed to delete project:', e);
             alert('Не удалось удалить проект. Попробуйте еще раз.');
         }
     };
-
 
 
     // Validates task completion rules
@@ -165,8 +194,8 @@ const ProjectDetails: React.FC = () => {
         }
     };
 
-    const handleCompleteTaskFromModal = async (updatedTask: ProjectTask) => {
-        const taskToCheck = updatedTask || selectedTask;
+    const handleCompleteTaskFromModal = async (taskInput?: ProjectTask) => {
+        const taskToCheck = taskInput || selectedTask;
         if (!taskToCheck) return;
 
         const error = validateTaskCompletion(taskToCheck);
@@ -404,7 +433,16 @@ const ProjectDetails: React.FC = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <h3 className="section-title" style={{ margin: 0 }}>✅ ЗАДАЧИ ПРОЕКТА</h3>
                             </div>
-                            <div className="header-actions">
+                            <div className="header-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                {hasPermission('task:edit') && (
+                                    <button
+                                        className="btn-primary"
+                                        onClick={() => setShowTemplateModal(true)}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', padding: '6px 12px' }}
+                                    >
+                                        <span>+</span> Из шаблона
+                                    </button>
+                                )}
                                 <div className="tasks-count-badge">{ganttTasks.length}</div>
                             </div>
                         </div>
@@ -498,7 +536,7 @@ const ProjectDetails: React.FC = () => {
                     setShowEditTaskModal(false);
                 }}
                 onComplete={handleCompleteTaskFromModal}
-                workflowConfig={workflowConfig}
+                allTasks={tasks}
                 projectDocs={projectDocs}
                 project={project}
                 onDocumentUpload={async (file: File, docType: string) => {
@@ -513,6 +551,14 @@ const ProjectDetails: React.FC = () => {
             />
 
 
+
+
+            {/* Template Selection Modal */}
+            <CreateTaskFromTemplateModal
+                isOpen={showTemplateModal}
+                onClose={() => setShowTemplateModal(false)}
+                onSelectTemplate={handleCreateFromTemplate}
+            />
         </div>
     );
 };

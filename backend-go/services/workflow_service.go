@@ -15,11 +15,9 @@ import (
 
 // WorkflowServiceInterface defines the contract for workflow operations
 type WorkflowServiceInterface interface {
-	GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error)
+	GenerateProjectTasksWithTx(tx *gorm.DB, project *models.Project) ([]models.ProjectTask, error)
 	ProcessTaskCompletion(projectID uint, completedTaskCode string) error
 	ValidateTaskCompletion(task models.ProjectTask) error
-	GetTaskDefinitions() ([]models.TaskDefinition, error)
-	UpdateTaskDefinition(def *models.TaskDefinition) error
 }
 
 type WorkflowService struct {
@@ -101,38 +99,80 @@ func (s *WorkflowService) SeedDefinitions() {
 	}
 }
 
-func (s *WorkflowService) GetTaskDefinitions() ([]models.TaskDefinition, error) {
-	var defs []models.TaskDefinition
-	err := s.db.Order("\"ID\"").Find(&defs).Error
-	return defs, err
-}
-
-func (s *WorkflowService) UpdateTaskDefinition(def *models.TaskDefinition) error {
-	return s.db.Save(def).Error
-}
-
 // GenerateProjectTasksWithTx creates the full task roadmap for a new project using a transaction
-func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error) {
+func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, project *models.Project) ([]models.ProjectTask, error) {
 	var createdTasks []models.ProjectTask
 	taskMap := make(map[string]*models.ProjectTask) // Map By Code
 
-	var taskDefs []models.TaskDefinition
-	// Use the main DB to get definitions if tx does not have access (though it should)
-	// Using s.db is safer for reading config, tx for writing tasks
-	if err := s.db.Order("\"ID\"").Find(&taskDefs).Error; err != nil {
-		return nil, fmt.Errorf("failed to load task definitions: %w", err)
+	// Helper struct to normalize task source
+	type TaskBlueprint struct {
+		Code            string
+		Name            string
+		Duration        int
+		Stage           string
+		DependsOn       []string
+		ResponsibleRole string
+		TaskType        string
+		UserID          *int
+		Order           int
+		TaskTemplateID  *uint
 	}
 
-	for _, def := range taskDefs {
+	var blueprints []TaskBlueprint
+
+	// 1. Determine Source of Tasks
+	if project.TemplateID != nil {
+		var templateTasks []models.TemplateTask
+		if err := s.db.Where("\"ProjectTemplateID\" = ?", *project.TemplateID).Order("\"Order\" ASC").Find(&templateTasks).Error; err != nil {
+			return nil, fmt.Errorf("failed to load template tasks: %w", err)
+		}
+
+		for _, t := range templateTasks {
+			// pq.StringArray to []string
+			deps := []string(t.DependsOn)
+			blueprints = append(blueprints, TaskBlueprint{
+				Code:            t.Code,
+				Name:            t.Name,
+				Duration:        t.Duration,
+				Stage:           t.Stage,
+				DependsOn:       deps,
+				ResponsibleRole: t.ResponsibleRole,
+				TaskType:        t.TaskType,
+				Order:           t.Order,
+				TaskTemplateID:  t.TaskTemplateID,
+			})
+		}
+	} else {
+		// Legacy: Use Global TaskDefinitions
+		var taskDefs []models.TaskDefinition
+		if err := s.db.Order("\"ID\"").Find(&taskDefs).Error; err != nil {
+			return nil, fmt.Errorf("failed to load task definitions: %w", err)
+		}
+		for i, def := range taskDefs {
+			blueprints = append(blueprints, TaskBlueprint{
+				Code:            def.Code,
+				Name:            def.Name,
+				Duration:        def.Duration,
+				Stage:           def.Stage,
+				DependsOn:       def.DependsOn,
+				ResponsibleRole: def.ResponsibleRole,
+				TaskType:        def.TaskType,
+				UserID:          def.ResponsibleUserID,
+				Order:           i,
+			})
+		}
+	}
+
+	for _, taskDef := range blueprints {
 		// 1. Calculate Start Date Logic
-		startDate := projectCreatedAt
+		startDate := project.CreatedAt
 
 		// Find max end date of dependencies
-		if len(def.DependsOn) > 0 {
+		if len(taskDef.DependsOn) > 0 {
 			var maxPrevEndDate time.Time
 			foundDeps := false
 
-			for _, depCode := range def.DependsOn {
+			for _, depCode := range taskDef.DependsOn {
 				if prevTask, exists := taskMap[depCode]; exists {
 					foundDeps = true
 					if prevTask.NormativeDeadline.After(maxPrevEndDate) {
@@ -148,41 +188,45 @@ func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint
 		}
 
 		// 2. Calculate Deadline
-		deadline := startDate.AddDate(0, 0, def.Duration)
+		deadline := startDate.AddDate(0, 0, taskDef.Duration)
 
 		// 3. Determine Initial Status
 		status := "Ожидание"
 		isActive := false
 
-		if len(def.DependsOn) == 0 {
+		if len(taskDef.DependsOn) == 0 {
 			status = "Назначена"
 			isActive = true // First tasks are active
 		}
 
 		// 4. Create Struct
-		code := def.Code
-		stage := def.Stage
-		days := def.Duration
+		// Нужно создать копии, чтобы gorm корректно взял указатели
+		codeVal := taskDef.Code
+		stageVal := taskDef.Stage
+		daysVal := taskDef.Duration
 
 		// Serialize dependsOn
-		depsBytes, _ := json.Marshal(def.DependsOn)
+		depsBytes, _ := json.Marshal(taskDef.DependsOn)
 		depsStr := string(depsBytes)
 
 		newTask := models.ProjectTask{
-			ProjectID:         projectID,
-			Name:              def.Name,
-			Code:              &code,
-			TaskType:          def.TaskType,
-			Responsible:       def.ResponsibleRole,
-			ResponsibleUserID: def.ResponsibleUserID,
-			NormativeDeadline: deadline,
-			PlannedStartDate:  &startDate,
-			Status:            status,
-			IsActive:          isActive,
-			Stage:             &stage,
-			CreatedAt:         &startDate,
-			Days:              &days,
-			DependsOn:         &depsStr,
+			ProjectID:          project.ID,
+			Name:               taskDef.Name,
+			Code:               &codeVal,
+			TaskType:           taskDef.TaskType,
+			Responsible:        taskDef.ResponsibleRole,
+			ResponsibleUserID:  taskDef.UserID,
+			NormativeDeadline:  deadline,
+			PlannedStartDate:   &startDate,
+			Status:             status,
+			IsActive:           isActive,
+			Stage:              &stageVal,
+			CreatedAt:          &startDate,
+			Days:               &daysVal,
+			DependsOn:          &depsStr,
+			Order:              taskDef.Order,
+			TaskTemplateID:     taskDef.TaskTemplateID,
+			CustomFieldsValues: func() *string { s := "{}"; return &s }(),
 		}
 
 		// Resolve ResponsibleUserID
@@ -202,15 +246,10 @@ func (s *WorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint
 
 		// Store for next iterations
 		taskCopy := newTask
-		taskMap[def.Code] = &taskCopy
+		taskMap[codeVal] = &taskCopy
 	}
 
 	return createdTasks, nil
-}
-
-// GenerateProjectTasks wrapper for backward compatibility
-func (s *WorkflowService) GenerateProjectTasks(projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error) {
-	return s.GenerateProjectTasksWithTx(s.db, projectID, projectCreatedAt)
 }
 
 // ProcessTaskCompletion checks if subsequent tasks should be activated and reschedules dependent tasks

@@ -34,19 +34,19 @@ func (r *taskRepository) FindAll() ([]models.ProjectTask, error) {
 
 func (r *taskRepository) FindByProjectID(projectID uint) ([]models.ProjectTask, error) {
 	var tasks []models.ProjectTask
-	err := r.db.Where("\"ProjectId\" = ?", projectID).Order("\"NormativeDeadline\" ASC").Find(&tasks).Error
+	err := r.db.Preload("TaskTemplate").Preload("TaskTemplate.Fields").Where("\"ProjectId\" = ?", projectID).Order("\"NormativeDeadline\" ASC").Find(&tasks).Error
 	return tasks, err
 }
 
 func (r *taskRepository) FindByResponsibleUserID(userID uint) ([]models.ProjectTask, error) {
 	var tasks []models.ProjectTask
-	err := r.db.Where("\"ResponsibleUserId\" = ?", userID).Order("\"NormativeDeadline\" ASC").Find(&tasks).Error
+	err := r.db.Preload("TaskTemplate").Preload("TaskTemplate.Fields").Where("\"ResponsibleUserId\" = ?", userID).Order("\"NormativeDeadline\" ASC").Find(&tasks).Error
 	return tasks, err
 }
 
 func (r *taskRepository) FindByID(id uint) (*models.ProjectTask, error) {
 	var task models.ProjectTask
-	err := r.db.First(&task, id).Error
+	err := r.db.Preload("TaskTemplate").Preload("TaskTemplate.Fields").First(&task, id).Error
 	return &task, err
 }
 

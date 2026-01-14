@@ -32,7 +32,35 @@ func (r *taskTemplateRepository) Create(template *models.TaskTemplate) error {
 }
 
 func (r *taskTemplateRepository) Update(template *models.TaskTemplate) error {
-	return r.db.Save(template).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Delete all existing fields for this template
+		if err := tx.Where("template_id = ?", template.ID).Delete(&models.TaskFieldTemplate{}).Error; err != nil {
+			return err
+		}
+
+		// Update the template itself (without fields)
+		if err := tx.Model(&models.TaskTemplate{}).Where("id = ?", template.ID).Updates(map[string]interface{}{
+			"code":        template.Code,
+			"name":        template.Name,
+			"description": template.Description,
+			"category":    template.Category,
+			"is_active":   template.IsActive,
+		}).Error; err != nil {
+			return err
+		}
+
+		// Create new fields if any
+		if len(template.Fields) > 0 {
+			for i := range template.Fields {
+				template.Fields[i].TemplateID = template.ID
+			}
+			if err := tx.Create(&template.Fields).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (r *taskTemplateRepository) Delete(id uint) error {

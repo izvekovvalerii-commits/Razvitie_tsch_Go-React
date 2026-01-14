@@ -257,3 +257,63 @@ func SeedRBAC(db *gorm.DB) error {
 	log.Println("✅ RBAC seeded successfully")
 	return nil
 }
+
+// SeedProjectTemplates создает шаблон проекта из существующих TaskDefinition
+func SeedProjectTemplates(db *gorm.DB) error {
+	// Проверяем, есть ли уже шаблоны
+	var count int64
+	if err := db.Model(&models.ProjectTemplate{}).Count(&count).Error; err != nil {
+		return err
+	}
+
+	if count > 0 {
+		log.Printf("📋 ProjectTemplate table already has %d records, skipping seed.", count)
+		return nil
+	}
+
+	log.Println("🌱 Seeding ProjectTemplate from existing TaskDefinition...")
+
+	// Загружаем все TaskDefinition
+	var taskDefs []models.TaskDefinition
+	if err := db.Order("\"ID\"").Find(&taskDefs).Error; err != nil {
+		return err
+	}
+
+	if len(taskDefs) == 0 {
+		log.Println("⚠️ No TaskDefinition found, skipping ProjectTemplate seed")
+		return nil
+	}
+
+	// Создаем шаблон по умолчанию
+	template := models.ProjectTemplate{
+		Name:        "Открытие магазина (стандартный)",
+		Description: "Стандартный процесс открытия нового магазина, импортированный из существующей схемы workflow",
+		Category:    "Открытие магазина",
+		IsActive:    true,
+		IsDefault:   true,
+	}
+
+	// Конвертируем TaskDefinition в TemplateTask
+	for i, def := range taskDefs {
+		templateTask := models.TemplateTask{
+			Code:            def.Code,
+			Name:            def.Name,
+			Duration:        def.Duration,
+			Stage:           def.Stage,
+			DependsOn:       def.DependsOn,
+			ResponsibleRole: def.ResponsibleRole,
+			TaskType:        def.TaskType,
+			Order:           i, // Сохраняем порядок из базы
+		}
+		template.Tasks = append(template.Tasks, templateTask)
+	}
+
+	// Сохраняем шаблон
+	if err := db.Create(&template).Error; err != nil {
+		log.Printf("❌ Failed to seed project template: %v", err)
+		return err
+	}
+
+	log.Printf("✅ Successfully created default project template with %d tasks", len(template.Tasks))
+	return nil
+}

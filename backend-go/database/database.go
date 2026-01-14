@@ -80,6 +80,10 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 func AutoMigrate(db *gorm.DB) error {
 	log.Println("🔄 Running database migrations...")
 
+	// Удаляем старый индекс, который мог быть создан как глобально уникальный по Code
+	// Мы игнорируем ошибку, так как индекcа может и не быть
+	_ = db.Migrator().DropIndex(&models.TemplateTask{}, "idx_template_task_code")
+
 	err := db.AutoMigrate(
 		&models.Store{},
 		&models.User{},
@@ -92,6 +96,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.UserActivity{},
 		&models.TaskComment{},
 		&models.TaskDefinition{},
+		&models.ProjectTemplate{},
+		&models.TemplateTask{},
 	)
 
 	if err != nil {

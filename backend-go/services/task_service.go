@@ -82,13 +82,19 @@ func (s *TaskService) CreateTask(task *models.ProjectTask, actorId uint) error {
 }
 
 func (s *TaskService) UpdateTask(task *models.ProjectTask, actorId uint) error {
+	// Fetch old task state
+	oldTask, err := s.repo.FindByID(task.ID)
+	if err != nil {
+		return err
+	}
+
 	now := time.Now().UTC()
 	task.UpdatedAt = &now
 	if err := s.repo.Update(task); err != nil {
 		return err
 	}
 
-	s.eventBus.Publish(events.TaskUpdatedEvent{Task: task, ActorID: actorId})
+	s.eventBus.Publish(events.TaskUpdatedEvent{Task: task, OldTask: oldTask, ActorID: actorId})
 	return nil
 }
 
@@ -167,12 +173,4 @@ func (s *TaskService) CleanupOldTasks() (int64, error) {
 
 func (s *TaskService) GetRecentTasks(limit int) ([]models.ProjectTask, error) {
 	return s.repo.FindRecent(limit)
-}
-
-func (s *TaskService) GetTaskDefinitions() ([]models.TaskDefinition, error) {
-	return s.workflowService.GetTaskDefinitions()
-}
-
-func (s *TaskService) UpdateTaskDefinition(def *models.TaskDefinition) error {
-	return s.workflowService.UpdateTaskDefinition(def)
 }

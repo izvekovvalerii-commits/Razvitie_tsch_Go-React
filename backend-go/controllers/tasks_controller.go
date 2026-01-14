@@ -73,7 +73,7 @@ func (tc *TasksController) GetAllTasks(c *gin.Context) {
 }
 
 // GetProjectTasks godoc
-// @Summary Get tasks by project ID (filtered by user role)
+// @Summary Get all tasks for a project (visible to all roles)
 // @Router /api/tasks/project/{projectId} [get]
 func (tc *TasksController) GetProjectTasks(c *gin.Context) {
 	projectId, err := strconv.Atoi(c.Param("projectId"))
@@ -82,23 +82,14 @@ func (tc *TasksController) GetProjectTasks(c *gin.Context) {
 		return
 	}
 
-	user := c.MustGet("user").(*models.User)
 	tasks, err := tc.taskService.GetProjectTasks(uint(projectId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Filter tasks based on user role (unless admin or БА)
-	if user.Role != "admin" && user.Role != "БА" {
-		filteredTasks := make([]models.ProjectTask, 0)
-		for _, task := range tasks {
-			if task.ResponsibleUserID != nil && *task.ResponsibleUserID == int(user.ID) {
-				filteredTasks = append(filteredTasks, task)
-			}
-		}
-		tasks = filteredTasks
-	}
+	// All roles can see all project tasks
+	// Editing permissions are controlled in UpdateTask method
 
 	c.JSON(http.StatusOK, tasks)
 }
@@ -280,56 +271,4 @@ func (tc *TasksController) DebugAssignments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
-}
-
-// GetWorkflowSchema godoc
-// @Summary Get workflow schema definition
-// @Router /api/workflow/schema [get]
-func (tc *TasksController) GetWorkflowSchema(c *gin.Context) {
-	defs, err := tc.taskService.GetTaskDefinitions()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, defs)
-}
-
-// UpdateWorkflowDefinition godoc
-// @Summary Update workflow task definition
-// @Router /api/workflow/schema [put]
-func (tc *TasksController) UpdateWorkflowDefinition(c *gin.Context) {
-	var input models.TaskDefinition
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// We only allow updating Duration for now, maybe Name/DependsOn later if needed.
-	// But let's trust the input for now or fetch existing first.
-	// Ideally we fetch by Code to ensure existence.
-	defs, _ := tc.taskService.GetTaskDefinitions()
-	var target *models.TaskDefinition
-	for i := range defs {
-		if defs[i].Code == input.Code {
-			target = &defs[i]
-			break
-		}
-	}
-
-	if target == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Task definition not found"})
-		return
-	}
-
-	// Update allowed fields
-	target.Duration = input.Duration
-	// target.Name = input.Name -- if we want to allow renaming
-	// target.ResponsibleRole = input.ResponsibleRole -- etc.
-
-	if err := tc.taskService.UpdateTaskDefinition(target); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, target)
 }

@@ -75,8 +75,49 @@ export const TaskTemplateList: React.FC = () => {
         return matchesSearch && matchesCategory;
     });
 
-    if (isLoading) return <div className="loading">Загрузка шаблонов...</div>;
-    if (error) return <div className="error">Ошибка: {error}</div>;
+    if (isLoading) return (
+        <div className="task-templates-page">
+            <div className="loading" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '100px 20px'
+            }}>
+                <div style={{
+                    width: '48px',
+                    height: '48px',
+                    border: '4px solid #e2e8f0',
+                    borderTop: '4px solid #3b82f6',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                }}></div>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '16px' }}>Загрузка шаблонов...</p>
+            </div>
+        </div>
+    );
+
+    if (error) return (
+        <div className="task-templates-page">
+            <div className="error" style={{
+                maxWidth: '600px',
+                margin: '60px auto',
+                padding: '32px',
+                textAlign: 'center'
+            }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                <h2 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>Ошибка загрузки</h2>
+                <p style={{ margin: '0 0 20px 0', color: '#64748b' }}>{error}</p>
+                <button
+                    className="btn-primary"
+                    onClick={loadTemplates}
+                    style={{ margin: '0 auto' }}
+                >
+                    Попробовать снова
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <div className="task-templates-page">
@@ -85,32 +126,33 @@ export const TaskTemplateList: React.FC = () => {
                     <h1>Конструктор задач</h1>
                     <p className="subtitle">Управление шаблонами и конструктор форм</p>
                 </div>
+
+                <div className="filters-bar">
+                    <div className="search-box">
+                        <Search size={16} />
+                        <input
+                            type="text"
+                            placeholder="Поиск по названию или коду..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="category-filter">
+                        <Filter size={16} />
+                        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+                            <option value="all">Все категории</option>
+                            {categories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
                 <button className="btn-primary" onClick={() => navigate('/admin/task-templates/new')}>
-                    <Plus size={20} />
+                    <Plus size={18} />
                     Создать шаблон
                 </button>
-            </div>
-
-            <div className="filters-bar">
-                <div className="search-box">
-                    <Search size={18} />
-                    <input
-                        type="text"
-                        placeholder="Поиск по названию или коду..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                <div className="category-filter">
-                    <Filter size={18} />
-                    <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-                        <option value="all">Все категории</option>
-                        {categories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                    </select>
-                </div>
             </div>
 
             <div className="templates-grid">
@@ -161,8 +203,34 @@ export const TaskTemplateList: React.FC = () => {
             </div>
 
             {filteredTemplates.length === 0 && (
-                <div className="empty-state">
-                    <p>Шаблоны не найдены</p>
+                <div className="empty-state" style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '20px',
+                    padding: '80px 20px'
+                }}>
+                    <div style={{ fontSize: '64px', opacity: 0.3 }}>📋</div>
+                    <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px', fontWeight: 600 }}>
+                        {searchTerm || selectedCategory !== 'all'
+                            ? 'Шаблоны не найдены'
+                            : 'Нет созданных шаблонов'}
+                    </h3>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
+                        {searchTerm || selectedCategory !== 'all'
+                            ? 'Попробуйте изменить параметры поиска'
+                            : 'Создайте первый шаблон задачи для вашей команды'}
+                    </p>
+                    {!searchTerm && selectedCategory === 'all' && (
+                        <button
+                            className="btn-primary"
+                            onClick={() => navigate('/admin/task-templates/new')}
+                            style={{ marginTop: '12px' }}
+                        >
+                            <Plus size={20} />
+                            Создать первый шаблон
+                        </button>
+                    )}
                 </div>
             )}
         </div>

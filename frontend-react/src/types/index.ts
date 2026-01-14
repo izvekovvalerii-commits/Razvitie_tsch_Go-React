@@ -95,6 +95,16 @@ export interface ProjectTask {
     totalBudgetNoVat?: number;
     days?: number;
     dependsOn?: string | string[];
+    order?: number;
+    // Approval fields
+    isApproved?: boolean;
+    approvedBy?: string;
+    approvedAt?: string;
+
+    // Dynamic Templates Support
+    taskTemplateId?: number;
+    customFieldsValues?: string; // JSON string
+    taskTemplate?: any;
 }
 
 export interface ProjectDocument {

@@ -1,29 +1,42 @@
 .task-templates-page {
-    padding: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
+    padding: 16px;
+    width: 100%;
+    min-height: calc(100vh - 160px);
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
 }
+
 
 .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 16px 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+}
+
+.page-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
 }
 
 .subtitle {
-    color: #666;
-    margin-top: 4px;
+    color: #64748b;
+    margin: 0;
+    font-size: 12px;
 }
 
 .filters-bar {
     display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
-    background: white;
-    padding: 16px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    gap: 12px;
+    flex: 1;
+    max-width: 600px;
 }
 
 .search-box,
@@ -31,10 +44,19 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #f5f5f5;
+    background: #f8fafc;
     padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     flex: 1;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.search-box:focus-within,
+.category-filter:focus-within {
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .search-box input,
@@ -43,143 +65,301 @@
     background: transparent;
     outline: none;
     width: 100%;
-    font-size: 14px;
+    font-size: 13px;
+    color: #1e293b;
+}
+
+.search-box input::placeholder {
+    color: #94a3b8;
 }
 
 .templates-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
 .template-card {
     background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #f1f5f9;
+    position: relative;
+    overflow: hidden;
+}
+
+.template-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    opacity: 0;
+    transition: opacity 0.2s;
 }
 
 .template-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    border-color: #e0e7ff;
+}
+
+.template-card:hover::before {
+    opacity: 1;
 }
 
 .template-card.inactive {
-    opacity: 0.7;
-    background: #f9f9f9;
+    opacity: 0.6;
+    background: #f8fafc;
+}
+
+.template-card.inactive::before {
+    background: linear-gradient(90deg, #64748b, #94a3b8);
 }
 
 .card-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 12px;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
 .template-category {
-    background: #e3f2fd;
-    color: #1976d2;
-    padding: 4px 10px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1e40af;
+    padding: 3px 8px;
     border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
 }
 
 .card-actions {
     display: flex;
-    gap: 8px;
+    gap: 2px;
 }
 
 .icon-btn {
-    background: none;
+    background: transparent;
     border: none;
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
-    color: #666;
-    transition: background 0.2s;
+    color: #64748b;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 .icon-btn:hover {
-    background: #eee;
-    color: #333;
+    background: #f1f5f9;
+    color: #1e293b;
 }
 
 .icon-btn.delete:hover {
-    background: #ffebee;
-    color: #d32f2f;
+    background: #fee2e2;
+    color: #dc2626;
 }
 
 .template-name {
     margin: 0 0 4px;
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .template-code {
-    font-family: monospace;
-    color: #888;
-    font-size: 12px;
-    margin-bottom: 12px;
+    font-family: 'Monaco', 'Courier New', monospace;
+    color: #64748b;
+    font-size: 11px;
+    margin-bottom: 8px;
+    padding: 3px 8px;
+    background: #f8fafc;
+    border-radius: 4px;
+    display: inline-block;
+    border: 1px solid #e2e8f0;
 }
 
 .template-desc {
-    font-size: 14px;
-    color: #555;
-    margin-bottom: 20px;
+    font-size: 12px;
+    color: #475569;
+    margin-bottom: 12px;
     line-height: 1.4;
     height: 48px;
-    /* 3 lines fixed height */
     overflow: hidden;
     text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
 }
 
 .card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid #eee;
-    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 10px;
+    margin-top: 8px;
 }
 
 .fields-count {
-    font-size: 13px;
-    color: #666;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.fields-count strong {
+    color: #3b82f6;
+    font-size: 15px;
+    font-weight: 700;
 }
 
 .btn-primary {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background: #1976d2;
+    gap: 6px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 6px;
-    font-weight: 500;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-primary:hover {
-    background: #1565c0;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .btn-outline {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     background: transparent;
-    border: 1px solid #ddd;
-    padding: 8px 16px;
+    border: 1px solid #e2e8f0;
+    padding: 6px 10px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    color: #475569;
+}
+
+.btn-outline svg {
+    width: 14px;
+    height: 14px;
 }
 
 .btn-outline:hover {
-    background: #f5f5f5;
-    border-color: #bbb;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+    transform: translateY(-1px);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.empty-state p {
+    color: #94a3b8;
+    font-size: 16px;
+    margin: 0;
+}
+
+.loading,
+.error {
+    text-align: center;
+    padding: 60px 20px;
+    font-size: 16px;
+    color: #64748b;
+}
+
+.error {
+    color: #dc2626;
+    background: #fee2e2;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+/* Animations */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.template-card {
+    animation: fadeIn 0.4s ease-out;
+}
+
+.template-card:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.template-card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.template-card:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.template-card:nth-child(4) {
+    animation-delay: 0.2s;
+}
+
+.template-card:nth-child(5) {
+    animation-delay: 0.25s;
+}
+
+.template-card:nth-child(6) {
+    animation-delay: 0.3s;
 }

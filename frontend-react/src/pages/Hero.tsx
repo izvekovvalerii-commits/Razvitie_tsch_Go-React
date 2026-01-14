@@ -79,12 +79,8 @@ const Hero: React.FC = () => {
             processTasks(allTasks);
             processProjects(allProjects, allTasks);
             // Ensure dates are parsed
-            const parsedActivities = activities.map(a => ({
-                ...a,
-                // Handle various date formats if needed, or assume backend sends ISO
-                timestamp: a.timestamp
-            }));
-            setRecentActivities(parsedActivities);
+            // const parsedActivities ... (removed)
+            setRecentActivities(activities);
         } catch (error) {
             console.error('Error loading dashboard data:', error);
         } finally {
@@ -187,7 +183,7 @@ const Hero: React.FC = () => {
         const groups: { [key: string]: UserActivity[] } = { 'Сегодня': [], 'Вчера': [], 'Ранее': [] };
 
         recentActivities.slice(0, 15).forEach(act => {
-            const date = new Date(act.timestamp);
+            const date = new Date(act.createdAt);
             const today = new Date();
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
@@ -209,23 +205,23 @@ const Hero: React.FC = () => {
                     {activities.map(activity => (
                         <div key={activity.id} className="feed-item">
                             <div className="feed-line"></div>
-                            <div className="feed-avatar" style={{ background: getRoleColor(activity.userRole) }}>
-                                {activity.userName.charAt(0)}
+                            <div className="feed-avatar" style={{ background: getRoleColor(activity.user?.role || 'МП') }}>
+                                {activity.user?.name ? activity.user.name.charAt(0) : '?'}
                             </div>
                             <div className="feed-content">
                                 <div className="feed-header-row">
                                     <div className="feed-user-info">
-                                        <span className="feed-user">{activity.userName}</span>
-                                        <span className="feed-role">{activity.userRole}</span>
+                                        <span className="feed-user">{activity.user?.name || `Пользователь #${activity.userId}`}</span>
+                                        <span className="feed-role">{activity.user?.role || '-'}</span>
                                     </div>
-                                    <span className="feed-time-compact">{new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span className="feed-time-compact">{new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                                 <div className="feed-text-action">
                                     {activity.action}
-                                    {activity.projectName && <span className="feed-project-tag">{activity.projectName}</span>}
+                                    {activity.project && <span className="feed-project-tag">{activity.project.projectType}</span>}
                                 </div>
                                 <Link to={`/projects/${activity.projectId}`} className="feed-link">
-                                    {activity.entityName || activity.taskName || `Элемент #${activity.entityId}`}
+                                    {activity.entityName || `Элемент #${activity.entityId}`}
                                 </Link>
                             </div>
                         </div>

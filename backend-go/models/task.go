@@ -41,7 +41,18 @@ type ProjectTask struct {
 	TotalBudgetNoVat             *float64   `gorm:"column:TotalBudgetNoVat" json:"totalBudgetNoVat"`
 	Days                         *int       `gorm:"column:Days" json:"days"`
 	DependsOn                    *string    `gorm:"column:DependsOn;type:text" json:"dependsOn"`
-	Project                      *Project   `gorm:"foreignKey:ProjectId;references:Id" json:"project,omitempty"`
+	Order                        int        `gorm:"column:Order;default:0" json:"order"`
+	// Approval fields
+	IsApproved *bool      `gorm:"column:IsApproved;default:false" json:"isApproved"`
+	ApprovedBy *string    `gorm:"column:ApprovedBy;type:varchar(255)" json:"approvedBy"`
+	ApprovedAt *time.Time `gorm:"column:ApprovedAt" json:"approvedAt"`
+
+	// Dynamic Templates Support
+	TaskTemplateID     *uint         `gorm:"column:TaskTemplateID" json:"taskTemplateId"`
+	CustomFieldsValues *string       `gorm:"column:CustomFieldsValues;type:text" json:"customFieldsValues"` // JSON хранение значений
+	TaskTemplate       *TaskTemplate `gorm:"foreignKey:TaskTemplateID" json:"taskTemplate,omitempty"`
+
+	Project *Project `gorm:"foreignKey:ProjectId;references:Id" json:"project,omitempty"`
 }
 
 func (ProjectTask) TableName() string {

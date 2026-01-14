@@ -67,7 +67,9 @@ export const Modal: React.FC<ModalProps> = ({
                 </div>
 
                 <div className="modal-body">
-                    {children}
+                    <div className="modal-scroll-content" style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+                        {children}
+                    </div>
                 </div>
 
                 {footer && (

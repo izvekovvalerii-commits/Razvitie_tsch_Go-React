@@ -3,6 +3,9 @@ import { ProjectTask, ProjectDocument, Project, UserActivity, TaskComment } from
 import { tasksService } from '../services/tasks';
 import { commentsService } from '../services/comments';
 import './ImprovedTaskModal.css';
+import { TaskTemplate } from '../types/taskTemplate';
+import { taskTemplateService } from '../services/taskTemplates';
+import { DynamicTaskForm } from './DynamicTaskForm';
 
 interface ImprovedTaskModalProps {
     task: ProjectTask | null;
@@ -11,7 +14,7 @@ interface ImprovedTaskModalProps {
     onSave: (task: ProjectTask) => Promise<void>;
     onUpdateStatus: (taskId: number, status: string) => Promise<void>;
     onComplete: (task?: ProjectTask) => Promise<void>;
-    workflowConfig: any[];
+    allTasks?: ProjectTask[];
     projectDocs: ProjectDocument[];
     onDocumentUpload: (file: File, docType: string) => Promise<void>;
     onDocumentDelete: (doc: ProjectDocument) => Promise<void>;
@@ -20,6 +23,7 @@ interface ImprovedTaskModalProps {
     project: Project | null;
     isAdmin?: boolean;
 }
+
 
 const REQUIRED_DOCS_MAP: Record<string, { type: string; exts?: string[] }[]> = {
     'TASK-PREP-AUDIT': [{ type: 'Технический план' }],
@@ -55,7 +59,8 @@ const REQUIRED_DOCS_MAP: Record<string, { type: string; exts?: string[] }[]> = {
     ]
 };
 
-type TabType = 'basic' | 'documents' | 'history' | 'comments';
+type TabType = 'basic' | 'documents' | 'history' | 'comments' | 'approvals';
+
 
 export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
     task,
@@ -64,18 +69,19 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
     onSave,
     onUpdateStatus,
     onComplete,
-    workflowConfig,
+    allTasks = [],
     projectDocs,
     onDocumentUpload,
     onDocumentDelete,
     canTakeTask,
     hasEditPermission,
     isAdmin = false
-    // project 
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>('basic');
     const [editedTask, setEditedTask] = useState<ProjectTask | null>(task);
     const [isSaving, setIsSaving] = useState(false);
+    const [template, setTemplate] = useState<TaskTemplate | null>(null);
+    const [customValues, setCustomValues] = useState<Record<string, any>>({});
 
     // History state
     const [history, setHistory] = useState<UserActivity[]>([]);
@@ -102,6 +108,27 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
     };
 
     useEffect(() => {
+        setEditedTask(task);
+        // Reset dynamic fields when task changes
+        if (task?.customFieldsValues) {
+            try {
+                setCustomValues(JSON.parse(task.customFieldsValues));
+            } catch { setCustomValues({}); }
+        } else {
+            setCustomValues({});
+        }
+
+        // Load template
+        if (task?.taskTemplate) {
+            setTemplate(task.taskTemplate);
+        } else if (task?.taskTemplateId) {
+            taskTemplateService.getById(task.taskTemplateId).then(setTemplate).catch(() => setTemplate(null));
+        } else {
+            setTemplate(null);
+        }
+    }, [task]);
+
+    useEffect(() => {
         if (task?.id) {
             // Load history
             setIsLoadingHistory(true);
@@ -118,12 +145,6 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                 .finally(() => setIsLoadingComments(false));
         }
     }, [task?.id]);
-
-    React.useEffect(() => {
-        if (task) {
-            setEditedTask({ ...task });
-        }
-    }, [task]);
 
     if (!isOpen || !editedTask) return null;
 
@@ -153,27 +174,35 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
         return 'Низкий';
     };
 
-
-
+    // Get dependencies
     // Get dependencies
     const getPredecessors = () => {
-        const def = workflowConfig.find((d: any) => (d.Code || d.code) === editedTask.code);
-        const dependsOn = def ? (def.DependsOn || def.dependsOn) : [];
+        if (!allTasks || !editedTask.dependsOn) return [];
+        let deps: string[] = [];
+        if (Array.isArray(editedTask.dependsOn)) {
+            deps = editedTask.dependsOn;
+        } else if (typeof editedTask.dependsOn === 'string') {
+            try { deps = JSON.parse(editedTask.dependsOn); } catch { }
+        }
 
-        if (!def || !dependsOn || dependsOn.length === 0) return [];
-
-        return dependsOn.map((depCode: string) => {
-            const depDef = workflowConfig.find((d: any) => (d.Code || d.code) === depCode);
-            return depDef ? (depDef.Name || depDef.name) : depCode;
+        return deps.map((depCode: string) => {
+            const depTask = allTasks!.find((t: ProjectTask) => t.code === depCode);
+            return depTask ? depTask.name : depCode;
         });
     };
 
     const getSuccessors = () => {
-        const nextTasks = workflowConfig.filter((d: any) => {
-            const dependsOn = d.DependsOn || d.dependsOn;
-            return dependsOn && dependsOn.includes(editedTask.code || '');
+        if (!allTasks || !editedTask.code) return [];
+        const nextTasks = allTasks.filter((t: ProjectTask) => {
+            let deps: string[] = [];
+            if (Array.isArray(t.dependsOn)) {
+                deps = t.dependsOn;
+            } else if (typeof t.dependsOn === 'string') {
+                try { deps = JSON.parse(t.dependsOn); } catch { }
+            }
+            return deps.includes(editedTask.code || '');
         });
-        return nextTasks.map((t: any) => t.Name || t.name);
+        return nextTasks.map(t => t.name);
     };
 
     const formatDateValue = (dateStr?: string | Date) => {
@@ -187,11 +216,18 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
         return dateStr ? new Date(dateStr).toISOString() : undefined;
     };
 
-    const handleSave = async () => {
+    const handleSaveTask = async () => {
         if (!editedTask) return;
         setIsSaving(true);
         try {
-            await onSave(editedTask);
+            const taskToSave = {
+                ...editedTask,
+                customFieldsValues: JSON.stringify(customValues)
+            };
+            await onSave(taskToSave);
+            onClose();
+        } catch (error) {
+            console.error('Failed to update task:', error);
         } finally {
             setIsSaving(false);
         }
@@ -204,6 +240,28 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
             if (action === 'start') {
                 await onUpdateStatus(editedTask.id, 'В работе');
             } else if (action === 'complete') {
+                // Validation for template requirements
+                if (template?.fields) {
+                    const requiredDocs = template.fields.filter(f => f.fieldType === 'file_upload' && f.isRequired);
+                    const missingDocs = requiredDocs.filter(field => {
+                        const uploaded = projectDocs.find(d => d.type === field.fieldLabel && d.taskId === editedTask.id);
+                        return !uploaded;
+                    });
+
+                    if (missingDocs.length > 0) {
+                        alert(`Невозможно завершить задачу. Отсутствуют обязательные документы:\n${missingDocs.map(f => `- ${f.fieldLabel}`).join('\n')}`);
+                        setIsSaving(false);
+                        return;
+                    }
+
+                    const requiredInputs = template.fields.filter(f => f.fieldType !== 'file_upload' && f.isRequired);
+                    const missingInputs = requiredInputs.filter(f => !customValues[f.fieldKey]);
+                    if (missingInputs.length > 0) {
+                        alert(`Невозможно завершить задачу. Заполните обязательные поля:\n${missingInputs.map(f => `- ${f.fieldLabel}`).join('\n')}`);
+                        setIsSaving(false);
+                        return;
+                    }
+                }
                 await onComplete(editedTask);
             } else if (action === 'pause') {
                 await onUpdateStatus(editedTask.id, 'Назначена');
@@ -221,6 +279,7 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
     const priority = getPriority();
     const progress = getTaskProgress();
 
+    // In return block, header section:
     return (
         <div className="modal-overlay-improved" onClick={onClose}>
             <div className="modal-container-improved" onClick={e => e.stopPropagation()}>
@@ -290,9 +349,7 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Tabs */}
+                </div>                {/* Tabs */}
                 <div className="modal-tabs">
                     <button
                         className={`tab-button ${activeTab === 'basic' ? 'active' : ''}`}
@@ -317,6 +374,13 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                         onClick={() => setActiveTab('comments')}
                     >
                         💬 Комментарии <span className="tab-badge">{comments.length}</span>
+                    </button>
+                    <button
+                        className={`tab-button ${activeTab === 'approvals' ? 'active' : ''} ${!editedTask.isApproved ? 'approval-required' : ''}`}
+                        onClick={() => setActiveTab('approvals')}
+                    >
+                        {editedTask.isApproved ? '✅' : '⚠️'} Согласования
+                        {!editedTask.isApproved && <span className="tab-badge warning" title="Требуется согласование">!</span>}
                     </button>
                 </div>
 
@@ -418,7 +482,19 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                                 </div>
                             </div>
 
-                            {/* Task-specific fields would go here */}
+                            {template && template.fields && template.fields.length > 0 && (
+                                <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+                                    <h4 style={{ marginBottom: '16px', fontSize: '14px', color: '#334155', fontWeight: 600 }}>Дополнительные данные</h4>
+                                    <DynamicTaskForm
+                                        fields={template.fields}
+                                        values={customValues}
+                                        onChange={(key, val) => setCustomValues(prev => ({ ...prev, [key]: val }))}
+                                        readOnly={!hasEditPermission}
+                                        users={[]}
+                                    />
+                                </div>
+                            )}
+
                             {/* Task-specific fields */}
                             <div className="task-specific-fields">
                                 {(() => {
@@ -636,15 +712,71 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                                 {(() => {
                                     const code = editedTask.code || (editedTask as any).Code;
                                     const requirements = REQUIRED_DOCS_MAP[code] || [];
+                                    const templateReqs = template?.fields?.filter(f => f.fieldType === 'file_upload') || [];
 
-                                    if (requirements.length === 0) {
+                                    if (requirements.length === 0 && templateReqs.length === 0) {
                                         return <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Для этой задачи нет списков обязательных документов.</p>;
                                     }
 
                                     return (
                                         <div className="required-docs-list">
+                                            {/* Template Documents */}
+                                            {templateReqs.map(field => {
+                                                const uploaded = projectDocs.find(d => d.type === field.fieldLabel && d.taskId === editedTask.id);
+                                                const uniqueId = `tpl-doc-${field.id}`;
+
+                                                return (
+                                                    <div key={`tpl-${field.id}`} className={`doc-item ${uploaded ? 'uploaded' : 'missing'}`}>
+                                                        <div className="doc-info-group">
+                                                            <span className="doc-status-icon">{uploaded ? '✅' : '⚠️'}</span>
+                                                            <div className="doc-details">
+                                                                <div className="doc-type-name">
+                                                                    {field.fieldLabel}
+                                                                    {field.isRequired && <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>}
+                                                                </div>
+                                                                {uploaded && <div className="doc-uploaded-name">Загружен: {uploaded.name}</div>}
+                                                            </div>
+                                                        </div>
+                                                        <div className="doc-actions">
+                                                            {uploaded ? (
+                                                                hasEditPermission && (
+                                                                    <button
+                                                                        onClick={() => onDocumentDelete(uploaded)}
+                                                                        className="btn-icon-delete"
+                                                                        title="Удалить"
+                                                                    >
+                                                                        🗑️
+                                                                    </button>
+                                                                )
+                                                            ) : (
+                                                                hasEditPermission && (
+                                                                    <>
+                                                                        <input
+                                                                            id={uniqueId}
+                                                                            type="file"
+                                                                            style={{ display: 'none' }}
+                                                                            onChange={(e) => {
+                                                                                if (e.target.files?.[0]) {
+                                                                                    onDocumentUpload(e.target.files[0], field.fieldLabel);
+                                                                                }
+                                                                                e.target.value = '';
+                                                                            }}
+                                                                        />
+                                                                        <label htmlFor={uniqueId} className="btn-upload-small">
+                                                                            Загрузить
+                                                                        </label>
+                                                                    </>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+
+                                            {/* Standard Requirements */}
                                             {requirements.map((req, idx) => {
                                                 const uploaded = projectDocs.find(d => {
+                                                    if (d.taskId !== editedTask.id) return false;
                                                     if (d.type !== req.type) return false;
                                                     if (!req.exts || req.exts.length === 0) return true;
                                                     const ext = '.' + d.name.split('.').pop()?.toLowerCase();
@@ -796,6 +928,90 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                             </div>
                         </div>
                     )}
+
+                    {activeTab === 'approvals' && (
+                        <div className="tab-content">
+                            <div className="approvals-section">
+                                <h3>✅ Согласование задачи</h3>
+
+                                {/* Approval Status */}
+                                <div className="approval-status-card">
+                                    {editedTask.isApproved ? (
+                                        <>
+                                            <div className="approval-icon approved">✓</div>
+                                            <div className="approval-content">
+                                                <div className="approval-title">Задача согласована</div>
+                                                <div className="approval-meta">
+                                                    <span>Согласовал: <strong>{editedTask.approvedBy || 'Неизвестно'}</strong></span>
+                                                    {editedTask.approvedAt && (
+                                                        <span>Дата: <strong>{new Date(editedTask.approvedAt).toLocaleString()}</strong></span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="approval-icon pending">○</div>
+                                            <div className="approval-content">
+                                                <div className="approval-title">Ожидает согласования</div>
+                                                <div className="approval-description">
+                                                    Задача должна быть согласована перед завершением
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Approval Button */}
+                                {!editedTask.isApproved && hasEditPermission && (
+                                    <div className="approval-actions">
+                                        <button
+                                            className="btn-approve"
+                                            onClick={async () => {
+                                                try {
+                                                    const updatedTask = {
+                                                        ...editedTask,
+                                                        isApproved: true,
+                                                        approvedBy: 'Текущий пользователь', // TODO: Get from auth context
+                                                        approvedAt: new Date().toISOString()
+                                                    };
+                                                    setEditedTask(updatedTask);
+                                                    await onSave(updatedTask);
+                                                } catch (error) {
+                                                    console.error('Failed to approve task:', error);
+                                                    alert('Ошибка при согласовании задачи');
+                                                }
+                                            }}
+                                        >
+                                            ✓ Согласовать задачу
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Info Box */}
+                                <div className="approval-info-box">
+                                    <div className="info-row">
+                                        <span className="info-label">Статус задачи:</span>
+                                        <span className={`info-value status-${editedTask.status?.toLowerCase().replace(/\s+/g, '-')}`}>
+                                            {editedTask.status}
+                                        </span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Ответственный:</span>
+                                        <span className="info-value">{editedTask.responsible || 'Не назначен'}</span>
+                                    </div>
+                                    {editedTask.normativeDeadline && (
+                                        <div className="info-row">
+                                            <span className="info-label">Плановый срок:</span>
+                                            <span className="info-value">
+                                                {new Date(editedTask.normativeDeadline).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
@@ -829,7 +1045,8 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                                 <button
                                     className="btn-action btn-complete"
                                     onClick={() => handleAction('complete')}
-                                    disabled={isSaving}
+                                    disabled={isSaving || !editedTask.isApproved}
+                                    title={!editedTask.isApproved ? 'Для завершения задачи требуется согласование' : 'Завершить задачу'}
                                 >
                                     ✓ Завершить
                                 </button>
@@ -850,7 +1067,7 @@ export const ImprovedTaskModal: React.FC<ImprovedTaskModalProps> = ({
                     <div className="footer-right">
                         <button
                             className="btn-save"
-                            onClick={handleSave}
+                            onClick={handleSaveTask}
                             disabled={isSaving || !hasEditPermission}
                         >
                             {isSaving ? 'Сохранение...' : 'Сохранить'}

@@ -88,7 +88,37 @@ export const useDeleteProject = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: projectsService.deleteProject,
-        onSuccess: () => {
+        onMutate: async (deletedId) => {
+            // Cancel outgoing refetches to prevent race conditions
+            await queryClient.cancelQueries({ queryKey: projectKeys.lists() });
+            await queryClient.cancelQueries({ queryKey: projectKeys.detail(deletedId) });
+
+            // Snapshot previous value for rollback
+            const previousProjects = queryClient.getQueryData<Project[]>(projectKeys.lists());
+
+            // Optimistically remove project from cache
+            queryClient.setQueryData<Project[]>(projectKeys.lists(), (old) => {
+                if (!old) return [];
+                return old.filter((project) => project.id !== deletedId);
+            });
+
+            // Remove project detail from cache
+            queryClient.removeQueries({ queryKey: projectKeys.detail(deletedId) });
+
+            return { previousProjects };
+        },
+        onError: (_err, _deletedId, context) => {
+            // Rollback to previous state on error
+            if (context?.previousProjects) {
+                queryClient.setQueryData(projectKeys.lists(), context.previousProjects);
+            }
+        },
+        onSuccess: (_data, deletedId) => {
+            // Ensure project detail is removed
+            queryClient.removeQueries({ queryKey: projectKeys.detail(deletedId) });
+        },
+        onSettled: () => {
+            // Refetch from server to ensure consistency
             queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
         },
     });

@@ -63,8 +63,8 @@ type MockWorkflowService struct {
 	mock.Mock
 }
 
-func (m *MockWorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, projectID uint, projectCreatedAt time.Time) ([]models.ProjectTask, error) {
-	args := m.Called(tx, projectID, projectCreatedAt)
+func (m *MockWorkflowService) GenerateProjectTasksWithTx(tx *gorm.DB, project *models.Project) ([]models.ProjectTask, error) {
+	args := m.Called(tx, project)
 	return args.Get(0).([]models.ProjectTask), args.Error(1)
 }
 
@@ -124,7 +124,7 @@ func TestProjectService_CreateProject(t *testing.T) {
 	mockRepo.On("CreateWithTx", mock.Anything, project).Return(nil)
 
 	// 2. Workflow.GenerateProjectTasksWithTx should be called
-	mockWorkflow.On("GenerateProjectTasksWithTx", mock.Anything, uint(1), project.CreatedAt).Return([]models.ProjectTask{}, nil)
+	mockWorkflow.On("GenerateProjectTasksWithTx", mock.Anything, project).Return([]models.ProjectTask{}, nil)
 
 	// 3. EventBus.Publish should be called for ProjectCreatedEvent
 	mockEventBus.On("Publish", mock.MatchedBy(func(e events.ProjectCreatedEvent) bool {

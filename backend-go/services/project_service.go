@@ -35,7 +35,7 @@ func (s *ProjectService) CreateProject(project *models.Project, actorId uint) er
 		}
 
 		// Generate tasks within the same transaction
-		tasks, err := s.workflowService.GenerateProjectTasksWithTx(tx, project.ID, project.CreatedAt)
+		tasks, err := s.workflowService.GenerateProjectTasksWithTx(tx, project)
 		if err != nil {
 			return err
 		}

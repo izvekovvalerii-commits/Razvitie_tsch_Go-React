@@ -58,6 +58,10 @@ func main() {
 		logger.Warn().Err(err).Msg("Failed to seed users")
 	}
 
+	if err := database.SeedProjectTemplates(db); err != nil {
+		logger.Warn().Err(err).Msg("Failed to seed project templates")
+	}
+
 	// Initialize and run WebSocket Hub
 	hub := websocket.NewHub()
 	go hub.Run()

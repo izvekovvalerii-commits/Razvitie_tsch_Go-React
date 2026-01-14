@@ -27,6 +27,7 @@ func (e TaskCreatedEvent) Name() string { return TaskCreated }
 
 type TaskUpdatedEvent struct {
 	Task    *models.ProjectTask
+	OldTask *models.ProjectTask
 	ActorID uint
 }
 

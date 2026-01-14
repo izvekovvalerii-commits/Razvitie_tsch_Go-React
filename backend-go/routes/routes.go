@@ -37,6 +37,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 	activityRepo := repositories.NewUserActivityRepository(db)
 	commentRepo := repositories.NewCommentRepository(db)
 	taskTemplateRepo := repositories.NewTaskTemplateRepository(db)
+	projectTemplateRepo := repositories.NewProjectTemplateRepository(db)
 
 	// Services
 	notifService := services.NewNotificationService(notifRepo, hub)
@@ -67,6 +68,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 
 	docService := services.NewDocumentService(db)
 	taskTemplateService := services.NewTaskTemplateService(taskTemplateRepo)
+	projectTemplateService := services.NewProjectTemplateService(projectTemplateRepo)
 
 	// Initialize controllers
 	storesController := controllers.NewStoresController(storeService)
@@ -79,6 +81,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 	dashboardController := controllers.NewDashboardController(activityService, taskService, projectService)
 	commentsController := controllers.NewCommentsController(commentService)
 	taskTemplateController := controllers.NewTaskTemplateController(taskTemplateService)
+	projectTemplateController := controllers.NewProjectTemplateController(projectTemplateService, db)
 
 	// API group
 	api := router.Group("/api")
@@ -139,13 +142,6 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 			documents.DELETE("/:id", documentsController.Delete)
 		}
 
-		// Workflow routes
-		workflow := api.Group("/workflow")
-		{
-			workflow.GET("/schema", tasksController.GetWorkflowSchema)
-			workflow.PUT("/schema", middleware.RequirePermission(models.PermRoleManage), tasksController.UpdateWorkflowDefinition)
-		}
-
 		// Notification routes
 		notifications := api.Group("/notifications")
 		{
@@ -179,19 +175,51 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 			rbac.GET("/permissions", rbacController.GetPermissions)
 		}
 
-		// Task Templates routes (Admin only)
+		// Task Templates routes
 		taskTemplates := api.Group("/task-templates")
 		{
-			taskTemplates.Use(middleware.RequirePermission(models.PermRoleManage))
+			// Read routes - accessible to all authenticated users
 			taskTemplates.GET("", taskTemplateController.GetAllTemplates)
 			taskTemplates.GET("/active", taskTemplateController.GetActiveTemplates)
 			taskTemplates.GET("/category", taskTemplateController.GetTemplatesByCategory)
 			taskTemplates.GET("/:id", taskTemplateController.GetTemplateByID)
-			taskTemplates.POST("", taskTemplateController.CreateTemplate)
-			taskTemplates.PUT("/:id", taskTemplateController.UpdateTemplate)
-			taskTemplates.DELETE("/:id", taskTemplateController.DeleteTemplate)
-			taskTemplates.POST("/:id/clone", taskTemplateController.CloneTemplate)
-			taskTemplates.PATCH("/:id/toggle", taskTemplateController.ToggleTemplateStatus)
+
+			// Write routes - Admin only
+			adminTemplates := taskTemplates.Group("")
+			adminTemplates.Use(middleware.RequirePermission(models.PermRoleManage))
+			{
+				adminTemplates.POST("", taskTemplateController.CreateTemplate)
+				adminTemplates.PUT("/:id", taskTemplateController.UpdateTemplate)
+				adminTemplates.DELETE("/:id", taskTemplateController.DeleteTemplate)
+				adminTemplates.POST("/:id/clone", taskTemplateController.CloneTemplate)
+				adminTemplates.PATCH("/:id/toggle", taskTemplateController.ToggleTemplateStatus)
+			}
+		}
+
+		// Project Templates routes (Read access for all authenticated, Write for Admins)
+		projectTemplates := api.Group("/project-templates")
+		{
+			// Read routes - open to all authenticated users
+			projectTemplates.GET("", projectTemplateController.GetAll)
+			projectTemplates.GET("/active", projectTemplateController.GetActive)
+			projectTemplates.GET("/known-tasks", projectTemplateController.GetKnownTasks)
+			projectTemplates.GET("/default", projectTemplateController.GetDefault)
+			projectTemplates.GET("/:id", projectTemplateController.GetByID)
+
+			// Write routes - restricted to admin
+			manage := projectTemplates.Group("")
+			manage.Use(middleware.RequirePermission(models.PermRoleManage))
+			{
+				manage.POST("", projectTemplateController.Create)
+				manage.PUT("/:id", projectTemplateController.Update)
+				manage.DELETE("/:id", projectTemplateController.Delete)
+				manage.POST("/:id/set-default", projectTemplateController.SetDefault)
+				manage.POST("/:id/clone", projectTemplateController.Clone)
+				manage.PUT("/:id/tasks/:taskId", projectTemplateController.UpdateTask)
+				manage.POST("/:id/tasks", projectTemplateController.AddTask)
+				manage.POST("/:id/tasks/custom", projectTemplateController.AddCustomTask)
+				manage.DELETE("/:id/tasks/:taskId", projectTemplateController.DeleteTask)
+			}
 		}
 	}
 }
