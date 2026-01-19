@@ -16,6 +16,7 @@ type TaskRepository interface {
 	DeleteOld() (int64, error)
 	FindRecent(limit int) ([]models.ProjectTask, error)
 	Delete(id uint) error
+	GetMaxOrderByProject(projectID uint) (int, error)
 }
 
 type taskRepository struct {
@@ -71,4 +72,13 @@ func (r *taskRepository) FindRecent(limit int) ([]models.ProjectTask, error) {
 
 func (r *taskRepository) Delete(id uint) error {
 	return r.db.Delete(&models.ProjectTask{}, id).Error
+}
+
+func (r *taskRepository) GetMaxOrderByProject(projectID uint) (int, error) {
+	var maxOrder int
+	err := r.db.Model(&models.ProjectTask{}).
+		Where("\"ProjectId\" = ?", projectID).
+		Select("COALESCE(MAX(\"Order\"), 0)").
+		Scan(&maxOrder).Error
+	return maxOrder, err
 }

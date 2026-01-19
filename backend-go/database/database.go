@@ -98,6 +98,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.TaskDefinition{},
 		&models.ProjectTemplate{},
 		&models.TemplateTask{},
+		&models.Request{},
 	)
 
 	if err != nil {

@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
+	"portal-razvitie/helpers"
 	"portal-razvitie/models"
 	"portal-razvitie/services"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,7 +21,7 @@ func NewProjectTemplateController(service *services.ProjectTemplateService, db *
 
 // AddTask добавляет существующую TaskDefinition в шаблон
 func (c *ProjectTemplateController) AddTask(ctx *gin.Context) {
-	templateID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	templateID, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid template ID"})
 		return
@@ -73,7 +73,7 @@ func (c *ProjectTemplateController) GetActive(ctx *gin.Context) {
 
 // GetByID возвращает шаблон по ID
 func (c *ProjectTemplateController) GetByID(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
@@ -116,7 +116,7 @@ func (c *ProjectTemplateController) Create(ctx *gin.Context) {
 
 // Update обновляет шаблон
 func (c *ProjectTemplateController) Update(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
@@ -140,7 +140,7 @@ func (c *ProjectTemplateController) Update(ctx *gin.Context) {
 
 // Delete удаляет шаблон
 func (c *ProjectTemplateController) Delete(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
@@ -156,7 +156,7 @@ func (c *ProjectTemplateController) Delete(ctx *gin.Context) {
 
 // SetDefault устанавливает шаблон по умолчанию
 func (c *ProjectTemplateController) SetDefault(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
@@ -172,7 +172,7 @@ func (c *ProjectTemplateController) SetDefault(ctx *gin.Context) {
 
 // Clone клонирует шаблон
 func (c *ProjectTemplateController) Clone(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
@@ -197,13 +197,13 @@ func (c *ProjectTemplateController) Clone(ctx *gin.Context) {
 
 // UpdateTask обновляет задачу в шаблоне
 func (c *ProjectTemplateController) UpdateTask(ctx *gin.Context) {
-	templateID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	templateID, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid template ID"})
 		return
 	}
 
-	taskID, err := strconv.ParseUint(ctx.Param("taskId"), 10, 32)
+	taskID, err := helpers.ParseIDParam(ctx, "taskId")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid task ID"})
 		return
@@ -225,13 +225,13 @@ func (c *ProjectTemplateController) UpdateTask(ctx *gin.Context) {
 
 // DeleteTask удаляет задачу из шаблона
 func (c *ProjectTemplateController) DeleteTask(ctx *gin.Context) {
-	templateID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	templateID, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid template ID"})
 		return
 	}
 
-	taskID, err := strconv.ParseUint(ctx.Param("taskId"), 10, 32)
+	taskID, err := helpers.ParseIDParam(ctx, "taskId")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid task ID"})
 		return
@@ -247,7 +247,7 @@ func (c *ProjectTemplateController) DeleteTask(ctx *gin.Context) {
 
 // AddCustomTask добавляет новую кастомную задачу в шаблон
 func (c *ProjectTemplateController) AddCustomTask(ctx *gin.Context) {
-	templateID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	templateID, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid template ID"})
 		return

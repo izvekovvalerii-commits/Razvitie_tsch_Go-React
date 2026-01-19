@@ -22,7 +22,8 @@ export const Header: React.FC = () => {
     const menuItems = [
         { label: 'Магазины', link: '/stores' },
         { label: 'Проекты', link: '/projects' },
-        { label: 'Задачи', link: '/tasks' }
+        { label: 'Задачи', link: '/tasks' },
+        { label: 'Заявки', link: '/requests' }
     ];
 
     useEffect(() => {
@@ -140,7 +141,7 @@ export const Header: React.FC = () => {
                                     {currentUser.role}
                                 </span>
                             </div>
-                            
+
                             <div className="user-avatar" style={{ background: getRoleColor(currentUser.role) }}>
                                 {currentUser.name.charAt(0)}
                             </div>
@@ -213,7 +214,7 @@ export const Header: React.FC = () => {
                                     </div>
                                 )}
                             </div>
-                            
+
                             <button className="logout-btn" onClick={() => { logout(); navigate('/login'); }} title="Выйти">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                                     strokeLinecap="round" strokeLinejoin="round">

@@ -1,0 +1,672 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { requestsService } from '../services/requests';
+import { authService } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
+import type { Request, User, CreateRequestDto } from '../types';
+import './Requests.css';
+import './RequestModalCompact.css';
+import './RequestModalUltraCompact.css';
+
+const Requests: React.FC = () => {
+    const [requests, setRequests] = useState<Request[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<'all' | 'created' | 'assigned'>('all'); // Basic tab filter
+    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState<Request | null>(null); // For answering
+    const [viewingRequest, setViewingRequest] = useState<Request | null>(null); // For viewing details
+    const [users, setUsers] = useState<User[]>([]);
+    const { currentUser } = useAuth();
+
+    // Sorting
+    const [sortColumn, setSortColumn] = useState('');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+    const [formData, setFormData] = useState<CreateRequestDto>({
+        title: '',
+        description: '',
+        priority: 'Средний',
+        createdByUserId: currentUser?.id || 0,
+        assignedToUserId: 0,
+    });
+
+    useEffect(() => {
+        loadRequests();
+    }, [filter]); // Reload when main tab changes (created/assigned/all) - logic inside loadRequests handles this
+
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    useEffect(() => {
+        if (currentUser?.id) {
+            setFormData(prev => ({
+                ...prev,
+                createdByUserId: currentUser.id
+            }));
+        }
+    }, [currentUser]);
+
+    const loadRequests = async () => {
+        try {
+            setLoading(true);
+            let data: Request[];
+
+            if (filter === 'created') {
+                data = await requestsService.getAll({ createdBy: currentUser?.id });
+            } else if (filter === 'assigned') {
+                data = await requestsService.getAll({ assignedTo: currentUser?.id });
+            } else {
+                data = await requestsService.getAll();
+            }
+            setRequests(data);
+        } catch (error) {
+            console.error('Ошибка загрузки заявок:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadUsers = async () => {
+        try {
+            const data = await authService.getUsers();
+            setUsers(data);
+        } catch (error) {
+            console.error('Ошибка загрузки пользователей:', error);
+        }
+    };
+
+    // Filter and Sort Logic
+    const filteredRequests = useMemo(() => {
+        let result = requests.filter(req => {
+            const matchSearch = !searchQuery ||
+                req.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                req.id.toString().includes(searchQuery);
+
+            const matchStatus = !statusFilter || req.status === statusFilter;
+
+            return matchSearch && matchStatus;
+        });
+
+        if (sortColumn) {
+            result.sort((a, b) => {
+                let valA: any = a[sortColumn as keyof Request] || '';
+                let valB: any = b[sortColumn as keyof Request] || '';
+
+                // Handle nested objects for sorting if needed (e.g. user names)
+                if (sortColumn === 'createdByUser') valA = a.createdByUser?.name || '';
+                if (sortColumn === 'createdByUser') valB = b.createdByUser?.name || '';
+                if (sortColumn === 'assignedToUser') valA = a.assignedToUser?.name || '';
+                if (sortColumn === 'assignedToUser') valB = b.assignedToUser?.name || '';
+
+                if (sortColumn === 'createdAt' || sortColumn === 'updatedAt') {
+                    valA = new Date(valA || 0).getTime();
+                    valB = new Date(valB || 0).getTime();
+                }
+
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        } else {
+            // Default sort by ID desc
+            result.sort((a, b) => b.id - a.id);
+        }
+
+        return result;
+    }, [requests, searchQuery, statusFilter, sortColumn, sortDirection]);
+
+    const handleSort = (column: string) => {
+        if (sortColumn === column) {
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    const handleCreateRequest = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentUser || !currentUser.id) {
+            alert('Ошибка: не удалось определить текущего пользователя');
+            return;
+        }
+
+        const requestData = {
+            ...formData,
+            createdByUserId: currentUser.id
+        };
+
+        try {
+            await requestsService.create(requestData);
+            setShowCreateModal(false);
+            setFormData({
+                title: '',
+                description: '',
+                priority: 'Средний',
+                createdByUserId: currentUser?.id || 0,
+                assignedToUserId: 0,
+            });
+            loadRequests();
+        } catch (error) {
+            console.error('Ошибка создания заявки:', error);
+        }
+    };
+
+    const handleTakeInWork = async (requestId: number) => {
+        try {
+            await requestsService.takeInWork(requestId, currentUser?.id || 0);
+            loadRequests();
+        } catch (error) {
+            console.error('Ошибка при взятии в работу:', error);
+        }
+    };
+
+    const handleAnswer = async (requestId: number, response: string) => {
+        try {
+            await requestsService.answer(requestId, currentUser?.id || 0, response);
+            loadRequests();
+            setSelectedRequest(null);
+        } catch (error) {
+            console.error('Ошибка при ответе:', error);
+        }
+    };
+
+    const handleClose = async (requestId: number) => {
+        try {
+            await requestsService.close(requestId, currentUser?.id || 0);
+            loadRequests();
+        } catch (error) {
+            console.error('Ошибка при закрытии:', error);
+        }
+    };
+
+    const handleReject = async (requestId: number, reason: string) => {
+        try {
+            await requestsService.reject(requestId, currentUser?.id || 0, reason);
+            loadRequests();
+            setSelectedRequest(null);
+        } catch (error) {
+            console.error('Ошибка при отклонении:', error);
+        }
+    };
+
+    const getStatusClass = (status: string): string => {
+        const statusMap: Record<string, string> = {
+            'Новая': 'status-new',
+            'В работе': 'status-in-progress',
+            'Отвечена': 'status-answered',
+            'Закрыта': 'status-closed',
+            'Отклонена': 'status-rejected',
+        };
+        return statusMap[status] || '';
+    };
+
+    const getPriorityClass = (priority: string): string => {
+        const priorityMap: Record<string, string> = {
+            'Низкий': 'priority-low',
+            'Средний': 'priority-medium',
+            'Высокий': 'priority-high',
+            'Срочный': 'priority-urgent',
+        };
+        return priorityMap[priority] || '';
+    };
+
+    const getRoleColor = (role?: string): string => {
+        const colors: Record<string, string> = {
+            'МП': '#42A5F5',
+            'МРиЗ': '#66BB6A',
+            'БА': '#FFA726',
+            'Администратор': '#9C27B0'
+        };
+        return colors[role || ''] || '#999';
+    };
+
+    // Stats
+    const totalRequests = requests.length;
+    const newRequestsCount = requests.filter(r => r.status === 'Новая').length;
+    const inProgressCount = requests.filter(r => r.status === 'В работе').length;
+
+    // Quick Initials Helper
+    const getInitials = (name: string) => {
+        if (!name) return '?';
+        return name.charAt(0);
+    };
+
+    if (loading) return <div className="requests-page"><div className="loading">Загрузка...</div></div>;
+
+    return (
+        <div className="requests-page">
+            {/* Unified Controls Row - Matches Tasks Page Style */}
+            <div className="unified-controls-row">
+                {/* Left: Quick Stats */}
+                <div className="quick-stats-inline">
+                    <div className="stat-card-mini">
+                        <span className="stat-label-mini">Всего</span>
+                        <span className="stat-value-mini">{totalRequests}</span>
+                    </div>
+                    <div className="stat-card-mini">
+                        <span className="stat-label-mini">Новые</span>
+                        <span className="stat-value-mini" style={{ color: '#0369a1' }}>{newRequestsCount}</span>
+                    </div>
+                    <div className="stat-card-mini">
+                        <span className="stat-label-mini">В работе</span>
+                        <span className="stat-value-mini" style={{ color: '#a16207' }}>{inProgressCount}</span>
+                    </div>
+                </div>
+
+                {/* Right: Controls & Filters */}
+                <div className="controls-right-group">
+                    {/* Tab Filter (All / My / Assigned) */}
+                    <select
+                        className="compact-select"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value as any)}
+                    >
+                        <option value="all">Все заявки</option>
+                        <option value="created">Мои заявки</option>
+                        <option value="assigned">Назначенные мне</option>
+                    </select>
+
+                    <select
+                        className="compact-select"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                        <option value="">Все статусы</option>
+                        <option value="Новая">Новая</option>
+                        <option value="В работе">В работе</option>
+                        <option value="Отвечена">Отвечена</option>
+                        <option value="Закрыта">Закрыта</option>
+                        <option value="Отклонена">Отклонена</option>
+                    </select>
+
+                    <div className="search-wrapper-compact">
+                        <span className="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            className="search-input-compact"
+                            placeholder="Поиск по названию или ID"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <button className="btn-create-compact" onClick={() => setShowCreateModal(true)}>
+                        <span>+</span> Создать
+                    </button>
+                </div>
+            </div>
+
+            {/* Table View */}
+            <div className="requests-table-container">
+                <table className="requests-table">
+                    <thead>
+                        <tr>
+                            <th style={{ width: '5%' }} onClick={() => handleSort('id')}>ID {sortColumn === 'id' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                            <th style={{ width: '25%' }} onClick={() => handleSort('title')}>Название {sortColumn === 'title' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                            <th style={{ width: '10%' }} onClick={() => handleSort('status')}>Статус {sortColumn === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                            <th style={{ width: '10%' }} onClick={() => handleSort('priority')}>Приоритет {sortColumn === 'priority' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                            <th style={{ width: '15%' }} onClick={() => handleSort('createdByUser')}>Инициатор {sortColumn === 'createdByUser' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                            <th style={{ width: '15%' }} onClick={() => handleSort('assignedToUser')}>Ответственный {sortColumn === 'assignedToUser' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                            <th style={{ width: '10%' }} onClick={() => handleSort('createdAt')}>Создано {sortColumn === 'createdAt' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                            <th style={{ width: '10%' }} onClick={() => handleSort('updatedAt')}>Обновлено {sortColumn === 'updatedAt' && (sortDirection === 'asc' ? '↑' : '↓')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredRequests.length === 0 ? (
+                            <tr>
+                                <td colSpan={8}>
+                                    <div className="empty-state">Нет заявок</div>
+                                </td>
+                            </tr>
+                        ) : (
+                            filteredRequests.map(request => (
+                                <tr key={request.id} className="clickable-row" onClick={() => setViewingRequest(request)}>
+                                    <td><span className="request-id-badge">#{request.id}</span></td>
+                                    <td>
+                                        <span className="request-title-cell" title={request.title}>{request.title}</span>
+                                    </td>
+                                    <td>
+                                        <span className={`status-badge ${getStatusClass(request.status)}`}>
+                                            {request.status}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className={`priority-badge ${getPriorityClass(request.priority)}`}>
+                                            {request.priority}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {request.createdByUser ? (
+                                            <div className="user-cell-flex">
+                                                <div
+                                                    className="user-avatar-sm"
+                                                    style={{ background: getRoleColor(request.createdByUser.role) }}
+                                                >
+                                                    {getInitials(request.createdByUser.name)}
+                                                </div>
+                                                <span className="user-name-text">{request.createdByUser.name}</span>
+                                            </div>
+                                        ) : <span className="text-muted">Неизвестно</span>}
+                                    </td>
+                                    <td>
+                                        {request.assignedToUser ? (
+                                            <div className="user-cell-flex">
+                                                <div
+                                                    className="user-avatar-sm"
+                                                    style={{ background: getRoleColor(request.assignedToUser.role) }}
+                                                >
+                                                    {getInitials(request.assignedToUser.name)}
+                                                </div>
+                                                <span className="user-name-text">{request.assignedToUser.name}</span>
+                                            </div>
+                                        ) : <span className="text-muted" style={{ fontSize: '12px' }}>Не назначен</span>}
+                                    </td>
+                                    <td>
+                                        {new Date(request.createdAt).toLocaleDateString('ru-RU')}
+                                    </td>
+                                    <td>
+                                        {new Date(request.updatedAt).toLocaleDateString('ru-RU')}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Модальное окно создания заявки */}
+            {showCreateModal && (
+                <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <h2>Создать заявку</h2>
+                        <form onSubmit={handleCreateRequest}>
+                            <div className="form-group">
+                                <label>Название *</label>
+                                <input
+                                    type="text"
+                                    value={formData.title}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Описание</label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    rows={4}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Приоритет</label>
+                                <select
+                                    value={formData.priority}
+                                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+                                >
+                                    <option value="Низкий">Низкий</option>
+                                    <option value="Средний">Средний</option>
+                                    <option value="Высокий">Высокий</option>
+                                    <option value="Срочный">Срочный</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Ответственный *</label>
+                                <select
+                                    value={formData.assignedToUserId || ''}
+                                    onChange={(e) => setFormData({ ...formData, assignedToUserId: parseInt(e.target.value) })}
+                                    required
+                                >
+                                    <option value="">Выберите пользователя</option>
+                                    {users
+                                        .filter(user => user.id !== currentUser?.id)
+                                        .map(user => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.name} ({user.role})
+                                            </option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
+
+                            <div className="modal-actions">
+                                <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>
+                                    Отмена
+                                </button>
+                                <button type="submit" className="btn-submit">
+                                    Создать
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Модальное окно ответа на заявку */}
+            {selectedRequest && (
+                <div className="modal-overlay" onClick={() => setSelectedRequest(null)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <h2>Ответ на заявку</h2>
+                        <p><strong>{selectedRequest.title}</strong></p>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const response = (e.target as any).response.value;
+                            if (response) {
+                                handleAnswer(selectedRequest.id, response);
+                            }
+                        }}>
+                            <div className="form-group">
+                                <label>Ваш ответ *</label>
+                                <textarea
+                                    name="response"
+                                    rows={4}
+                                    required
+                                />
+                            </div>
+
+                            <div className="modal-actions">
+                                <button type="button" className="btn-cancel" onClick={() => setSelectedRequest(null)}>
+                                    Отмена
+                                </button>
+                                <button type="submit" className="btn-submit">
+                                    Отправить ответ
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-reject"
+                                    onClick={() => {
+                                        const reason = prompt('Укажите причину отклонения:');
+                                        if (reason) {
+                                            handleReject(selectedRequest.id, reason);
+                                        }
+                                    }}
+                                >
+                                    Отклонить
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Модальное окно просмотра деталей заявки */}
+            {viewingRequest && (
+                <div className="modal-overlay" onClick={() => setViewingRequest(null)}>
+                    <div className="request-detail-modal modal-container-improved" style={{ maxWidth: '750px' }} onClick={(e) => e.stopPropagation()}>
+                        {/* Header - Compact with badges */}
+                        <div className="request-modal-header">
+                            <div className="header-top">
+                                <div className="request-header-content">
+                                    <div className="request-header-icon">📋</div>
+                                    <div className="request-header-text">
+                                        <h2 className="request-header-title">{viewingRequest.title}</h2>
+                                        <div className="request-header-meta">
+                                            <span className="request-id-chip">#{viewingRequest.id}</span>
+                                            <div className={`status-badge-mini status-${viewingRequest.status?.toLowerCase().replace(/\s+/g, '-')}`}>
+                                                {viewingRequest.status}
+                                            </div>
+                                            <div className={`priority-badge-mini priority-${viewingRequest.priority?.toLowerCase()}`}>
+                                                {viewingRequest.priority}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button className="btn-close-improved" onClick={() => setViewingRequest(null)}>×</button>
+                            </div>
+                        </div>
+
+                        {/* Body - Ultra Compact */}
+                        <div className="request-modal-body">
+                            {/* Описание */}
+                            {viewingRequest.description && (
+                                <div className="request-section-compact">
+                                    <div className="section-label">📝 Описание</div>
+                                    <div className="section-value">{viewingRequest.description}</div>
+                                </div>
+                            )}
+
+                            {/* Участники - В ОДНУ СТРОКУ */}
+                            <div className="participants-row">
+                                <div className="participant-compact">
+                                    <span className="participant-icon">👤</span>
+                                    <div className="participant-data">
+                                        <span className="participant-label">Инициатор</span>
+                                        <span className="participant-text">
+                                            {viewingRequest.createdByUser?.name || `Пользователь #${viewingRequest.createdByUserId}`}
+                                            {viewingRequest.createdByUser?.role && <span className="role-chip">{viewingRequest.createdByUser.role}</span>}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="participant-compact">
+                                    <span className="participant-icon">🎯</span>
+                                    <div className="participant-data">
+                                        <span className="participant-label">Ответственный</span>
+                                        <span className="participant-text">
+                                            {viewingRequest.assignedToUser?.name || `Пользователь #${viewingRequest.assignedToUserId}`}
+                                            {viewingRequest.assignedToUser?.role && <span className="role-chip">{viewingRequest.assignedToUser.role}</span>}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Метаданные - 4 КОЛОНКИ */}
+                            <div className="metadata-row">
+                                <div className="meta-item">
+                                    <span className="meta-icon">📅</span>
+                                    <div className="meta-data">
+                                        <span className="meta-label">Создано</span>
+                                        <span className="meta-value">
+                                            {new Date(viewingRequest.createdAt).toLocaleDateString('ru-RU', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="meta-item">
+                                    <span className="meta-icon">🔄</span>
+                                    <div className="meta-data">
+                                        <span className="meta-label">Обновлено</span>
+                                        <span className="meta-value">
+                                            {new Date(viewingRequest.updatedAt).toLocaleDateString('ru-RU', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {viewingRequest.projectId && (
+                                    <div
+                                        className="meta-item meta-link"
+                                        onClick={() => window.location.href = `/projects/${viewingRequest.projectId}`}
+                                    >
+                                        <span className="meta-icon">📁</span>
+                                        <div className="meta-data">
+                                            <span className="meta-label">Проект</span>
+                                            <span className="meta-value link-value">#{viewingRequest.projectId} →</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {viewingRequest.taskId && (
+                                    <div
+                                        className="meta-item meta-link"
+                                        onClick={() => window.location.href = `/projects/${viewingRequest.projectId}`}
+                                    >
+                                        <span className="meta-icon">✓</span>
+                                        <div className="meta-data">
+                                            <span className="meta-label">Задача</span>
+                                            <span className="meta-value link-value">#{viewingRequest.taskId} →</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Ответ на заявку */}
+                            {viewingRequest.response ? (
+                                <div className="response-section-compact">
+                                    <div className="section-label">💬 Ответ получен</div>
+                                    <div className="section-value">{viewingRequest.response}</div>
+                                </div>
+                            ) : viewingRequest.status === 'Новая' ? (
+                                <div className="waiting-section-compact">
+                                    <div className="waiting-icon">⏳</div>
+                                    <div className="waiting-text">Ожидается ответ от ответственного</div>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="request-modal-footer">
+                            {viewingRequest.status === 'Новая' && viewingRequest.assignedToUserId === currentUser?.id && (
+                                <button
+                                    className="btn-action primary"
+                                    onClick={() => {
+                                        setViewingRequest(null);
+                                        handleTakeInWork(viewingRequest.id);
+                                    }}
+                                    style={{ marginRight: 'auto' }}
+                                >
+                                    Взять в работу
+                                </button>
+                            )}
+                            {(viewingRequest.status === 'В работе' || viewingRequest.status === 'Новая') &&
+                                viewingRequest.assignedToUserId === currentUser?.id && (
+                                    <button
+                                        className="btn-action primary"
+                                        onClick={() => {
+                                            setViewingRequest(null);
+                                            setSelectedRequest(viewingRequest);
+                                        }}
+                                        style={{ marginRight: 'auto' }}
+                                    >
+                                        Ответить
+                                    </button>
+                                )}
+                            <button
+                                className="btn-secondary request-close-btn"
+                                onClick={() => setViewingRequest(null)}
+                            >
+                                Закрыть
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default Requests;

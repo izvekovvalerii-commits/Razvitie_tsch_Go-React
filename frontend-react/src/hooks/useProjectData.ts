@@ -5,6 +5,80 @@ import { tasksService } from '../services/tasks';
 import { documentsService } from '../services/documents';
 import { useWebSocket } from './useWebSocket';
 
+// Helper function for topological sorting of tasks by dependencies
+function topologicalSort(tasks: ProjectTask[]): ProjectTask[] {
+    // Create a map of task codes to tasks
+    const taskMap = new Map<string, ProjectTask>();
+    tasks.forEach(task => {
+        if (task.code) {
+            taskMap.set(task.code, task);
+        }
+    });
+
+    // Track visited nodes and current path (for cycle detection)
+    const visited = new Set<string>();
+    const inPath = new Set<string>();
+    const sorted: ProjectTask[] = [];
+
+    // DFS visit function
+    function visit(taskCode: string) {
+        if (visited.has(taskCode)) return;
+        if (inPath.has(taskCode)) {
+            // Cycle detected - just skip to avoid infinite loop
+            console.warn(`Dependency cycle detected involving task ${taskCode}`);
+            return;
+        }
+
+        const task = taskMap.get(taskCode);
+        if (!task) return;
+
+        inPath.add(taskCode);
+
+        // Visit all dependencies first
+        const deps = parseDependencies(task.dependsOn);
+        deps.forEach(depCode => {
+            visit(depCode);
+        });
+
+        inPath.delete(taskCode);
+        visited.add(taskCode);
+        sorted.push(task);
+    }
+
+    // Parse dependencies (can be string or array)
+    function parseDependencies(dependsOn: any): string[] {
+        if (!dependsOn) return [];
+        if (typeof dependsOn === 'string') {
+            try {
+                const parsed = JSON.parse(dependsOn);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
+            }
+        }
+        return Array.isArray(dependsOn) ? dependsOn : [];
+    }
+
+    // Start DFS from all tasks
+    tasks.forEach(task => {
+        if (task.code && !visited.has(task.code)) {
+            visit(task.code);
+        }
+    });
+
+    // Add any tasks without codes (shouldn't happen, but just in case)
+    tasks.forEach(task => {
+        if (!task.code || !visited.has(task.code)) {
+            sorted.push(task);
+        }
+    });
+
+    // Return tasks in topological order (dependencies-first)
+    // Do NOT re-sort by Order field as it would break the dependency-based order
+    return sorted;
+}
+
+
 export const useProjectData = (projectId: string | undefined, currentUser: User | null) => {
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<ProjectTask[]>([]);
@@ -96,13 +170,8 @@ export const useProjectData = (projectId: string | undefined, currentUser: User 
 
             if (proj) setProject(proj);
             if (projTasks) {
-                // Sort tasks by defined order field
-                const sorted = projTasks.sort((a, b) => {
-                    const orderA = a.order ?? 9999;
-                    const orderB = b.order ?? 9999;
-                    if (orderA !== orderB) return orderA - orderB;
-                    return a.id - b.id;
-                });
+                // Topological sort by dependencies, then by order
+                const sorted = topologicalSort(projTasks);
                 setTasks(sorted);
                 calculateProjectTeam(projTasks);
             }

@@ -69,6 +69,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 	docService := services.NewDocumentService(db)
 	taskTemplateService := services.NewTaskTemplateService(taskTemplateRepo)
 	projectTemplateService := services.NewProjectTemplateService(projectTemplateRepo)
+	requestService := services.NewRequestService(db, notifService, eventBus)
 
 	// Initialize controllers
 	storesController := controllers.NewStoresController(storeService)
@@ -82,6 +83,7 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 	commentsController := controllers.NewCommentsController(commentService)
 	taskTemplateController := controllers.NewTaskTemplateController(taskTemplateService)
 	projectTemplateController := controllers.NewProjectTemplateController(projectTemplateService, db)
+	requestController := controllers.NewRequestController(requestService)
 
 	// API group
 	api := router.Group("/api")
@@ -220,6 +222,21 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, hub *webso
 				manage.POST("/:id/tasks/custom", projectTemplateController.AddCustomTask)
 				manage.DELETE("/:id/tasks/:taskId", projectTemplateController.DeleteTask)
 			}
+		}
+
+		// Requests routes
+		requests := api.Group("/requests")
+		{
+			requests.GET("", requestController.GetAllRequests)
+			requests.GET("/:id", requestController.GetRequest)
+			requests.POST("", requestController.CreateRequest)
+			requests.PUT("/:id", requestController.UpdateRequest)
+			requests.DELETE("/:id", requestController.DeleteRequest)
+			requests.PUT("/:id/take", requestController.TakeInWork)
+			requests.PUT("/:id/answer", requestController.AnswerRequest)
+			requests.PUT("/:id/close", requestController.CloseRequest)
+			requests.PUT("/:id/reject", requestController.RejectRequest)
+			requests.GET("/stats/:userId", requestController.GetUserRequestsStats)
 		}
 	}
 }

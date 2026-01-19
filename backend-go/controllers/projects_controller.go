@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
+	"portal-razvitie/helpers"
 	"portal-razvitie/middleware"
 	"portal-razvitie/models"
 	"portal-razvitie/services"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,7 +32,7 @@ func (ctrl *ProjectsController) GetProjects(c *gin.Context) {
 
 // GetProject возвращает проект по ID
 func (ctrl *ProjectsController) GetProject(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(c, "id")
 	if err != nil {
 		c.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID проекта", err))
 		return
@@ -83,7 +83,7 @@ func (ctrl *ProjectsController) CreateProject(c *gin.Context) {
 
 // UpdateProject обновляет существующий проект
 func (ctrl *ProjectsController) UpdateProject(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(c, "id")
 	if err != nil {
 		c.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID проекта", err))
 		return
@@ -107,7 +107,7 @@ func (ctrl *ProjectsController) UpdateProject(c *gin.Context) {
 
 // UpdateProjectStatus обновляет статус проекта
 func (ctrl *ProjectsController) UpdateProjectStatus(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(c, "id")
 	if err != nil {
 		c.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID проекта", err))
 		return
@@ -139,7 +139,7 @@ func (ctrl *ProjectsController) UpdateProjectStatus(c *gin.Context) {
 
 // DeleteProject удаляет проект
 func (ctrl *ProjectsController) DeleteProject(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(c, "id")
 	if err != nil {
 		c.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID проекта", err))
 		return

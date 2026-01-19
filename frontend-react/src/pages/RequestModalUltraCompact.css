@@ -1,0 +1,270 @@
+/* === УЛЬТРАКОМПАКТНОЕ МОДАЛЬНОЕ ОКНО ЗАЯВКИ === */
+
+/* Header с badges встроенными */
+.request-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.request-id-chip {
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.status-badge-mini,
+.priority-badge-mini {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Статусы в header */
+.status-badge-mini.status-новая {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-badge-mini.status-в-работе {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge-mini.status-отвечена {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge-mini.status-закрыта {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.status-badge-mini.status-отклонена {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Приоритеты в header */
+.priority-badge-mini.priority-низкий {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.priority-badge-mini.priority-средний {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.priority-badge-mini.priority-высокий {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.priority-badge-mini.priority-срочный {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Компактные секции */
+.request-section-compact {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.section-value {
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.5;
+}
+
+/* Участники в одну строку */
+.participants-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.participant-compact {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    transition: all 0.2s;
+}
+
+.participant-compact:hover {
+    border-color: #FFD700;
+    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.15);
+}
+
+.participant-icon {
+    font-size: 16px;
+}
+
+.participant-data {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.participant-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.participant-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.role-chip {
+    font-size: 9px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+/* Metadata в 4 колонки */
+.metadata-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    transition: all 0.2s;
+}
+
+.meta-item:hover {
+    border-color: #cbd5e1;
+}
+
+.meta-item.meta-link {
+    cursor: pointer;
+}
+
+.meta-item.meta-link:hover {
+    border-color: #FFD700;
+    background: #fffbeb;
+    transform: translateY(-1px);
+}
+
+.meta-icon {
+    font-size: 16px;
+}
+
+.meta-data {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.meta-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.meta-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.link-value {
+    color: #FFD700;
+}
+
+/* Response / Waiting sections */
+.response-section-compact,
+.waiting-section-compact {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.response-section-compact {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #86efac;
+}
+
+.waiting-section-compact {
+    border: 2px dashed #cbd5e1;
+    text-align: center;
+    padding: 14px 12px;
+}
+
+.waiting-icon {
+    font-size: 24px;
+    margin-bottom: 6px;
+    display: inline-block;
+    animation: hourglassFlip 3s ease-in-out infinite;
+}
+
+.waiting-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+@keyframes hourglassFlip {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(180deg);
+    }
+}

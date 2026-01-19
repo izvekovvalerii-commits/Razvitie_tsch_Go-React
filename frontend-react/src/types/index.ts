@@ -148,3 +148,55 @@ export interface TeamMember {
     initials: string;
     color: string;
 }
+
+export type RequestStatus = 'Новая' | 'В работе' | 'Отвечена' | 'Закрыта' | 'Отклонена';
+export type RequestPriority = 'Низкий' | 'Средний' | 'Высокий' | 'Срочный';
+
+export interface Request {
+    id: number;
+    title: string;
+    description?: string;
+    status: RequestStatus;
+    priority: RequestPriority;
+
+    // Инициатор заявки
+    createdByUserId: number;
+    createdByUser?: User;
+
+    // Ответственный за выполнение
+    assignedToUserId: number;
+    assignedToUser?: User;
+
+    // Ответ на заявку
+    response?: string;
+
+    // Связь с проектом (опционально)
+    projectId?: number;
+    project?: Project;
+
+    // Связь с задачей (опционально)
+    taskId?: number;
+    task?: ProjectTask;
+
+    // Временные метки
+    createdAt: string;
+    updatedAt: string;
+    takenAt?: string;
+    answeredAt?: string;
+    closedAt?: string;
+
+    // Дедлайн
+    dueDate?: string;
+}
+
+export interface CreateRequestDto {
+    title: string;
+    description?: string;
+    priority?: RequestPriority;
+    createdByUserId: number;
+    assignedToUserId: number;
+    projectId?: number;
+    taskId?: number;
+    dueDate?: string;
+}
+

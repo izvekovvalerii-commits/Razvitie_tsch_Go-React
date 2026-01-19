@@ -18,6 +18,7 @@ type WorkflowServiceInterface interface {
 	GenerateProjectTasksWithTx(tx *gorm.DB, project *models.Project) ([]models.ProjectTask, error)
 	ProcessTaskCompletion(projectID uint, completedTaskCode string) error
 	ValidateTaskCompletion(task models.ProjectTask) error
+	RecalculateProjectTimeline(projectID uint) error
 }
 
 type WorkflowService struct {
@@ -361,6 +362,103 @@ func (s *WorkflowService) ProcessTaskCompletion(projectID uint, completedTaskCod
 
 					// Send notification
 					s.sendAssignmentNotification(projectID, task)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// RecalculateProjectTimeline recalculates dates for all tasks in the project based on their dependencies
+// This is useful when a new task is added or when dependencies change
+func (s *WorkflowService) RecalculateProjectTimeline(projectID uint) error {
+	log.Printf("[Workflow] Recalculating timeline for project %d", projectID)
+
+	var projectTasks []models.ProjectTask
+	if err := s.db.Where("\"ProjectId\" = ?", projectID).Find(&projectTasks).Error; err != nil {
+		return err
+	}
+
+	// Create a map for quick lookup
+	taskMap := make(map[string]*models.ProjectTask)
+	for i := range projectTasks {
+		if projectTasks[i].Code != nil {
+			taskMap[*projectTasks[i].Code] = &projectTasks[i]
+		}
+	}
+
+	// Process each task and recalculate its dates
+	for i := range projectTasks {
+		task := &projectTasks[i]
+
+		// Skip completed tasks - their dates are frozen
+		if task.Status == "Завершена" {
+			continue
+		}
+
+		// Parse dependencies
+		var deps []string
+		if task.DependsOn != nil && *task.DependsOn != "" {
+			if err := json.Unmarshal([]byte(*task.DependsOn), &deps); err != nil {
+				log.Printf("Failed to parse dependencies for task %v: %v", task.Code, err)
+				continue
+			}
+		}
+
+		// Calculate start date based on dependencies
+		if len(deps) > 0 {
+			var maxPrevEndDate time.Time
+			foundDeps := false
+
+			for _, depCode := range deps {
+				depTask := taskMap[depCode]
+				if depTask == nil {
+					continue
+				}
+				foundDeps = true
+
+				// Use actual date if task is completed, otherwise use normative deadline
+				var effectiveEnd time.Time
+				if depTask.Status == "Завершена" && depTask.ActualDate != nil {
+					effectiveEnd = *depTask.ActualDate
+				} else {
+					effectiveEnd = depTask.NormativeDeadline
+				}
+
+				if effectiveEnd.After(maxPrevEndDate) {
+					maxPrevEndDate = effectiveEnd
+				}
+			}
+
+			if foundDeps {
+				// New Start = Max(Deps End) + 1 Day
+				nextDay := maxPrevEndDate.AddDate(0, 0, 1)
+				newStart := time.Date(nextDay.Year(), nextDay.Month(), nextDay.Day(), 0, 0, 0, 0, time.UTC)
+
+				// New Deadline = New Start + Duration
+				duration := 1
+				if task.Days != nil {
+					duration = *task.Days
+				}
+				newDeadline := newStart.AddDate(0, 0, duration)
+
+				// Check if updates are needed
+				startChanged := task.PlannedStartDate == nil || !datesEqual(*task.PlannedStartDate, newStart)
+				deadlineChanged := !datesEqual(task.NormativeDeadline, newDeadline)
+
+				if startChanged || deadlineChanged {
+					task.PlannedStartDate = &newStart
+					task.NormativeDeadline = newDeadline
+
+					log.Printf("[Workflow] Task %v rescheduled: start %s, deadline %s",
+						task.Code,
+						newStart.Format("2006-01-02"),
+						newDeadline.Format("2006-01-02"))
+
+					if err := s.db.Save(task).Error; err != nil {
+						log.Printf("Error updating task %v: %v", task.Code, err)
+					}
 				}
 			}
 		}

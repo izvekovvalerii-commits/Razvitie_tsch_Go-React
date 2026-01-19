@@ -1,0 +1,526 @@
+/* === КОМПАКТНОЕ МОДАЛЬНОЕ ОКНО ЗАЯВКИ (СТ ИЛЬ ПОРТАЛА) === */
+
+/* Container */
+.request-detail-modal.modal-container-improved {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Header - Компактный */
+.request-modal-header {
+    padding: 16px 20px;
+    border-bottom: 2px solid #FFD700;
+    background: white;
+    flex-shrink: 0;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.request-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.request-header-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #FFD700 0%, #FFC700 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.25);
+}
+
+.request-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.request-header-subtitle {
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.request-header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1;
+}
+
+.btn-close-improved {
+    background: transparent;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 24px;
+    color: #94a3b8;
+    line-height: 1;
+}
+
+.btn-close-improved:hover {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Body - Компактный */
+.request-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Hero Section */
+.request-hero-section {
+    margin-bottom: 16px;
+}
+
+.request-status-priority-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.request-status-badge-large,
+.request-priority-badge-large {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1.5px solid;
+    transition: all 0.2s;
+}
+
+.request-status-badge-large:hover,
+.request-priority-badge-large:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Status Colors */
+.request-status-badge-large.status-новая {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: #93c5fd;
+}
+
+.request-status-badge-large.status-в-работе {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fde047;
+}
+
+.request-status-badge-large.status-отвечена {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+
+.request-status-badge-large.status-закрыта {
+    background: #e2e8f0;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+.request-status-badge-large.status-отклонена {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+
+/* Priority Colors */
+.request-priority-badge-large.priority-низкий {
+    background: #f1f5f9;
+    color: #64748b;
+    border-color: #cbd5e1;
+}
+
+.request-priority-badge-large.priority-средний {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fde047;
+}
+
+.request-priority-badge-large.priority-высокий {
+    background: #ffedd5;
+    color: #9a3412;
+    border-color: #fdba74;
+}
+
+.request-priority-badge-large.priority-срочный {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+
+.request-main-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Section */
+.request-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+    transition: all 0.2s;
+}
+
+.request-section:hover {
+    border-color: #FFD700;
+    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.1);
+}
+
+.request-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.request-section-icon {
+    font-size: 16px;
+}
+
+.request-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.request-description-text {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* Participants - Compact Cards */
+.request-participants-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.request-participant-card {
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+}
+
+.request-participant-card:hover {
+    border-color: #FFD700;
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.request-participant-card.initiator-card {
+    border-color: #dbeafe;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+}
+
+.request-participant-card.assignee-card {
+    border-color: #d1fae5;
+    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.participant-avatar {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.avatar-icon {
+    font-size: 18px;
+}
+
+.participant-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.participant-role {
+    font-size: 9px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+}
+
+.participant-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Metadata Grid - Compact */
+.request-metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.request-meta-card {
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+}
+
+.request-meta-card:hover {
+    border-color: #FFD700;
+    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.request-meta-card.request-meta-link:hover {
+    border-color: #FFD700;
+    background: #fffbeb;
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.25);
+    transform: translateY(-2px);
+}
+
+.request-meta-card.request-meta-link:active {
+    transform: translateY(0);
+}
+
+.meta-card-icon {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.meta-card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.meta-card-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.meta-card-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Response Section */
+.request-response-section {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1.5px solid #86efac;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+.response-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.response-icon {
+    font-size: 16px;
+}
+
+.response-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #166534;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.response-content {
+    font-size: 13px;
+    color: #14532d;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* Waiting Section - Compact */
+.request-waiting-section {
+    padding: 18px 16px;
+    background: white;
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 14px;
+}
+
+.waiting-icon-wrapper {
+    margin-bottom: 6px;
+}
+
+.waiting-icon {
+    font-size: 28px;
+    display: inline-block;
+    opacity: 0.8;
+    animation: hourglassFlip 3s ease-in-out infinite;
+}
+
+@keyframes hourglassFlip {
+    0% {
+        transform: rotate(0deg);
+        opacity: 0.8;
+    }
+
+    10% {
+        transform: rotate(0deg) scale(1);
+        opacity: 0.9;
+    }
+
+    45% {
+        transform: rotate(0deg) scale(1.05);
+        opacity: 1;
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.1);
+        opacity: 1;
+    }
+
+    55% {
+        transform: rotate(180deg) scale(1.05);
+        opacity: 1;
+    }
+
+    95% {
+        transform: rotate(180deg) scale(1);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: rotate(180deg);
+        opacity: 0.8;
+    }
+}
+
+.waiting-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* Footer - Compact */
+.request-modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #e2e8f0;
+    background: #fafbfc;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.btn-action {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-action.primary {
+    background: #0f172a;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-action.primary:hover {
+    background: #1e293b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary.request-close-btn {
+    padding: 8px 20px;
+    background: transparent;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary.request-close-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}

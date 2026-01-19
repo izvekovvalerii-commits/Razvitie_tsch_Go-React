@@ -3,6 +3,7 @@ import { projectTemplateService, ProjectTemplate, TemplateTask } from '../servic
 import { taskTemplateService } from '../services/taskTemplates';
 import { TaskTemplate } from '../types/taskTemplate';
 import './ProjectManagement.css';
+import '../components/common/Modal.css';
 
 
 interface TemplateManagementProps {

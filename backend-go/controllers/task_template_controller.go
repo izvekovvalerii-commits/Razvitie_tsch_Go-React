@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
+	"portal-razvitie/helpers"
 	"portal-razvitie/middleware"
 	"portal-razvitie/models"
 	"portal-razvitie/services"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -56,7 +56,7 @@ func (c *TaskTemplateController) GetActiveTemplates(ctx *gin.Context) {
 // @Success 200 {object} models.TaskTemplate
 // @Router /api/task-templates/{id} [get]
 func (c *TaskTemplateController) GetTemplateByID(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID шаблона", err))
 		return
@@ -127,7 +127,7 @@ func (c *TaskTemplateController) CreateTemplate(ctx *gin.Context) {
 // @Success 200 {object} models.TaskTemplate
 // @Router /api/task-templates/{id} [put]
 func (c *TaskTemplateController) UpdateTemplate(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID шаблона", err))
 		return
@@ -156,7 +156,7 @@ func (c *TaskTemplateController) UpdateTemplate(ctx *gin.Context) {
 // @Success 204
 // @Router /api/task-templates/{id} [delete]
 func (c *TaskTemplateController) DeleteTemplate(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID шаблона", err))
 		return
@@ -180,7 +180,7 @@ func (c *TaskTemplateController) DeleteTemplate(ctx *gin.Context) {
 // @Success 201 {object} models.TaskTemplate
 // @Router /api/task-templates/{id}/clone [post]
 func (c *TaskTemplateController) CloneTemplate(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID шаблона", err))
 		return
@@ -212,7 +212,7 @@ func (c *TaskTemplateController) CloneTemplate(ctx *gin.Context) {
 // @Success 200
 // @Router /api/task-templates/{id}/toggle [patch]
 func (c *TaskTemplateController) ToggleTemplateStatus(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	id, err := helpers.ParseIDParam(ctx, "id")
 	if err != nil {
 		ctx.Error(middleware.NewAppError(http.StatusBadRequest, "Неверный ID шаблона", err))
 		return

@@ -14,6 +14,12 @@ const (
 	ProjectTasksGenerated = "project.tasks_generated"
 	ProjectUpdated        = "project.updated"
 	ProjectStatusChanged  = "project.status_changed"
+
+	RequestCreated  = "request.created"
+	RequestTaken    = "request.taken"
+	RequestAnswered = "request.answered"
+	RequestClosed   = "request.closed"
+	RequestRejected = "request.rejected"
 )
 
 // --- Task Events ---
@@ -95,3 +101,45 @@ type ProjectStatusChangedEvent struct {
 }
 
 func (e ProjectStatusChangedEvent) Name() string { return ProjectStatusChanged }
+
+// --- Request Events ---
+
+type RequestCreatedEvent struct {
+	Request *models.Request
+	ActorID uint
+}
+
+func (e RequestCreatedEvent) Name() string { return RequestCreated }
+
+type RequestTakenEvent struct {
+	RequestID        uint
+	RequestTitle     string
+	AssignedToUserID uint
+	ActorID          uint
+}
+
+func (e RequestTakenEvent) Name() string { return RequestTaken }
+
+type RequestAnsweredEvent struct {
+	Request *models.Request
+	ActorID uint
+}
+
+func (e RequestAnsweredEvent) Name() string { return RequestAnswered }
+
+type RequestClosedEvent struct {
+	RequestID    uint
+	RequestTitle string
+	ActorID      uint
+}
+
+func (e RequestClosedEvent) Name() string { return RequestClosed }
+
+type RequestRejectedEvent struct {
+	RequestID    uint
+	RequestTitle string
+	Reason       string
+	ActorID      uint
+}
+
+func (e RequestRejectedEvent) Name() string { return RequestRejected }

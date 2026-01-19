@@ -12,6 +12,7 @@ import { useDeleteProject } from '../hooks/useQueries';
 
 
 import './ProjectDetails.css';
+import '../components/common/Modal.css';
 import { CreateTaskFromTemplateModal } from '../components/CreateTaskFromTemplateModal';
 import { TaskTemplate } from '../types/taskTemplate';
 
@@ -63,14 +64,9 @@ const ProjectDetails: React.FC = () => {
     };
 
     const ganttTasks = useMemo(() => {
-        // Sort tasks by Order if available, otherwise by ID
-        const sortedTasks = [...tasks].sort((a, b) => {
-            const orderA = a.order !== undefined ? a.order : Number.MAX_SAFE_INTEGER;
-            const orderB = b.order !== undefined ? b.order : Number.MAX_SAFE_INTEGER;
-            return orderA - orderB || a.id - b.id;
-        });
-
-        return sortedTasks.map(t => {
+        // Tasks are already sorted topologically by the useProjectData hook
+        // Do NOT re-sort by Order as it would break dependency-based ordering
+        return tasks.map(t => {
             let deps: string[] = [];
 
             // 1. Try to get from task itself (backend source)

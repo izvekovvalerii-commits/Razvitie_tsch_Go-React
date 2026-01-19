@@ -866,51 +866,6 @@
     font-size: 13px;
 }
 
-/* Modal */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
-    padding: 30px;
-    border-radius: 20px;
-    width: 450px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-    margin-top: 30px;
-}
-
-.btn-cancel {
-    background: #f5f5f5;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    color: #666;
-}
-
-.modal-content.large-modal {
-    width: 700px;
-    max-width: 95vw;
-}
-
 .task-context-info {
     background: #f8f9fa;
     padding: 16px;

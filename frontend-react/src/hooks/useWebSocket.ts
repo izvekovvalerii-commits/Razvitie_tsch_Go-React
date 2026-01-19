@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const WS_URL = 'ws://localhost:5000/ws';
+const WS_URL = 'ws://localhost:8080/ws';
 
 export interface WebSocketMessage {
     type: string;

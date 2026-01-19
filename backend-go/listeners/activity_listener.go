@@ -24,6 +24,7 @@ func (l *ActivityListener) Register(bus events.EventBus) {
 	bus.Subscribe(events.ProjectDeleted, l.OnProjectDeleted)
 	bus.Subscribe(events.ProjectUpdated, l.OnProjectUpdated)
 	bus.Subscribe(events.ProjectStatusChanged, l.OnProjectStatusChanged)
+	bus.Subscribe(events.RequestCreated, l.OnRequestCreated)
 }
 
 func (l *ActivityListener) OnTaskCreated(event events.Event) error {
@@ -108,4 +109,25 @@ func (l *ActivityListener) OnProjectStatusChanged(event events.Event) error {
 	}
 	action := fmt.Sprintf("изменил статус на '%s'", e.NewStatus)
 	return l.activityService.LogActivity(e.ActorID, action, models.EntityProject, e.ProjectID, e.ProjectName, &e.ProjectID)
+}
+
+func (l *ActivityListener) OnRequestCreated(event events.Event) error {
+	e, ok := event.(events.RequestCreatedEvent)
+	if !ok {
+		return nil
+	}
+
+	// Если заявка создана из задачи, добавляем запись в историю задачи
+	if e.Request.TaskID != nil {
+		return l.activityService.LogActivity(
+			e.ActorID,
+			"Создана заявка",
+			models.EntityTask,
+			*e.Request.TaskID,
+			e.Request.Title,
+			e.Request.ProjectID,
+		)
+	}
+
+	return nil
 }

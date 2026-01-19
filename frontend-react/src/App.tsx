@@ -10,6 +10,7 @@ import Stores from './pages/Stores';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import Tasks from './pages/Tasks';
+import Requests from './pages/Requests';
 import AdminPage from './pages/AdminPage';
 
 
@@ -35,6 +36,7 @@ function App() {
                                 <Route path="/projects" element={<Projects />} />
                                 <Route path="/projects/:id" element={<ProjectDetails />} />
                                 <Route path="/tasks" element={<Tasks />} />
+                                <Route path="/requests" element={<Requests />} />
                                 <Route path="/admin" element={<AdminPage />} />
                                 <Route path="/admin/task-templates" element={<TaskTemplateList />} />
                                 <Route path="/admin/task-templates/new" element={<TaskTemplateBuilder />} />
