@@ -1,82 +1,431 @@
+/* ===============================================
+   LOGIN PAGE - Premium Glassmorphism Design
+   Brand Yellow + Role Colors + Micro-animations
+   =============================================== */
+
+/* === Base Overlay === */
 .login-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
+    background: linear-gradient(135deg,
+            #FFDD00 0%,
+            #FFE433 25%,
+            #FFDD00 50%,
+            #F5C800 75%,
+            #FFDD00 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    animation: fadeIn 0.3s ease;
+    overflow: hidden;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
+@keyframes gradientShift {
+
+    0%,
+    100% {
+        background-position: 0% 50%;
     }
 
-    to {
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.login-overlay.logging-in {
+    animation: exitOverlayZoom 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Flash effect on login */
+.login-overlay.logging-in::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center,
+            rgba(255, 255, 255, 1) 0%,
+            rgba(255, 255, 255, 0.8) 30%,
+            transparent 70%);
+    opacity: 0;
+    animation: flashEffect 0.6s ease-out forwards;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+@keyframes exitOverlayZoom {
+    0% {
         opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+        filter: blur(2px);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.2);
+        filter: blur(8px);
     }
 }
 
+@keyframes flashEffect {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    30% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+/* === Animated Particles === */
+.login-particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    animation: float 20s infinite ease-in-out;
+}
+
+.particle-1 {
+    width: 300px;
+    height: 300px;
+    top: -100px;
+    left: -100px;
+    animation-delay: 0s;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+}
+
+.particle-2 {
+    width: 200px;
+    height: 200px;
+    top: 50%;
+    right: -50px;
+    animation-delay: -5s;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+}
+
+.particle-3 {
+    width: 150px;
+    height: 150px;
+    bottom: 10%;
+    left: 20%;
+    animation-delay: -10s;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
+}
+
+.particle-4 {
+    width: 100px;
+    height: 100px;
+    top: 30%;
+    left: 10%;
+    animation-delay: -3s;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, transparent 70%);
+}
+
+.particle-5 {
+    width: 180px;
+    height: 180px;
+    bottom: -50px;
+    right: 20%;
+    animation-delay: -7s;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+}
+
+.particle-6 {
+    width: 120px;
+    height: 120px;
+    top: 20%;
+    right: 30%;
+    animation-delay: -12s;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    25% {
+        transform: translate(30px, -30px) rotate(5deg);
+    }
+
+    50% {
+        transform: translate(-20px, 20px) rotate(-5deg);
+    }
+
+    75% {
+        transform: translate(20px, 10px) rotate(3deg);
+    }
+}
+
+/* === Modal Container === */
 .login-modal {
-    background: #FFDD00;
+    position: relative;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-radius: 32px;
     padding: 48px 40px;
-    max-width: 500px;
+    max-width: 480px;
     width: 90%;
-    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4);
-    animation: slideUp 0.4s ease;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow:
+        0 32px 64px rgba(0, 0, 0, 0.15),
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+    /* Initial hidden state */
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(40px);
-    }
+.login-modal.loaded {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
 
-    to {
+.login-modal.exit {
+    animation: exitModal 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes exitModal {
+    0% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1) rotateX(0deg);
+        filter: blur(0);
+    }
+
+    40% {
+        opacity: 1;
+        transform: translateY(-20px) scale(1.05) rotateX(-5deg);
+        filter: blur(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-80px) scale(0.8) rotateX(-15deg);
+        filter: blur(10px);
     }
 }
 
+/* === Glass Orbs (Decorative) === */
+.glass-orb {
+    position: absolute;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%);
+    pointer-events: none;
+}
+
+.glass-orb-1 {
+    width: 120px;
+    height: 120px;
+    top: -40px;
+    right: -40px;
+    animation: orbFloat 8s ease-in-out infinite;
+}
+
+.glass-orb-2 {
+    width: 80px;
+    height: 80px;
+    bottom: -20px;
+    left: -20px;
+    animation: orbFloat 10s ease-in-out infinite reverse;
+}
+
+@keyframes orbFloat {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    50% {
+        transform: translate(-10px, 10px);
+    }
+}
+
+/* === Header === */
 .login-header {
     text-align: center;
-    margin-bottom: 36px;
+    margin-bottom: 32px;
+    position: relative;
 }
 
 .logo {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
     display: flex;
     justify-content: center;
+    position: relative;
+}
+
+.logo-glow {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+            rgba(255, 221, 0, 0.4) 0%,
+            rgba(255, 221, 0, 0.2) 30%,
+            rgba(0, 0, 0, 0.1) 50%,
+            transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: logoGlow 4s ease-in-out infinite;
+}
+
+@keyframes logoGlow {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+        filter: blur(20px);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 1;
+        filter: blur(30px);
+    }
 }
 
 .chizhik-logo {
-    width: 110px;
+    width: 140px;
     height: auto;
     object-fit: contain;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+    filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.25));
+    animation: logoBirdEntrance 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+    transition: transform 0.3s ease, filter 0.3s ease;
 }
 
-.login-header h1 {
-    font-size: 26px;
-    font-weight: 700;
+.chizhik-logo:hover {
+    transform: scale(1.1) rotate(-5deg);
+    filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.3));
+    animation: logoBirdHover 0.6s ease-in-out infinite;
+}
+
+@keyframes logoBirdEntrance {
+    0% {
+        opacity: 0;
+        transform: scale(0.3) translateY(-60px) rotate(-20deg);
+        filter: drop-shadow(0 0 0 transparent);
+    }
+
+    40% {
+        opacity: 1;
+        transform: scale(1.15) translateY(10px) rotate(8deg);
+    }
+
+    60% {
+        transform: scale(0.95) translateY(-5px) rotate(-4deg);
+    }
+
+    80% {
+        transform: scale(1.05) translateY(3px) rotate(2deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0) rotate(0deg);
+        filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.25));
+    }
+}
+
+
+
+@keyframes logoBirdHover {
+
+    0%,
+    100% {
+        transform: scale(1.1) rotate(-5deg) translateY(0);
+    }
+
+    50% {
+        transform: scale(1.12) rotate(-3deg) translateY(-5px);
+    }
+}
+
+.portal-title {
+    font-size: 38px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #000000;
+    -webkit-text-fill-color: #000000;
+    margin: 10px 0 15px 0;
+    letter-spacing: -1px;
+    transform: rotate(-4deg);
+    display: inline-block;
+    padding: 4px 12px;
+    line-height: 1;
+    animation: titlePulse 2s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+
+    0%,
+    100% {
+        transform: rotate(-4deg) scale(1);
+    }
+
+    50% {
+        transform: rotate(-4deg) scale(1.05);
+    }
+}
+
+.login-title {
+    font-size: 28px;
+    font-weight: 800;
     color: #1a1a1a;
-    margin: 0 0 10px 0;
+    margin: 0 0 12px 0;
+    letter-spacing: -0.5px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.title-word {
+    display: inline-block;
 }
 
 .subtitle {
     font-size: 15px;
-    color: #333;
+    color: rgba(0, 0, 0, 0.6);
     margin: 0;
     font-weight: 500;
 }
 
+/* === Users Grid === */
 .users-grid {
     display: flex;
     flex-direction: column;
@@ -84,85 +433,177 @@
     margin-bottom: 28px;
 }
 
+/* === User Card === */
 .user-card {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 16px;
     padding: 16px 20px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
+    padding-left: 24px;
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-radius: 18px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08),
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    position: relative;
     overflow: hidden;
+
+    transition:
+        transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.3s ease,
+        background 0.3s ease,
+        border-color 0.3s ease;
 }
 
-.user-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg,
-            transparent,
-            rgba(255, 255, 255, 0.4),
-            transparent);
-    transition: left 0.5s ease;
-}
-
-.user-card:hover::before {
-    left: 100%;
+@keyframes cardSlideIn {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .user-card:hover {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 100%);
-    border-color: rgba(26, 26, 26, 0.15);
-    transform: translateX(8px) translateY(-2px);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18),
-        0 4px 8px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 1);
+    background: rgba(255, 255, 255, 0.9);
+    border-color: var(--role-accent, #3B82F6);
+    transform: translateX(8px) scale(1.02);
+    box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.12),
+        0 4px 8px rgba(0, 0, 0, 0.08),
+        0 0 0 1px var(--role-accent, #3B82F6);
 }
 
 .user-card:active {
-    transform: translateX(8px) translateY(0px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 1);
+    transform: translateX(8px) scale(0.98);
 }
 
+.user-card.selected {
+    pointer-events: none;
+    animation: cardSelected 0.3s ease forwards;
+}
+
+@keyframes cardSelected {
+    0% {
+        transform: translateX(8px) scale(1.02);
+    }
+
+    50% {
+        transform: translateX(0) scale(1.05);
+    }
+
+    100% {
+        transform: translateX(0) scale(1);
+        background: rgba(255, 255, 255, 0.95);
+    }
+}
+
+/* Role Accent Line */
+.role-accent-line {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.user-card:hover .role-accent-line {
+    width: 6px;
+    opacity: 1;
+}
+
+/* Card Glow Effect */
+.card-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    filter: blur(40px);
+}
+
+.user-card:hover .card-glow {
+    opacity: 0.15;
+}
+
+/* === User Icon === */
 .user-icon {
+    position: relative;
     width: 52px;
     height: 52px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(66, 165, 245, 0.3),
-        0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.icon-emoji {
+    font-size: 24px;
+    filter: grayscale(0.2) brightness(1.1);
+    transition: all 0.3s ease;
+}
+
+.user-card:hover .icon-emoji {
+    filter: grayscale(0) brightness(1.2);
+    transform: scale(1.1);
+}
+
+.icon-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.user-card:hover .icon-ring {
+    opacity: 1;
+    inset: -6px;
+    animation: ringPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ringPulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
 }
 
 .user-card:hover .user-icon {
-    transform: scale(1.1) rotate(5deg);
-    box-shadow: 0 6px 16px rgba(66, 165, 245, 0.4),
-        0 3px 6px rgba(0, 0, 0, 0.15);
+    transform: scale(1.08) rotate(5deg);
 }
 
+/* === User Info === */
 .user-info {
     flex: 1;
+    min-width: 0;
 }
 
 .user-name {
     font-size: 16px;
     font-weight: 700;
     color: #1a1a1a;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     transition: color 0.2s ease;
 }
 
@@ -171,72 +612,239 @@
 }
 
 .user-role {
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(0, 0, 0, 0.65);
-    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
-.user-card:hover .user-role {
-    color: rgba(0, 0, 0, 0.75);
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
 }
 
+.role-description {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.5);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* === Login Arrow === */
 .login-arrow {
-    font-size: 22px;
-    color: rgba(0, 0, 0, 0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-weight: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(0, 0, 0, 0.25);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.login-arrow svg {
+    width: 24px;
+    height: 24px;
 }
 
 .user-card:hover .login-arrow {
-    color: rgba(0, 0, 0, 0.7);
-    transform: translateX(6px) scale(1.2);
+    color: var(--role-accent, #3B82F6);
+    transform: translateX(6px);
 }
 
+/* === Card Loading State === */
+.card-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    animation: fadeIn 0.2s ease;
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #3B82F6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* === Loading Users Placeholder === */
+.loading-users {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px 20px;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.loading-users p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #1a1a1a;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* === Footer === */
 .login-footer {
     text-align: center;
-    padding-top: 24px;
-    border-top: 2px solid rgba(0, 0, 0, 0.1);
 }
 
-.login-footer p {
+.footer-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.divider-line {
+    flex: 1;
+    max-width: 80px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.15), transparent);
+}
+
+.divider-icon {
+    font-size: 16px;
+    opacity: 0.6;
+}
+
+.footer-text {
     font-size: 13px;
-    color: #333;
-    margin: 0;
+    color: rgba(0, 0, 0, 0.5);
+    margin: 0 0 4px 0;
     font-weight: 600;
 }
 
+.footer-version {
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.3);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* === Responsive === */
 @media (max-width: 768px) {
     .login-modal {
-        padding: 36px 28px;
-        max-width: 90%;
+        padding: 36px 24px;
+        max-width: 95%;
         border-radius: 24px;
     }
 
     .chizhik-logo {
-        width: 90px;
-        height: auto;
+        width: 80px;
     }
 
-    .login-header h1 {
-        font-size: 22px;
+    .login-title {
+        font-size: 24px;
     }
 
     .user-card {
-        padding: 14px 18px;
+        padding: 14px 16px;
+        padding-left: 20px;
     }
 
     .user-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 22px;
+        width: 46px;
+        height: 46px;
+    }
+
+    .icon-emoji {
+        font-size: 20px;
     }
 
     .user-name {
         font-size: 15px;
     }
 
-    .user-role {
-        font-size: 12px;
+    .role-description {
+        display: none;
+    }
+
+    .glass-orb-1 {
+        width: 80px;
+        height: 80px;
+        top: -30px;
+        right: -30px;
+    }
+
+    .glass-orb-2 {
+        width: 60px;
+        height: 60px;
+        bottom: -15px;
+        left: -15px;
+    }
+}
+
+@media (max-width: 400px) {
+    .login-modal {
+        padding: 28px 20px;
+    }
+
+    .login-title {
+        font-size: 22px;
+    }
+
+    .user-card {
+        padding: 12px 14px;
+        padding-left: 18px;
+        gap: 12px;
+    }
+
+    .user-icon {
+        width: 42px;
+        height: 42px;
+    }
+
+    .role-accent-line {
+        width: 3px;
+    }
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+
+    .login-overlay,
+    .particle,
+    .login-modal,
+    .chizhik-logo,
+    .title-word,
+    .subtitle,
+    .user-card,
+    .login-footer,
+    .glass-orb,
+    .logo-glow {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .user-card {
+        transition: background 0.2s ease, border-color 0.2s ease;
     }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import * as Icons from 'lucide-react';
 import { tasksService } from '../services/tasks';
 import { useAuth } from '../hooks/useAuth';
 import { ProjectTask } from '../types';
@@ -35,6 +36,11 @@ const Tasks: React.FC = () => {
     const [sortColumn, setSortColumn] = useState('');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+    // UI Dropdown States
+    const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const [responsibleDropdownOpen, setResponsibleDropdownOpen] = useState(false);
+
     useEffect(() => {
         // Read qparams
         const status = searchParams.get('status');
@@ -62,8 +68,6 @@ const Tasks: React.FC = () => {
     }, [allTasks]);
 
     const getResponsibleDisplay = (task: ProjectTask): string => {
-        // Here we duplicate logic from Angular component somewhat, assuming mock data structure
-        // If task.responsibleUserId is present, we could look it up. For simplicity:
         return task.responsible || 'Не назначен';
     };
 
@@ -74,8 +78,6 @@ const Tasks: React.FC = () => {
 
     const filteredTasks = useMemo(() => {
         let result = allTasks.filter(task => {
-            // Backend already filters tasks by user role - no need to check access here
-
             const matchSearch = !searchQuery ||
                 task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (task.projectId && task.projectId.toString().includes(searchQuery));
@@ -84,7 +86,6 @@ const Tasks: React.FC = () => {
             const matchType = !typeFilter || task.taskType === typeFilter;
             const matchResp = !responsibleFilter || getResponsibleDisplay(task) === responsibleFilter;
 
-            // Use utility functions for overdue and expiring checks
             const matchOverdue = !showOnlyOverdue || isOverdueTask(task);
             const matchExpiringSoon = !showOnlyExpiringSoon || isExpiringSoonTask(task);
 
@@ -120,10 +121,7 @@ const Tasks: React.FC = () => {
         }
     };
 
-
-
     const openEditModal = (task: ProjectTask) => {
-        // Navigate to project details 
         if (task.projectId) {
             navigate(`/projects/${task.projectId}?editTask=${task.id}`);
         }
@@ -141,6 +139,12 @@ const Tasks: React.FC = () => {
         setSearchParams({});
     };
 
+    const closeAllDropdowns = () => {
+        setTypeDropdownOpen(false);
+        setStatusDropdownOpen(false);
+        setResponsibleDropdownOpen(false);
+    };
+
     if (loading) return <div className="tasks-page"><p>Загрузка задач...</p></div>;
 
     const totalTasks = allTasks.length;
@@ -148,57 +152,157 @@ const Tasks: React.FC = () => {
     const overdueCount = allTasks.filter(isOverdueTask).length;
 
     return (
-        <div className="tasks-page">
+        <div className="tasks-page" onClick={closeAllDropdowns}>
             {/* Unified Controls Block */}
-            <div className="unified-controls-row">
-                {/* Left: Quick Stats */}
-                <div className="quick-stats-inline">
-                    <div className="stat-card-mini">
-                        <span className="stat-label-mini">Всего</span>
-                        <span className="stat-value-mini">{totalTasks}</span>
+            <div className="main-toolbar" onClick={e => e.stopPropagation()}>
+                {/* Left: Stat Badges */}
+                <div className="toolbar-section stats-section">
+                    <div
+                        className={`stat-badge badge-total ${!isFilterActive ? 'active' : ''}`}
+                        onClick={resetFilters}
+                    >
+                        <span className="stat-label">Всего</span>
+                        <span className="stat-value">{totalTasks}</span>
                     </div>
-                    <div className="stat-card-mini">
-                        <span className="stat-label-mini">В работе</span>
-                        <span className="stat-value-mini">{inProgressCount}</span>
+                    <div
+                        className={`stat-badge badge-active ${statusFilter === 'В работе' ? 'active' : ''}`}
+                        onClick={() => setStatusFilter('В работе')}
+                    >
+                        <span className="stat-label">В работе</span>
+                        <span className="stat-value">{inProgressCount}</span>
                     </div>
-                    <div className="stat-card-mini">
-                        <span className="stat-label-mini">Просрочено</span>
-                        <span className="stat-value-mini danger">{overdueCount}</span>
+                    <div
+                        className={`stat-badge badge-renovation ${showOnlyOverdue ? 'active' : ''}`}
+                        onClick={() => setShowOnlyOverdue(!showOnlyOverdue)}
+                    >
+                        <span className="stat-label">Просрочено</span>
+                        <span className="stat-value">{overdueCount}</span>
                     </div>
                 </div>
 
-                {/* Right: Filters + Search */}
-                <div className="controls-right-group">
-                    {/* Dropdown Filters */}
-                    <select className="compact-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                        <option value="">Все типы</option>
-                        {uniqueTaskTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <select className="compact-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                        <option value="">Все статусы</option>
-                        {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <select className="compact-select" value={responsibleFilter} onChange={(e) => setResponsibleFilter(e.target.value)}>
-                        <option value="">Все исполнители</option>
-                        {uniqueResponsibles.map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
+                {/* Filters */}
+                <div className="toolbar-section filters-section">
+                    {/* Type Filter */}
+                    <div className="filter-dropdown-wrapper">
+                        <button
+                            className={`filter-select ${typeDropdownOpen ? 'open' : ''}`}
+                            onClick={() => { closeAllDropdowns(); setTypeDropdownOpen(!typeDropdownOpen); }}
+                        >
+                            <span className="select-text">
+                                {typeFilter || "Все типы"}
+                            </span>
+                            <Icons.ChevronDown size={16} className="chevron" />
+                        </button>
 
+                        {typeDropdownOpen && (
+                            <div className="dropdown-menu">
+                                <div
+                                    className={`dropdown-item ${!typeFilter ? 'selected' : ''}`}
+                                    onClick={() => { setTypeFilter(""); setTypeDropdownOpen(false); }}
+                                >
+                                    Все типы
+                                </div>
+                                {uniqueTaskTypes.map(t => (
+                                    <div
+                                        key={t}
+                                        className={`dropdown-item ${typeFilter === t ? 'selected' : ''}`}
+                                        onClick={() => { setTypeFilter(t); setTypeDropdownOpen(false); }}
+                                    >
+                                        {t}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Status Filter */}
+                    <div className="filter-dropdown-wrapper">
+                        <button
+                            className={`filter-select ${statusDropdownOpen ? 'open' : ''}`}
+                            onClick={() => { closeAllDropdowns(); setStatusDropdownOpen(!statusDropdownOpen); }}
+                        >
+                            <span className="select-text">
+                                {statusFilter || "Все статусы"}
+                            </span>
+                            <Icons.ChevronDown size={16} className="chevron" />
+                        </button>
+
+                        {statusDropdownOpen && (
+                            <div className="dropdown-menu">
+                                <div
+                                    className={`dropdown-item ${!statusFilter ? 'selected' : ''}`}
+                                    onClick={() => { setStatusFilter(""); setStatusDropdownOpen(false); }}
+                                >
+                                    Все статусы
+                                </div>
+                                {TASK_STATUSES.map(s => (
+                                    <div
+                                        key={s}
+                                        className={`dropdown-item ${statusFilter === s ? 'selected' : ''}`}
+                                        onClick={() => { setStatusFilter(s); setStatusDropdownOpen(false); }}
+                                    >
+                                        {s}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Responsible Filter */}
+                    <div className="filter-dropdown-wrapper">
+                        <button
+                            className={`filter-select ${responsibleDropdownOpen ? 'open' : ''}`}
+                            onClick={() => { closeAllDropdowns(); setResponsibleDropdownOpen(!responsibleDropdownOpen); }}
+                        >
+                            <span className="select-text">
+                                {responsibleFilter || "Все исполнители"}
+                            </span>
+                            <Icons.ChevronDown size={16} className="chevron" />
+                        </button>
+
+                        {responsibleDropdownOpen && (
+                            <div className="dropdown-menu">
+                                <div
+                                    className={`dropdown-item ${!responsibleFilter ? 'selected' : ''}`}
+                                    onClick={() => { setResponsibleFilter(""); setResponsibleDropdownOpen(false); }}
+                                >
+                                    Все исполнители
+                                </div>
+                                {uniqueResponsibles.map(r => (
+                                    <div
+                                        key={r}
+                                        className={`dropdown-item ${responsibleFilter === r ? 'selected' : ''}`}
+                                        onClick={() => { setResponsibleFilter(r); setResponsibleDropdownOpen(false); }}
+                                    >
+                                        {r}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="toolbar-section actions-section">
                     {/* Search */}
-                    <div className="search-wrapper-compact">
-                        <span className="search-icon">🔍</span>
+                    <div className="search-compact">
+                        <Icons.Search size={16} />
                         <input
                             type="text"
-                            placeholder="Поиск (название, ID проекта)"
+                            placeholder="Поиск..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="search-input-compact"
                         />
                     </div>
 
-                    {/* Reset Button */}
+                    {/* Reset Button (only if active) */}
                     {isFilterActive && (
-                        <button className="reset-btn-compact" onClick={resetFilters} title="Сбросить фильтры">
-                            ✕
+                        <button
+                            className="view-toggle active"
+                            onClick={resetFilters}
+                            title="Сбросить все фильтры"
+                            style={{ width: '40px', color: '#ef4444' }}
+                        >
+                            <Icons.X size={18} />
                         </button>
                     )}
                 </div>

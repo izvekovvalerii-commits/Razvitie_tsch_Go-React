@@ -1,0 +1,878 @@
+/* Table View */
+.projects-table-container {
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    overflow: hidden;
+    overflow-x: auto;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.projects-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.projects-table th {
+    background: #f8fafc;
+    padding: 12px 16px;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.projects-table th.sortable {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.projects-table th.sortable:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+.sort-arrow {
+    display: inline-block;
+    margin-left: 4px;
+    color: #3b82f6;
+    font-size: 10px;
+}
+
+.project-row {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.project-row:last-child {
+    border-bottom: none;
+}
+
+.project-row:hover {
+    background-color: #f8fafc;
+}
+
+.projects-table td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    color: #334155;
+    font-size: 13px;
+}
+
+/* Cells styling */
+.cell-gis,
+.cell-area,
+.cell-type {
+    white-space: nowrap;
+}
+
+.gis-badge {
+    font-family: 'Monaco', 'Consolas', monospace;
+    background: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: #475569;
+    font-size: 11px;
+    border: 1px solid #e2e8f0;
+    font-weight: 600;
+}
+
+.store-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.store-name {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.store-city {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+}
+
+.type-text {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.address-text {
+    font-size: 12px;
+    color: #64748b;
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.area-badge {
+    font-size: 12px;
+    color: #334155;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.manager-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.manager-name {
+    font-size: 12px;
+    color: #475569;
+    font-weight: 500;
+}
+
+
+/* Header Group / Stats Filters */
+.header-right-group {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.stats-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    padding: 4px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+}
+
+.stat-pill {
+    background: transparent;
+    padding: 8px 16px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.stat-pill:hover {
+    background: #f8fafc;
+    color: #334155;
+}
+
+.stat-pill.current {
+    background: #1e293b;
+    /* Active dark bg */
+    color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.stat-pill.current .stat-value {
+    color: white;
+}
+
+.stat-pill.current .stat-label {
+    color: #e2e8f0;
+}
+
+.stat-value {
+    font-weight: 800;
+    color: #1e293b;
+    margin-left: 4px;
+}
+
+.stat-label {
+    font-weight: 600;
+}
+
+/* Skeleton */
+.skeleton-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    height: 240px;
+    box-shadow: none;
+}
+
+/* Empty State */
+.empty-state-modern {
+    padding: 60px;
+    background: white;
+    border-radius: 16px;
+    border: 1px dashed #cbd5e1;
+}
+
+/* Modal Overlay */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Modal Content Card */
+.modal-content {
+    background: white;
+    width: 100%;
+    max-width: 520px;
+    padding: 32px 40px;
+    border-radius: 24px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1), 0 10px 20px -5px rgba(0, 0, 0, 0.04);
+    position: relative;
+    transform: translateY(0);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-content h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 24px 0;
+    letter-spacing: -0.5px;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.form-group select,
+.form-group input {
+    width: 100%;
+    height: 46px;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    font-size: 14px;
+    color: #0f172a;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 16px;
+}
+
+.form-group input {
+    background-image: none;
+}
+
+.form-group select:hover,
+.form-group input:hover {
+    border-color: #94a3b8;
+}
+
+.form-group select:focus,
+.form-group input:focus {
+    outline: none;
+    border-color: #FFDD00;
+    box-shadow: 0 0 0 3px rgba(255, 221, 0, 0.15);
+}
+
+/* Modal Actions */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.btn-cancel {
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.btn-create {
+    height: 40px;
+    padding: 0 24px;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.btn-create:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .projects-page {
+        padding: 16px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .page-controls-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .controls-left {
+        flex-direction: column;
+    }
+
+    .search-box-compact {
+        max-width: none;
+    }
+
+    .stats-summary-row {
+        overflow-x: auto;
+        padding-bottom: 8px;
+    }
+}
+
+/* --- Kanban Board Styles --- */
+
+.kanban-board-scroll-area {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 24px;
+}
+
+.kanban-board-scroll-area::-webkit-scrollbar {
+    height: 10px;
+}
+
+.kanban-board-scroll-area::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+}
+
+.kanban-board-scroll-area::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 5px;
+    border: 2px solid #f1f5f9;
+}
+
+.kanban-board-container {
+    display: inline-flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 4px;
+    min-height: calc(100vh - 200px);
+}
+
+.kanban-column {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 240px);
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.kanban-column-header {
+    padding: 12px 14px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.header-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.status-indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.column-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.column-count-badge {
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: 8px;
+}
+
+.kanban-column-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.kanban-card {
+    background: white;
+    border: 1px solid #eef2f6;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: grab;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.kanban-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+}
+
+.kanban-card.dragging {
+    opacity: 0.5;
+    background: #f8fafc;
+    border-style: dashed;
+    border-color: #94a3b8;
+}
+
+.kanban-card-top {
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.k-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.k-card-type {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 700;
+    background: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.k-card-gis {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 12px;
+    font-family: 'Monaco', monospace;
+    background: #f8fafc;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.kanban-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 8px;
+}
+
+.k-resp-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.k-resp-name {
+    font-size: 11px;
+    color: #475569;
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.k-area {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* Custom Scrollbar for column body */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+}
+
+/* --- Progress Bar Styles --- */
+.progress-bar-container {
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    height: 6px;
+    width: 100%;
+    margin-top: 12px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #10b981, #059669);
+    transition: width 0.5s ease-out;
+}
+
+.progress-text {
+    font-size: 9px;
+    color: #64748b;
+    margin-top: 4px;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* --- Compact Toolbar Updates --- */
+
+/* Reduce padding and gap to fit on one screen */
+.projects-page {
+    /* Slightly reduce padding if needed */
+    padding: 16px 24px 32px;
+}
+
+.unified-controls-row {
+    /* Allow wrapping for very small screens, but aim for single line */
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 8px 12px;
+}
+
+/* Reduce width of quick filter buttons */
+.quick-filter-btn {
+    min-width: 80px;
+    /* Reduced from 95px */
+    padding: 6px 10px;
+}
+
+.quick-filter-btn .filter-count {
+    font-size: 18px;
+    /* Slightly smaller */
+}
+
+.controls-right-group {
+    gap: 10px;
+    /* Reduced from 12px */
+}
+
+/* Make dropdowns smaller */
+.compact-select {
+    height: 36px;
+    /* Ensure consistency */
+    padding: 0 10px;
+    font-size: 13px;
+    /* Allow them to shrink if needed */
+    flex-shrink: 1;
+    min-width: 120px;
+    /* Reduced from 160px/default */
+}
+
+/* Search bar should be flexible */
+.search-wrapper-compact {
+    max-width: 240px;
+    /* Limit width */
+    flex-shrink: 1;
+}
+
+.search-input-compact {
+    font-size: 13px;
+}
+
+/* View toggle */
+.view-toggle-compact {
+    flex-shrink: 0;
+}
+
+.toggle-btn-compact {
+    width: 30px;
+    /* Reduced */
+    height: 30px;
+}
+
+/* Create button */
+.create-btn-compact {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Force reload вторник,  6 января 2026 г. 09:03:33 (MSK) */
+/* ===== Kanban Filters ===== */
+.kanban-filters {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    align-items: center;
+}
+
+.k-search-input {
+    flex: 1;
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.k-search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.k-filter-select {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.k-filter-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.k-clear-filters {
+    padding: 8px 16px;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.k-clear-filters:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+/* ===== Kanban Card Actions ===== */
+.k-card-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+.kanban-card:hover .k-card-actions {
+    opacity: 1;
+}
+
+.k-action-btn {
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.k-action-btn:hover {
+    background: #f8fafc;
+    transform: scale(1.05);
+}
+
+.k-action-delete:hover {
+    background: #fee2e2;
+}
+
+/* ===== Progress Bar ===== */
+.k-card-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.k-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.k-progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, #3b82f6, #60a5fa);
+    transition: width 0.3s ease, background-color 0.3s ease;
+    border-radius: 3px;
+}
+
+.k-progress-text {
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+/* Force reload понедельник,  6 января 2026 г. 10:06:00 (MSK) */
+/* --- CRITICAL OVERRIDES FOR STABILITY --- */
+.status-pill-clean {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px !important;
+    border-radius: 99px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    width: fit-content !important;
+    min-width: 80px; 
+}
+
+.gis-badge {
+    display: inline-block !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+}
+
+/* Force colors */
+.status-pill-clean.status-создан { background: #eff6ff !important; color: #2563eb !important; }
+.status-pill-clean.status-подготовка-к-аудиту { background: #fef9c3 !important; color: #ca8a04 !important; }
+.status-pill-clean.status-аудит-объекта { background: #fffbeb !important; color: #d97706 !important; }
+.status-pill-clean.status-алкогольная-лицензия,
+.status-pill-clean.status-площадка-тбо { background: #fff7ed !important; color: #ea580c !important; }
+.status-pill-clean.status-контур-планировки { background: #f5f3ff !important; color: #7c3aed !important; }
+.status-pill-clean.status-визуализация,
+.status-pill-clean.status-оценка-логистики { background: #faf5ff !important; color: #9333ea !important; }
+.status-pill-clean.status-планировка-с-расстановкой,
+.status-pill-clean.status-расчет-бюджета-оборудования { background: #ecfeff !important; color: #0891b2 !important; }
+.status-pill-clean.status-тз-и-расчет-бюджета-рср,
+.status-pill-clean.status-расчет-бюджета-пис { background: #ecfdf5 !important; color: #059669 !important; }
+.status-pill-clean.status-общий-бюджет-проекта { background: #f0fdfa !important; color: #0d9488 !important; }
+.status-pill-clean.status-подписан-договор { background: #cffafe !important; color: #0891b2 !important; }
+.status-pill-clean.status-открыт { background: #dcfce7 !important; color: #16a34a !important; }
+.status-pill-clean.status-закрыт,
+.status-pill-clean.status-архив { background: #f1f5f9 !important; color: #64748b !important; }
+.status-pill-clean.status-слетел { background: #fef2f2 !important; color: #dc2626 !important; }

@@ -33,10 +33,94 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-top: 6px;
-    font-size: 13px;
     color: #64748b;
     font-weight: 500;
+}
+
+/* Focus Alert Block */
+.focus-alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    margin: 12px 0 16px 0;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    max-width: 600px;
+    position: relative;
+    overflow: hidden;
+}
+
+.focus-alert:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.focus-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.focus-text {
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.4;
+}
+
+.focus-text strong {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.focus-arrow {
+    margin-left: auto;
+    font-size: 16px;
+    color: #94a3b8;
+    transition: transform 0.2s;
+    opacity: 0;
+}
+
+.focus-alert:hover .focus-arrow {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+/* Alert Variants */
+.focus-alert.overdue {
+    background: linear-gradient(to right, #FEF2F2, #FFF);
+    border-color: #FECACA;
+}
+
+.focus-alert.overdue .focus-text strong {
+    color: #991B1B;
+}
+
+.focus-alert.warning {
+    background: linear-gradient(to right, #FFFBEB, #FFF);
+    border-color: #FFD700;
+    /* Чижик */
+}
+
+.focus-alert.warning .focus-text strong {
+    color: #92400E;
+}
+
+.focus-alert.info {
+    background: linear-gradient(to right, #F8FAFC, #FFF);
+    border-color: #E2E8F0;
+}
+
+.focus-alert.success {
+    background: linear-gradient(to right, #F0FDF4, #FFF);
+    border-color: #BBF7D0;
+    cursor: default;
+}
+
+.focus-alert.success:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .live-clock {
@@ -161,24 +245,30 @@
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08);
 }
 
+/* Brand Palette Hover borders */
 .kpi-card.blue:hover::before {
-    background: #2196F3;
+    background: #FFD700;
+    /* Чижик Желтый */
 }
 
 .kpi-card.green:hover::before {
-    background: #4CAF50;
+    background: #333333;
+    /* Черный/Темно-серый */
 }
 
 .kpi-card.purple:hover::before {
-    background: #9C27B0;
+    background: #1a1a1a;
+    /* Черный */
 }
 
 .kpi-card.orange:hover::before {
-    background: #F44336;
+    background: #D32F2F;
+    /* Строгий красный */
 }
 
 .kpi-card.yellow:hover::before {
-    background: #FFA000;
+    background: #F57F17;
+    /* Темно-желтый/Оранжевый */
 }
 
 .kpi-icon-bg {
@@ -196,29 +286,36 @@
     transform: scale(1.1) rotate(6deg);
 }
 
+
+/* Новые задачи -> Чижик Желтый */
 .kpi-card.blue .kpi-icon-bg {
-    background: #e3f2fd;
-    color: #1976d2;
+    background: #FFF9C4;
+    color: #F9A825;
 }
 
+/* В работе -> Темно-серый/Стильный */
 .kpi-card.green .kpi-icon-bg {
-    background: #e8f5e9;
-    color: #388e3c;
+    background: #ECEFF1;
+    color: #455A64;
 }
 
+/* Все проекты -> Черный акцент */
 .kpi-card.purple .kpi-icon-bg {
-    background: #f3e5f5;
-    color: #7b1fa2;
+    background: #262626;
+    color: #FFD700;
+    /* Желтая иконка на черном */
 }
 
+/* Просрочено -> Красный (оставляем акцент) */
 .kpi-card.orange .kpi-icon-bg {
-    background: #ffebee;
-    color: #d32f2f;
+    background: #FFEBEE;
+    color: #D32F2F;
 }
 
+/* Истекают -> Охра */
 .kpi-card.yellow .kpi-icon-bg {
-    background: #fff8e1;
-    color: #f57c00;
+    background: #FFF3E0;
+    color: #EF6C00;
 }
 
 .kpi-content {
@@ -318,8 +415,8 @@
 
 .chart-container {
     position: relative;
-    width: 120px;
-    height: 120px;
+    width: 160px;
+    height: 160px;
     flex-shrink: 0;
 }
 
@@ -371,20 +468,32 @@
 .stat-row {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.stat-row:first-child {
+    padding-top: 0;
 }
 
 .stat-row-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
+    font-size: 13px;
+    width: 100%;
 }
 
 .stat-name-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: #334155;
     font-weight: 500;
 }
@@ -392,17 +501,21 @@
 .stat-val-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .stat-val {
     font-weight: 700;
-    color: #1e293b;
+    color: #0f172a;
+    font-size: 14px;
 }
 
 .stat-percent {
-    font-size: 11px;
+    font-size: 12px;
     color: #94a3b8;
+    font-weight: 500;
+    min-width: 32px;
+    text-align: right;
 }
 
 .dot {
@@ -413,16 +526,11 @@
 }
 
 .stat-progress-bg {
-    height: 5px;
-    background: #f1f5f9;
-    border-radius: 3px;
-    overflow: hidden;
-    width: 100%;
+    display: none;
 }
 
 .stat-progress-bar {
-    height: 100%;
-    border-radius: 3px;
+    display: none;
 }
 
 
@@ -623,14 +731,22 @@
 }
 
 /* Timeline Line */
+/* Timeline Line */
+.feed-avatar-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 40px;
+}
+
 .feed-line {
     position: absolute;
-    left: 16px;
-    /* center of avatar (32px) */
-    top: 32px;
-    bottom: -10px;
+    top: 36px;
+    bottom: -24px;
     width: 2px;
-    background: #f1f5f9;
+    background: #e2e8f0;
+    z-index: 0;
 }
 
 .feed-item:last-child .feed-line {
@@ -638,8 +754,8 @@
 }
 
 .feed-avatar {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     /* background set inline */
     color: white;
@@ -647,12 +763,22 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 14px;
     flex-shrink: 0;
     z-index: 1;
-    /* above line */
-    box-shadow: 0 0 0 4px white;
-    /* border effect */
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.feed-avatar-ring {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border: 2px solid;
+    border-radius: 50%;
+    opacity: 0.3;
 }
 
 .feed-content {

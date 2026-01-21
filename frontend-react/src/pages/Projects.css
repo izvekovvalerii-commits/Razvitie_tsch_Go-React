@@ -66,347 +66,342 @@
     transform: translateY(-1px);
 }
 
-/* Stats Summary Row */
-.stats-summary-row {
+/* Main Toolbar */
+.main-toolbar {
     display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 16px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    margin-bottom: 24px;
     gap: 16px;
-    margin-bottom: 32px;
+    min-height: 64px;
+    flex-wrap: wrap;
 }
 
-.stat-pill {
-    background: white;
-    padding: 12px 20px;
-    border-radius: 12px;
+.toolbar-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stats-section {
+    padding-right: 16px;
+    border-right: 1px solid #f1f5f9;
+}
+
+.filters-section {
+    flex: 1;
+    gap: 12px;
+}
+
+.actions-section {
     display: flex;
     align-items: center;
     gap: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    min-width: 140px;
-}
-
-.stat-pill.active {
-    border-left: 4px solid #10b981;
-}
-
-.stat-pill.warning {
-    border-left: 4px solid #f59e0b;
-}
-
-.stat-label {
-    font-size: 13px;
-    color: #64748b;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.stat-value {
-    font-size: 20px;
-    font-weight: 800;
-    color: #1e293b;
     margin-left: auto;
 }
 
-/* Page Controls Row */
-.page-controls-row {
+/* Stat Badges */
+.stat-badge {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 24px;
-    gap: 20px;
-}
-
-.controls-left {
-    display: flex;
-    gap: 16px;
-    flex: 1;
-}
-
-.compact-filters {
-    display: flex;
-    gap: 12px;
-}
-
-.filter-select-compact {
-    height: 42px;
+    justify-content: center;
+    gap: 4px;
     padding: 0 16px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 90px;
+    height: 56px;
+    min-height: 56px;
+    position: relative;
+    user-select: none;
+    box-sizing: border-box;
+}
+
+.stat-badge:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.stat-label {
+    display: block !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1 !important;
+    margin: 0 !important;
+    text-align: center;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+}
+
+.stat-value {
+    display: block;
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1 !important;
+    text-align: center;
+    width: 100%;
+    margin: 0 !important;
+}
+
+/* === Colored States for Badges === */
+
+/* Total (Blue) */
+.stat-badge.badge-total.active {
+    background: #eff6ff;
+    border-color: #60a5fa;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.1);
+}
+
+.stat-badge.badge-total.active .stat-label {
+    color: #2563eb !important;
+}
+
+.stat-badge.badge-total.active .stat-value {
+    color: #1e3a8a;
+}
+
+/* Active (Green) */
+.stat-badge.badge-active.active {
+    background: #ecfdf5;
+    border-color: #4ade80;
+    box-shadow: 0 1px 2px rgba(22, 163, 74, 0.1);
+}
+
+.stat-badge.badge-active.active .stat-label {
+    color: #16a34a !important;
+}
+
+.stat-badge.badge-active.active .stat-value {
+    color: #14532d;
+}
+
+/* Audit (Orange) */
+.stat-badge.badge-audit.active {
+    background: #fff7ed;
+    border-color: #fb923c;
+    box-shadow: 0 1px 2px rgba(234, 88, 12, 0.1);
+}
+
+.stat-badge.badge-audit.active .stat-label {
+    color: #ea580c !important;
+}
+
+.stat-badge.badge-audit.active .stat-value {
+    color: #9a3412;
+}
+
+/* Filter Selects */
+.filter-dropdown-wrapper {
+    position: relative;
+    min-width: 180px;
+}
+
+.filter-select {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    background: white;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    font-size: 14px;
-    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
     color: #475569;
     cursor: pointer;
-    min-width: 160px;
-}
-
-.filter-select-compact:focus {
-    outline: none;
-    border-color: #cbd5e1;
-    box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.2);
-}
-
-/* Search */
-.search-box-compact {
-    position: relative;
-    flex: 1;
-    max-width: 400px;
-}
-
-.search-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #94a3b8;
-}
-
-.search-box-compact input {
-    width: 100%;
-    height: 42px;
-    padding: 0 16px 0 42px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    background: white;
-    color: #1e293b;
     transition: all 0.2s;
 }
 
-.search-box-compact input:focus {
-    outline: none;
-    border-color: #94a3b8;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+.filter-select:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
 }
 
-/* View Toggle */
-.view-toggle {
-    display: flex;
-    background: #e2e8f0;
-    padding: 3px;
-    border-radius: 8px;
-    gap: 2px;
+.filter-select.open {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-.toggle-btn {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    border-radius: 6px;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.filter-select .select-text {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.toggle-btn.active {
-    background: white;
-    color: #0f172a;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* Unified Controls Row - Matching Stores Page Style */
-.unified-controls-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    margin-top: 16px;
-    margin-bottom: 24px;
-    background: white;
-    padding: 10px 14px;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* Left: Quick Filter Buttons */
-.quick-filters-inline {
-    display: flex;
-    gap: 8px;
+.filter-select .chevron {
+    color: #94a3b8;
     flex-shrink: 0;
 }
 
-.quick-filter-btn {
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
     background: white;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    user-select: none;
-    min-width: 95px;
-    position: relative;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    padding: 4px;
+    z-index: 50;
+    min-width: 200px;
+    width: 100%;
+    animation: slideDown 0.2s ease-out;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
-.quick-filter-btn .filter-label {
-    font-size: 9px;
-    color: #64748b;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin-bottom: 4px;
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.quick-filter-btn .filter-count {
-    font-size: 20px;
-    font-weight: 700;
-    color: #0f172a;
-    line-height: 1;
-}
-
-.quick-filter-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.quick-filter-btn.active {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-    border-color: #93c5fd;
-    background: #eff6ff;
-}
-
-/* Right: Controls Group */
-.controls-right-group {
+.dropdown-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex: 1;
-    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 6px;
+    color: #334155;
+    transition: background 0.15s;
+    font-weight: 500;
 }
 
-/* Compact Select Dropdowns */
-.compact-select {
-    height: 36px;
-    padding: 0 12px;
+.dropdown-item:hover {
+    background: #f1f5f9;
+}
+
+.dropdown-item.selected {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+/* Search Compact */
+.search-compact {
+    position: relative;
+    width: 200px;
+    height: 40px;
+}
+
+.search-compact input {
+    width: 100%;
+    height: 100%;
+    padding: 0 12px 0 36px;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 12px;
-    color: #475569;
-    background: white;
-    cursor: pointer;
+    border-radius: 8px;
+    font-size: 13px;
+    background: #f9fafb;
+    color: #0f172a;
     transition: all 0.2s;
 }
 
-.compact-select:hover {
-    background: #f9fafb;
-    border-color: #cbd5e1;
-}
-
-.compact-select:focus {
+.search-compact input:focus {
     outline: none;
-    border-color: #3b82f6;
     background: white;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-/* Search Wrapper */
-.search-wrapper-compact {
-    position: relative;
-    max-width: 280px;
-}
-
-.search-wrapper-compact .search-icon {
+.search-compact svg {
     position: absolute;
-    left: 12px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
+    color: #94a3b8;
     pointer-events: none;
-    font-size: 14px;
 }
 
-.search-input-compact {
-    width: 100%;
-    height: 36px;
-    padding: 0 12px 0 38px;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 13px;
-    transition: all 0.2s;
-    background: #f9fafb;
-    color: #1f2937;
-}
-
-.search-input-compact:focus {
-    outline: none;
-    border-color: #3b82f6;
-    background: white;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
-}
-
-/* View Toggle */
-.view-toggle-compact {
+/* View Toggles */
+.view-toggles-group {
     display: flex;
     background: #f1f5f9;
     padding: 3px;
     border-radius: 8px;
-    gap: 3px;
+    gap: 2px;
+    height: 40px;
+    align-items: center;
 }
 
-.toggle-btn-compact {
-    width: 32px;
-    height: 32px;
+.view-toggle {
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
     background: transparent;
     border-radius: 6px;
-    color: #94a3b8;
+    color: #64748b;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 16px;
 }
 
-.toggle-btn-compact:hover {
-    background: #e2e8f0;
-    color: #475569;
+.view-toggle:hover {
+    color: #334155;
+    background: rgba(0, 0, 0, 0.03);
 }
 
-.toggle-btn-compact.active {
+.view-toggle.active {
     background: white;
     color: #0f172a;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Create Button Compact */
-.create-btn-compact {
-    height: 36px;
+/* Buttons */
+.btn-primary-yellow {
+    height: 40px;
     padding: 0 16px;
-    background: linear-gradient(135deg, #FFD700 0%, #FFC700 100%);
-    color: #1a1f36;
-    border: none;
-    border-radius: 10px;
-    font-size: 13px;
+    background: #FCD34D;
+    color: #0f172a;
     font-weight: 600;
+    font-size: 13px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
-    cursor: pointer;
+    gap: 8px;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+    white-space: nowrap;
 }
 
-.create-btn-compact:hover {
-    background: linear-gradient(135deg, #FFC700 0%, #FFB700 100%);
+.btn-primary-yellow:hover {
+    background: #fbbf24;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4);
 }
 
-.create-btn-compact .btn-icon {
-    font-size: 18px;
-    line-height: 1;
+.btn-primary-yellow:active {
+    transform: translateY(0);
 }
 
+/* Projects Grid */
 /* Projects Grid */
 .projects-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
+    gap: 16px;
     padding-bottom: 40px;
 }
 
@@ -418,7 +413,19 @@
 
 @media (min-width: 1800px) {
     .projects-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+@media (max-width: 1200px) {
+    .projects-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .projects-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -426,315 +433,337 @@
     background: white;
     border: 1px solid #f1f5f9;
     border-radius: 12px;
-    padding: 10px;
+    padding: 12px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     display: flex;
     flex-direction: column;
     position: relative;
     cursor: pointer;
     overflow: hidden;
+    min-height: 200px;
+    border-left: 4px solid #cbd5e1;
+    /* Default Color */
 }
 
 .project-card-enhanced:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.1);
-    border-color: #FFD700;
-    box-shadow: 0 0 0 1px #FFD700;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.1), 0 4px 8px -2px rgba(0, 0, 0, 0.05);
+    border-color: #e2e8f0;
 }
 
+/* Header */
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 6px;
-}
-
-.card-title {
-    font-size: 14px;
-    font-weight: 700 !important;
-    color: #334155;
-    margin: 0 0 4px 0;
-    line-height: 1.4;
-    transition: color 0.2s;
-}
-
-.project-card-enhanced:hover .card-title {
-    color: #b45309;
-    /* Dark Amber/Brown interaction */
-}
-
-.card-code {
-    font-size: 9px;
-    color: #334155 !important;
-    font-family: 'Monaco', 'Consolas', monospace;
-    background: #f8fafc;
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid #e2e8f0;
-    display: inline-block;
-    margin: 0;
-}
-
-.project-type-badge {
-    font-size: 8px;
-    font-weight: 600;
-    text-transform: uppercase;
-    padding: 2px 4px;
-    border-radius: 4px;
-    background: #f1f5f9;
-    color: #64748b;
-    border: 1px solid #e2e8f0;
-    margin-left: 8px;
-}
-
-/* Status */
-.card-status-section {
     margin-bottom: 8px;
+    gap: 8px;
 }
 
-.status-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 500 !important;
-    color: #334155 !important;
-}
-
-.status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-}
-
-/* Info Grid */
-.card-info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4px 12px;
-    margin-bottom: 8px;
+.card-title-section {
     flex: 1;
 }
 
-.info-label {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #334155 !important;
-    margin-bottom: 0px;
-    font-weight: 500 !important;
+.card-title-lg {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
 }
 
-.info-value {
-    font-size: 10px;
-    color: #334155 !important;
-    font-weight: 500 !important;
+.card-meta-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.card-gis-clean {
+    color: #64748b;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.card-gis-clean:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.meta-separator-small {
+    color: #cbd5e1;
+}
+
+.card-type-clean {
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Status Pill Clean */
+.status-pill-clean {
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+    line-height: 1;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+}
+
+
+/* Content Clean */
+.card-content-clean {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex: 1;
+}
+
+.info-row-address {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: #334155;
+    font-size: 12px;
     line-height: 1.4;
 }
 
-/* Создан */
-.status-indicator.status-создан {
-    background: #e0f2fe;
-    border: 1px solid #bae6fd;
+.info-text-primary {
+    font-weight: 500;
+    color: #1e293b;
 }
 
-.status-indicator.status-создан .status-dot {
-    background: #0284c7;
+.info-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 0px;
+    padding-left: 1px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.info-icon {
+    color: #94a3b8;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.info-icon-muted {
+    color: #cbd5e1;
+    flex-shrink: 0;
+}
+
+.meta-separator {
+    color: #cbd5e1;
+    font-weight: 400;
+}
+
+/* Progress Clean */
+.progress-section-clean {
+    margin-bottom: 8px;
+    margin-top: auto;
+}
+
+.progress-bar-container-clean {
+    height: 3px;
+    background: #f1f5f9;
+    border-radius: 1.5px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-bar-fill-clean {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 1.5px;
+    transition: width 0.5s ease;
+}
+
+.progress-text-clean {
+    font-size: 9px;
+    color: #94a3b8;
+    font-weight: 500;
+    text-align: right;
+}
+
+/* --- Status Colors (Border & Pill) --- */
+
+/* Создан */
+.project-card-enhanced.status-создан {
+    border-left-color: #3b82f6;
+}
+
+/* Blue */
+.status-pill-clean.status-создан {
+    background: #eff6ff;
+    color: #2563eb;
 }
 
 /* Подготовка к аудиту */
-.status-indicator.status-подготовка-к-аудиту {
-    background: #fef9c3;
-    border: 1px solid #fef08a;
+.project-card-enhanced.status-подготовка-к-аудиту {
+    border-left-color: #eab308;
 }
 
-.status-indicator.status-подготовка-к-аудиту .status-dot {
-    background: #ca8a04;
+/* Yellow */
+.status-pill-clean.status-подготовка-к-аудиту {
+    background: #fef9c3;
+    color: #ca8a04;
 }
 
 /* Аудит объекта */
-.status-indicator.status-аудит-объекта {
-    background: #fef3c7;
-    border: 1px solid #fde68a;
+.project-card-enhanced.status-аудит-объекта {
+    border-left-color: #f59e0b;
 }
 
-.status-indicator.status-аудит-объекта .status-dot {
-    background: #d97706;
+/* Amber */
+.status-pill-clean.status-аудит-объекта {
+    background: #fffbeb;
+    color: #d97706;
 }
 
-/* Алкогольная лицензия */
-.status-indicator.status-алкогольная-лицензия {
-    background: #fef08a;
-    border: 1px solid #fef08a;
+/* Алкогольная лицензия/Площадка ТБО */
+.project-card-enhanced.status-алкогольная-лицензия,
+.project-card-enhanced.status-площадка-тбо {
+    border-left-color: #f97316;
 }
 
-.status-indicator.status-алкогольная-лицензия .status-dot {
-    background: #ca8a04;
-}
-
-/* Площадка ТБО */
-.status-indicator.status-площадка-тбо {
-    background: #fcd34d;
-    border: 1px solid #fde68a;
-}
-
-.status-indicator.status-площадка-тбо .status-dot {
-    background: #b45309;
+/* Orange */
+.status-pill-clean.status-алкогольная-лицензия,
+.status-pill-clean.status-площадка-тбо {
+    background: #fff7ed;
+    color: #ea580c;
 }
 
 /* Контур планировки */
-.status-indicator.status-контур-планировки {
-    background: #ddd6fe;
-    border: 1px solid #c4b5fd;
+.project-card-enhanced.status-контур-планировки {
+    border-left-color: #8b5cf6;
 }
 
-.status-indicator.status-контур-планировки .status-dot {
-    background: #7c3aed;
+/* Violet */
+.status-pill-clean.status-контур-планировки {
+    background: #f5f3ff;
+    color: #7c3aed;
 }
 
-/* Визуализация */
-.status-indicator.status-визуализация {
-    background: #e9d5ff;
-    border: 1px solid #d8b4fe;
+/* Визуализация/Оценка логистики */
+.project-card-enhanced.status-визуализация,
+.project-card-enhanced.status-оценка-логистики {
+    border-left-color: #a855f7;
 }
 
-.status-indicator.status-визуализация .status-dot {
-    background: #9333ea;
+/* Purple */
+.status-pill-clean.status-визуализация,
+.status-pill-clean.status-оценка-логистики {
+    background: #faf5ff;
+    color: #9333ea;
 }
 
-/* Оценка логистики */
-.status-indicator.status-оценка-логистики {
-    background: #c7d2fe;
-    border: 1px solid #a5b4fc;
+/* Планировка/Бюджеты */
+.project-card-enhanced.status-планировка-с-расстановкой,
+.project-card-enhanced.status-расчет-бюджета-оборудования {
+    border-left-color: #06b6d4;
 }
 
-.status-indicator.status-оценка-логистики .status-dot {
-    background: #4f46e5;
+/* Cyan */
+.status-pill-clean.status-планировка-с-расстановкой,
+.status-pill-clean.status-расчет-бюджета-оборудования {
+    background: #ecfeff;
+    color: #0891b2;
 }
 
-/* Планировка с расстановкой */
-.status-indicator.status-планировка-с-расстановкой {
-    background: #bfdbfe;
-    border: 1px solid #93c5fd;
+/* РСР/ТЗ/ПиС */
+.project-card-enhanced.status-тз-и-расчет-бюджета-рср,
+.project-card-enhanced.status-расчет-бюджета-пис {
+    border-left-color: #10b981;
 }
 
-.status-indicator.status-планировка-с-расстановкой .status-dot {
-    background: #3b82f6;
+/* Emerald */
+.status-pill-clean.status-тз-и-расчет-бюджета-рср,
+.status-pill-clean.status-расчет-бюджета-пис {
+    background: #ecfdf5;
+    color: #059669;
 }
 
-/* Расчет бюджета оборудования */
-.status-indicator.status-расчет-бюджета-оборудования {
-    background: #bae6fd;
-    border: 1px solid #7dd3fc;
+/* Общий бюджет */
+.project-card-enhanced.status-общий-бюджет-проекта {
+    border-left-color: #14b8a6;
 }
 
-.status-indicator.status-расчет-бюджета-оборудования .status-dot {
-    background: #0e7490;
+/* Teal */
+.status-pill-clean.status-общий-бюджет-проекта {
+    background: #f0fdfa;
+    color: #0d9488;
 }
 
-/* Расчет бюджета СБ */
-.status-indicator.status-расчет-бюджета-сб {
-    background: #a5f3fc;
-    border: 1px solid #5eead4;
+/* Подписан договор */
+.project-card-enhanced.status-подписан-договор {
+    border-left-color: #06b6d4;
 }
 
-.status-indicator.status-расчет-бюджета-сб .status-dot {
-    background: #14b8a6;
-}
-
-/* ТЗ и расчет бюджета РСР */
-.status-indicator.status-тз-и-расчет-бюджета-рср {
-    background: #99f6e4;
-    border: 1px solid #5eead4;
-}
-
-.status-indicator.status-тз-и-расчет-бюджета-рср .status-dot {
-    background: #0d9488;
-}
-
-/* Расчет бюджета ПиС */
-.status-indicator.status-расчет-бюджета-пис {
-    background: #a7f3d0;
-    border: 1px solid #6ee7b7;
-}
-
-.status-indicator.status-расчет-бюджета-пис .status-dot {
-    background: #059669;
-}
-
-/* Общий бюджет проекта */
-.status-indicator.status-общий-бюджет-проекта {
-    background: #d1fae5;
-    border: 1px solid #a7f3d0;
-}
-
-.status-indicator.status-общий-бюджет-проекта .status-dot {
-    background: #10b981;
-}
-
-.status-indicator.status-подписан-договор {
+/* Cyan */
+.status-pill-clean.status-подписан-договор {
     background: #cffafe;
-    border: 1px solid #a5f3fc;
+    color: #0891b2;
 }
 
-.status-indicator.status-подписан-договор .status-dot {
-    background: #06b6d4;
+/* Открыт */
+.project-card-enhanced.status-открыт {
+    border-left-color: #22c55e;
 }
 
-.status-indicator.status-рср {
-    background: #fed7aa;
-    border: 1px solid #fdba74;
+/* Green */
+.status-pill-clean.status-открыт {
+    background: #dcfce7;
+    color: #16a34a;
 }
 
-.status-indicator.status-рср .status-dot {
-    background: #ea580c;
+/* Закрыт/Архив */
+.project-card-enhanced.status-закрыт,
+.project-card-enhanced.status-архив {
+    border-left-color: #94a3b8;
 }
 
-.status-indicator.status-открыт {
-    background: #bbf7d0;
-    border: 1px solid #86efac;
+/* Slate */
+.status-pill-clean.status-закрыт,
+.status-pill-clean.status-архив {
+    background: #f1f5f9;
+    color: #64748b;
 }
 
-.status-indicator.status-открыт .status-dot {
-    background: #16a34a;
+/* Слетел */
+.project-card-enhanced.status-слетел {
+    border-left-color: #ef4444;
 }
 
-.status-indicator.status-закрыт {
-    background: #e5e7eb;
-    border: 1px solid #d1d5db;
+/* Red */
+.status-pill-clean.status-слетел {
+    background: #fef2f2;
+    color: #dc2626;
 }
 
-.status-indicator.status-закрыт .status-dot {
-    background: #6b7280;
-}
 
-.status-indicator.status-архив {
-    background: #f3f4f6;
-    border: 1px solid #e5e7eb;
-}
-
-.status-indicator.status-архив .status-dot {
-    background: #9ca3af;
-}
-
-.status-indicator.status-слетел {
-    background: #fecaca;
-    border: 1px solid #fca5a5;
-}
-
-.status-indicator.status-слетел .status-dot {
-    background: #dc2626;
-}
-
-/* Card Footer */
-.card-footer {
+/* Footer Clean */
+.card-footer-clean {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 8px;
+    padding-top: 12px;
     border-top: 1px solid #f1f5f9;
     margin-top: auto;
 }
@@ -746,45 +775,50 @@
 }
 
 .avatar-xs {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
-    font-weight: 500;
+    font-size: 10px;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
 .resp-name {
-    font-size: 10px;
-    color: #334155 !important;
+    font-size: 12px;
+    color: #64748b !important;
     font-weight: 500 !important;
 }
 
 .card-action-icon {
-    color: #cbd5e1;
-    font-size: 12px;
+    color: #e2e8f0;
     transition: all 0.2s;
 }
 
 .project-card-enhanced:hover .card-action-icon {
-    color: #1e293b;
+    color: #3b82f6;
     transform: translateX(4px);
 }
 
 /* Table View */
 .projects-table-container {
     background: white;
+    border: 1px solid #f1f5f9;
     border-radius: 12px;
-    border: 1px solid #eef2f6;
-    box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.03);
     overflow: hidden;
+    overflow-x: auto;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-.compact-table th {
+.projects-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.projects-table th {
     background: #f8fafc;
     padding: 12px 16px;
     font-size: 11px;
@@ -793,22 +827,120 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    white-space: nowrap;
 }
 
-.compact-table td {
-    padding: 12px 16px;
+.projects-table th.sortable {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.projects-table th.sortable:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+.sort-arrow {
+    display: inline-block;
+    margin-left: 4px;
+    color: #3b82f6;
+    font-size: 10px;
+}
+
+.project-row {
     border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.project-row:last-child {
+    border-bottom: none;
+}
+
+.project-row:hover {
+    background-color: #f8fafc;
+}
+
+.projects-table td {
+    padding: 12px 16px;
+    vertical-align: middle;
     color: #334155;
     font-size: 13px;
 }
 
-.compact-table tr:last-child td {
-    border-bottom: none;
+/* Cells styling */
+.cell-gis,
+.cell-area,
+.cell-type {
+    white-space: nowrap;
 }
 
-.clickable-row:hover {
-    background-color: #f8fafc;
+.gis-badge {
+    font-family: 'Monaco', 'Consolas', monospace;
+    background: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: #475569;
+    font-size: 11px;
+    border: 1px solid #e2e8f0;
+    font-weight: 600;
 }
+
+.store-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.store-name {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.store-city {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+}
+
+.type-text {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.address-text {
+    font-size: 12px;
+    color: #64748b;
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.area-badge {
+    font-size: 12px;
+    color: #334155;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.manager-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.manager-name {
+    font-size: 12px;
+    color: #475569;
+    font-weight: 500;
+}
+
 
 /* Header Group / Stats Filters */
 .header-right-group {
@@ -1506,3 +1638,97 @@
 }
 
 /* Force reload понедельник,  6 января 2026 г. 10:06:00 (MSK) */
+/* --- CRITICAL OVERRIDES FOR STABILITY --- */
+.status-pill-clean {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px !important;
+    border-radius: 99px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    width: fit-content !important;
+    min-width: 80px;
+}
+
+.gis-badge {
+    display: inline-block !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+}
+
+/* Force colors */
+.status-pill-clean.status-создан {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+}
+
+.status-pill-clean.status-подготовка-к-аудиту {
+    background: #fef9c3 !important;
+    color: #ca8a04 !important;
+}
+
+.status-pill-clean.status-аудит-объекта {
+    background: #fffbeb !important;
+    color: #d97706 !important;
+}
+
+.status-pill-clean.status-алкогольная-лицензия,
+.status-pill-clean.status-площадка-тбо {
+    background: #fff7ed !important;
+    color: #ea580c !important;
+}
+
+.status-pill-clean.status-контур-планировки {
+    background: #f5f3ff !important;
+    color: #7c3aed !important;
+}
+
+.status-pill-clean.status-визуализация,
+.status-pill-clean.status-оценка-логистики {
+    background: #faf5ff !important;
+    color: #9333ea !important;
+}
+
+.status-pill-clean.status-планировка-с-расстановкой,
+.status-pill-clean.status-расчет-бюджета-оборудования {
+    background: #ecfeff !important;
+    color: #0891b2 !important;
+}
+
+.status-pill-clean.status-тз-и-расчет-бюджета-рср,
+.status-pill-clean.status-расчет-бюджета-пис {
+    background: #ecfdf5 !important;
+    color: #059669 !important;
+}
+
+.status-pill-clean.status-общий-бюджет-проекта {
+    background: #f0fdfa !important;
+    color: #0d9488 !important;
+}
+
+.status-pill-clean.status-подписан-договор {
+    background: #cffafe !important;
+    color: #0891b2 !important;
+}
+
+.status-pill-clean.status-открыт {
+    background: #dcfce7 !important;
+    color: #16a34a !important;
+}
+
+.status-pill-clean.status-закрыт,
+.status-pill-clean.status-архив {
+    background: #f1f5f9 !important;
+    color: #64748b !important;
+}
+
+.status-pill-clean.status-слетел {
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+}

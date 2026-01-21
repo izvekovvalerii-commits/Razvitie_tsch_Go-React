@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as Icons from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { PROJECT_TYPES, PROJECT_STATUSES } from '../constants';
 import { getAvatarColor, getProjectStatusClass } from '../utils/uiHelpers';
@@ -29,6 +30,10 @@ const Projects: React.FC = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'table' | 'board'>('grid');
     const [showCreateModal, setShowCreateModal] = useState(false);
 
+    // Dropdown states
+    const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+
     const canCreate = hasPermission('project:create');
 
     const handleDeleteProject = async (id: number) => {
@@ -41,6 +46,34 @@ const Projects: React.FC = () => {
         }
     };
 
+    // Sorting
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: '', direction: 'asc' });
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedProjects = useMemo(() => {
+        let sortableItems = [...filteredProjects];
+        if (sortConfig.key) {
+            sortableItems.sort((a: any, b: any) => {
+                const getVal = (obj: any, path: string) => path.split('.').reduce((acc, part) => acc && acc[part], obj);
+                let valA = getVal(a, sortConfig.key) || '';
+                let valB = getVal(b, sortConfig.key) || '';
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [filteredProjects, sortConfig]);
+
     // Calculators
     const activeCount = projects.filter(p => !['Открыт', 'Закрыт', 'Архив', 'Слетел'].includes(p.status)).length;
     const auditCount = projects.filter(p => ['Подготовка к аудиту', 'Аудит объекта'].includes(p.status)).length;
@@ -50,95 +83,144 @@ const Projects: React.FC = () => {
     return (
         <div className="projects-page">
             {/* Unified Controls Block */}
-            <div className="unified-controls-row">
+            <div className="main-toolbar">
                 {/* Left: Quick Filters (Stats) */}
                 {projects.length > 0 && (
-                    <div className="quick-filters-inline">
-                        <button
-                            className={`quick-filter-btn ${filters.quickFilter === 'all' ? 'active' : ''}`}
+                    <div className="toolbar-section stats-section">
+                        <div
+                            className={`stat-badge badge-total ${filters.quickFilter === 'all' ? 'active' : ''}`}
                             onClick={() => setFilters.setQuickFilter('all')}
                         >
-                            <span className="filter-label">Всего</span>
-                            <span className="filter-count">{projects.length}</span>
-                        </button>
-                        <button
-                            className={`quick-filter-btn ${filters.quickFilter === 'active' ? 'active' : ''}`}
+                            <span className="stat-label">Всего</span>
+                            <span className="stat-value">{projects.length}</span>
+                        </div>
+                        <div
+                            className={`stat-badge badge-active ${filters.quickFilter === 'active' ? 'active' : ''}`}
                             onClick={() => setFilters.setQuickFilter('active')}
                         >
-                            <span className="filter-label">В работе</span>
-                            <span className="filter-count">{activeCount}</span>
-                        </button>
-                        <button
-                            className={`quick-filter-btn ${filters.quickFilter === 'audit' ? 'active' : ''}`}
+                            <span className="stat-label">В работе</span>
+                            <span className="stat-value">{activeCount}</span>
+                        </div>
+                        <div
+                            className={`stat-badge badge-audit ${filters.quickFilter === 'audit' ? 'active' : ''}`}
                             onClick={() => setFilters.setQuickFilter('audit')}
                         >
-                            <span className="filter-label">Аудит</span>
-                            <span className="filter-count">{auditCount}</span>
-                        </button>
+                            <span className="stat-label">Аудит</span>
+                            <span className="stat-value">{auditCount}</span>
+                        </div>
                     </div>
                 )}
 
                 {/* Right: Filters, Search, View Toggle */}
-                <div className="controls-right-group">
-                    {/* Dropdown Filters */}
-                    <select
-                        className="compact-select"
-                        value={filters.selectedType}
-                        onChange={(e) => setFilters.setSelectedType(e.target.value)}
-                    >
-                        <option value="">Все типы</option>
-                        {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <select
-                        className="compact-select"
-                        value={filters.selectedStatus}
-                        onChange={(e) => setFilters.setSelectedStatus(e.target.value)}
-                    >
-                        <option value="">Все статусы</option>
-                        {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                <div className="toolbar-section filters-section">
+                    {/* Type Filter */}
+                    <div className="filter-dropdown-wrapper">
+                        <button
+                            className={`filter-select ${typeDropdownOpen ? 'open' : ''}`}
+                            onClick={() => { setTypeDropdownOpen(!typeDropdownOpen); setStatusDropdownOpen(false); }}
+                        >
+                            <span className="select-text">
+                                {filters.selectedType || "Все типы"}
+                            </span>
+                            <Icons.ChevronDown size={16} className="chevron" />
+                        </button>
 
+                        {typeDropdownOpen && (
+                            <div className="dropdown-menu">
+                                <div
+                                    className={`dropdown-item ${!filters.selectedType ? 'selected' : ''}`}
+                                    onClick={() => { setFilters.setSelectedType(""); setTypeDropdownOpen(false); }}
+                                >
+                                    Все типы
+                                </div>
+                                {PROJECT_TYPES.map(t => (
+                                    <div
+                                        key={t}
+                                        className={`dropdown-item ${filters.selectedType === t ? 'selected' : ''}`}
+                                        onClick={() => { setFilters.setSelectedType(t); setTypeDropdownOpen(false); }}
+                                    >
+                                        {t}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Status Filter */}
+                    <div className="filter-dropdown-wrapper">
+                        <button
+                            className={`filter-select ${statusDropdownOpen ? 'open' : ''}`}
+                            onClick={() => { setStatusDropdownOpen(!statusDropdownOpen); setTypeDropdownOpen(false); }}
+                        >
+                            <span className="select-text">
+                                {filters.selectedStatus || "Все статусы"}
+                            </span>
+                            <Icons.ChevronDown size={16} className="chevron" />
+                        </button>
+
+                        {statusDropdownOpen && (
+                            <div className="dropdown-menu">
+                                <div
+                                    className={`dropdown-item ${!filters.selectedStatus ? 'selected' : ''}`}
+                                    onClick={() => { setFilters.setSelectedStatus(""); setStatusDropdownOpen(false); }}
+                                >
+                                    Все статусы
+                                </div>
+                                {PROJECT_STATUSES.map(s => (
+                                    <div
+                                        key={s}
+                                        className={`dropdown-item ${filters.selectedStatus === s ? 'selected' : ''}`}
+                                        onClick={() => { setFilters.setSelectedStatus(s); setStatusDropdownOpen(false); }}
+                                    >
+                                        {s}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="toolbar-section actions-section">
                     {/* Search */}
-                    <div className="search-wrapper-compact">
-                        <span className="search-icon">🔍</span>
+                    <div className="search-compact">
+                        <Icons.Search size={16} />
                         <input
                             type="text"
-                            placeholder="Поиск (ГИС, адрес)..."
+                            placeholder="Поиск..."
                             value={filters.searchQuery}
                             onChange={(e) => setFilters.setSearchQuery(e.target.value)}
-                            className="search-input-compact"
                         />
                     </div>
 
                     {/* View Toggle */}
-                    <div className="view-toggle-compact">
+                    <div className="view-toggles-group">
                         <button
-                            className={`toggle-btn-compact ${viewMode === 'table' ? 'active' : ''}`}
+                            className={`view-toggle ${viewMode === 'table' ? 'active' : ''}`}
                             onClick={() => setViewMode('table')}
                             title="Таблица"
                         >
-                            ☰
+                            <Icons.List size={18} />
                         </button>
                         <button
-                            className={`toggle-btn-compact ${viewMode === 'grid' ? 'active' : ''}`}
+                            className={`view-toggle ${viewMode === 'grid' ? 'active' : ''}`}
                             onClick={() => setViewMode('grid')}
                             title="Сетка"
                         >
-                            ⊞
+                            <Icons.LayoutGrid size={18} />
                         </button>
                         <button
-                            className={`toggle-btn-compact ${viewMode === 'board' ? 'active' : ''}`}
+                            className={`view-toggle ${viewMode === 'board' ? 'active' : ''}`}
                             onClick={() => setViewMode('board')}
                             title="Канбан-доска"
                         >
-                            📋
+                            <Icons.KanbanSquare size={18} />
                         </button>
                     </div>
 
                     {/* Create Button */}
                     {canCreate && (
-                        <button className="create-btn-compact" onClick={() => setShowCreateModal(true)}>
-                            <span className="btn-icon">+</span> Создать
+                        <button className="btn-primary-yellow" onClick={() => setShowCreateModal(true)}>
+                            <Icons.Plus size={18} /> Создать
                         </button>
                     )}
                 </div>
@@ -147,121 +229,149 @@ const Projects: React.FC = () => {
             {/* Content */}
             {filteredProjects.length > 0 ? (
                 <>
-                    {/* Table View */}
+                    {/* Grid View */}
+                    {viewMode === 'grid' && (
+                        <div className="projects-grid fade-in">
+                            {sortedProjects.map(project => (
+                                <div
+                                    key={project.id}
+                                    className={`project-card-enhanced ${getProjectStatusClass(project.status)}`}
+                                    onClick={() => navigate(`/projects/${project.id}`)}
+                                >
+                                    <div className="card-header">
+                                        <div className="card-title-section">
+                                            <h3 className="card-title-lg">{project.store?.name || `Магазин #${project.storeId}`}</h3>
+                                            <div className="card-meta-line">
+                                                <span className="card-gis-clean">#{project.gisCode}</span>
+                                                {project.projectType && (
+                                                    <>
+                                                        <span className="meta-separator-small">•</span>
+                                                        <span className="card-type-clean">{project.projectType}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className={`status-pill-clean ${getProjectStatusClass(project.status)}`}>
+                                            {project.status}
+                                        </div>
+                                    </div>
+
+                                    <div className="card-content-clean">
+                                        <div className="info-row-address">
+                                            <Icons.MapPin size={14} className="info-icon" />
+                                            <span className="info-text-primary">
+                                                {project.store?.city ? `${project.store.city}, ` : ''}
+                                                {(project.address || project.store?.address) || 'Адрес не указан'}
+                                            </span>
+                                        </div>
+
+                                        <div className="info-row-meta">
+                                            <div className="meta-item">
+                                                <Icons.Globe size={13} className="info-icon-muted" />
+                                                <span>{project.region || project.store?.region || 'Регион не указан'}</span>
+                                            </div>
+                                            <span className="meta-separator">•</span>
+                                            <div className="meta-item">
+                                                <Icons.Maximize2 size={13} className="info-icon-muted" />
+                                                <span>{project.totalArea || 0} м²</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="progress-section-clean">
+                                        <div className="progress-bar-container-clean">
+                                            <div
+                                                className="progress-bar-fill-clean"
+                                                style={{
+                                                    width: `${project.totalTasks ? Math.round((project.completedTasks || 0) / project.totalTasks * 100) : 0}%`
+                                                }}
+                                            ></div>
+                                        </div>
+                                        <div className="progress-text-clean">
+                                            <span>Прогресс: {project.totalTasks ? Math.round((project.completedTasks || 0) / project.totalTasks * 100) : 0}%</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="card-footer-clean">
+                                        <div className="responsible-preview">
+                                            <div className="avatar-xs" style={{ backgroundColor: getAvatarColor(project.mp), marginRight: 6 }}>{project.mp ? project.mp[0] : '?'}</div>
+                                            <span className="resp-name">{project.mp?.slice(0, 20)}</span>
+                                        </div>
+                                        <div className="card-action-icon">
+                                            <Icons.ArrowRight size={16} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {/* List View */}
                     {viewMode === 'table' && (
                         <div className="projects-table-container fade-in">
-                            <table className="compact-table">
+                            <table className="projects-table">
                                 <thead>
                                     <tr>
-                                        <th style={{ width: '8%' }}>ГИС</th>
-                                        <th style={{ width: '20%' }}>Магазин</th>
-                                        <th style={{ width: '12%' }}>Тип</th>
-                                        <th style={{ width: '15%' }}>Статус</th>
-                                        <th style={{ width: '25%' }}>Адрес</th>
-                                        <th style={{ width: '10%' }}>Площадь</th>
-                                        <th style={{ width: '10%' }}>Менеджер</th>
+                                        <th className="th-gis sortable" onClick={() => handleSort('gisCode')}>
+                                            ГИС {sortConfig.key === 'gisCode' && <span className="sort-arrow">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                                        </th>
+                                        <th className="th-store sortable" onClick={() => handleSort('store.name')}>
+                                            Магазин {sortConfig.key === 'store.name' && <span className="sort-arrow">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                                        </th>
+                                        <th className="th-type sortable" onClick={() => handleSort('projectType')}>
+                                            Тип {sortConfig.key === 'projectType' && <span className="sort-arrow">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                                        </th>
+                                        <th className="th-status sortable" onClick={() => handleSort('status')}>
+                                            Статус {sortConfig.key === 'status' && <span className="sort-arrow">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                                        </th>
+                                        <th className="th-address">Адрес</th>
+                                        <th className="th-area sortable" onClick={() => handleSort('totalArea')}>
+                                            Площадь {sortConfig.key === 'totalArea' && <span className="sort-arrow">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                                        </th>
+                                        <th className="th-manager sortable" onClick={() => handleSort('mp')}>
+                                            Менеджер {sortConfig.key === 'mp' && <span className="sort-arrow">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredProjects.map(project => (
-                                        <tr key={project.id} className="clickable-row" onClick={() => navigate(`/projects/${project.id}`)}>
-                                            <td><span className="code-badge">{project.gisCode}</span></td>
-                                            <td className="name-cell">
-                                                <div className="project-name-text">{project.store?.name || `Магазин #${project.storeId}`}</div>
-                                                <div className="sub-text" style={{ fontSize: '11px', color: '#666' }}>{project.store?.city}</div>
+                                    {sortedProjects.map(project => (
+                                        <tr key={project.id} onClick={() => navigate(`/projects/${project.id}`)} className="project-row">
+                                            <td className="cell-gis">
+                                                <span className="gis-badge">#{project.gisCode}</span>
                                             </td>
-                                            <td><span className="project-type-badge" style={{ fontSize: '10px' }}>{project.projectType}</span></td>
-                                            <td>
-                                                <span className={`status-badge-sm ${getProjectStatusClass(project.status)}`}>
+                                            <td className="cell-store">
+                                                <div className="store-info">
+                                                    <span className="store-name">{project.store?.name || `Магазин #${project.storeId}`}</span>
+                                                    <span className="store-city">{project.store?.city}</span>
+                                                </div>
+                                            </td>
+                                            <td className="cell-type">
+                                                <span className="type-text">{project.projectType}</span>
+                                            </td>
+                                            <td className="cell-status">
+                                                <div className={`status-pill-clean ${getProjectStatusClass(project.status)}`}>
                                                     {project.status}
-                                                </span>
+                                                </div>
                                             </td>
-                                            <td className="address-cell" title={project.address || project.store?.address}>
-                                                {project.address || project.store?.address}
+                                            <td className="cell-address">
+                                                <div className="address-text" title={project.address || project.store?.address}>
+                                                    {project.address || project.store?.address}
+                                                </div>
                                             </td>
-                                            <td>{project.totalArea || 0} <span className="unit">м²</span></td>
-                                            <td>
-                                                <div className="resp-cell">
-                                                    <div className="avatar-xs" style={{ backgroundColor: getAvatarColor(project.mp) }} title={project.mp}>{project.mp ? project.mp[0] : '?'}</div>
-                                                    <div className="resp-name-sm" style={{ fontSize: '12px' }}>{project.mp}</div>
+                                            <td className="cell-area">
+                                                {project.totalArea ? <span className="area-badge text-nowrap">{project.totalArea} м²</span> : '—'}
+                                            </td>
+                                            <td className="cell-manager">
+                                                <div className="manager-info">
+                                                    <div className="avatar-xs" style={{ backgroundColor: getAvatarColor(project.mp) }}>
+                                                        {project.mp ? project.mp[0] : '?'}
+                                                    </div>
+                                                    <span className="manager-name">{project.mp}</span>
                                                 </div>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
-                    )}
-
-                    {/* Grid View */}
-                    {viewMode === 'grid' && (
-                        <div className="projects-grid fade-in">
-                            {filteredProjects.map(project => (
-                                <div key={project.id} className="project-card-enhanced" onClick={() => navigate(`/projects/${project.id}`)}>
-                                    <div className="card-header">
-                                        <div className="card-title-section">
-                                            <h3 className="card-title">{project.store?.name || `Магазин #${project.storeId}`}</h3>
-                                            <p className="card-code">ГИС: {project.gisCode}</p>
-                                        </div>
-                                        <span className="project-type-badge">{project.projectType}</span>
-                                    </div>
-
-                                    <div className="card-status-section">
-                                        <div className={`status-indicator ${getProjectStatusClass(project.status)}`}>
-                                            <span className="status-dot"></span>
-                                            <span className="status-text">{project.status}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="card-info-grid">
-                                        <div className="info-col">
-                                            <div className="info-label">Адрес</div>
-                                            <div className="info-value" style={{ fontSize: '14px' }}>{(project.address || project.store?.address)?.slice(0, 22)}...</div>
-                                        </div>
-                                        <div className="info-col">
-                                            <div className="info-label">Город</div>
-                                            <div className="info-value" style={{ fontSize: '14px' }}>{project.store?.city || project.region || project.store?.region}</div>
-                                        </div>
-                                        <div className="info-col">
-                                            <div className="info-label">Площадь</div>
-                                            <div className="info-value" style={{ fontSize: '14px' }}>{project.totalArea} м²</div>
-                                        </div>
-                                        <div className="info-col">
-                                            <div className="info-label">Регион</div>
-                                            <div className="info-value" style={{ fontSize: '14px' }}>{project.region || project.store?.region}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Progress Bar with Real Data */}
-                                    <div className="progress-section" style={{ marginBottom: 8 }}>
-                                        <div className="progress-bar-container">
-                                            <div
-                                                className="progress-bar-fill"
-                                                style={{
-                                                    width: `${project.totalTasks ? Math.round((project.completedTasks || 0) / project.totalTasks * 100) : 0}%`
-                                                }}
-                                            ></div>
-                                        </div>
-                                        <div className="progress-text">
-                                            <span>Прогресс</span>
-                                            <span>
-                                                {project.totalTasks ? Math.round((project.completedTasks || 0) / project.totalTasks * 100) : 0}%
-                                                <span style={{ color: '#94a3b8', marginLeft: 4 }}>
-                                                    ({project.completedTasks || 0} / {project.totalTasks || 0})
-                                                </span>
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="card-footer">
-                                        <div className="responsible-preview">
-                                            <div className="avatar-xs" style={{ backgroundColor: getAvatarColor(project.mp), marginRight: 6 }}>{project.mp ? project.mp[0] : '?'}</div>
-                                            <span className="resp-name">{project.mp?.slice(0, 20)}</span>
-                                        </div>
-                                        <div className="card-action-icon">→</div>
-                                    </div>
-                                </div>
-                            ))}
                         </div>
                     )}
 

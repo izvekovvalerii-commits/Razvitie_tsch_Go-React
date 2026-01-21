@@ -53,7 +53,7 @@ const Welcome: React.FC = () => {
             <div className="container">
                 <div className="hero-content">
                     <div className="hero-text">
-                        <h1 className="hero-title">Портал Развитие</h1>
+                        <h1 className="hero-title">Портал Развития</h1>
                         <p className="hero-subtitle">Работа с проектами развития ТС Чижик</p>
                         <button className="start-button" onClick={onStartClick}>Старт</button>
                     </div>

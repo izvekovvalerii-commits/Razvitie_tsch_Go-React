@@ -13,150 +13,216 @@
     box-sizing: border-box;
 }
 
-/* Unified Controls Row - Matching Tasks Page */
+/* Unified Controls Row - Matches Design Attachment */
+/* Unified Controls Row - Matches Design Attachment */
 .unified-controls-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    margin-top: 16px;
+    margin-top: 0;
     margin-bottom: 24px;
     background: white;
-    padding: 10px 14px;
+    padding: 12px 20px;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    height: 72px;
+    /* Increased height for larger elements */
+    box-sizing: border-box;
 }
 
-/* Left: Quick Stats Inline */
-.quick-stats-inline {
+/* Left: Stats Group - Cards Style */
+.stats-group {
     display: flex;
-    gap: 8px;
-    flex-shrink: 0;
+    align-items: center;
+    gap: 12px;
+    height: 100%;
 }
 
-.stat-card-mini {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 8px 12px;
+.stat-item {
     display: flex;
     flex-direction: column;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 90px;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0 16px;
+    height: 48px;
+    /* Larger height */
+    min-width: 80px;
+    transition: all 0.2s;
+    background: white;
+    cursor: pointer;
 }
 
-.stat-card-mini:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.stat-item:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
 }
 
-.stat-label-mini {
-    font-size: 9px;
-    color: #64748b;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin-bottom: 4px;
+.stat-item.active {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    border-width: 1px;
 }
 
-.stat-value-mini {
-    font-size: 20px;
+/* Simulate the blue active border from screenshot if needed, but simple hover is good too.
+   Wait, screenshot has "Total" selected with blue border.
+   Let's add a speciifc class for 'Total' or just rely on 'active' */
+
+.stat-label {
+    font-size: 11px;
+    color: #94a3b8;
     font-weight: 700;
-    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
     line-height: 1;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    font-feature-settings: "tnum";
+    line-height: 1;
+}
+
+.stat-value.value-blue {
+    color: #0f172a;
+    /* Keep dark for consistency with card style */
+}
+
+/* Remove divider styles as we are using cards now */
+.stat-divider {
+    display: none;
 }
 
 /* Right: Controls Group */
 .controls-right-group {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex: 1;
-    justify-content: flex-end;
+    gap: 16px;
+    height: 100%;
 }
 
-/* Compact Select Dropdowns */
-.compact-select {
-    height: 36px;
-    padding: 0 12px;
+/* Clean Select - Larger */
+.select-wrapper {
+    position: relative;
+    width: 220px;
+}
+
+.clean-select {
+    width: 100%;
+    height: 48px;
+    /* Larger height */
+    padding: 0 40px 0 16px;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    font-size: 12px;
+    font-size: 14px;
     color: #475569;
     background: white;
     cursor: pointer;
     transition: all 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    font-weight: 500;
 }
 
-.compact-select:hover {
-    background: #f9fafb;
+.clean-select:hover {
     border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #1e293b;
 }
 
-.compact-select:focus {
+.clean-select:focus {
     outline: none;
     border-color: #3b82f6;
-    background: white;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
 
-/* Search Wrapper */
-.search-wrapper-compact {
-    position: relative;
-    max-width: 280px;
-    min-width: 200px;
-}
-
-.search-wrapper-compact .search-icon {
+.select-arrow {
     position: absolute;
-    left: 12px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    font-size: 14px;
+    display: flex;
+    align-items: center;
 }
 
-.search-input-compact {
+/* Search Wrapper Clean - Larger */
+.search-wrapper-clean {
+    position: relative;
+    width: 320px;
+}
+
+.search-wrapper-clean .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-clean {
     width: 100%;
-    height: 36px;
-    padding: 0 12px 0 38px;
+    height: 48px;
+    /* Larger height */
+    padding: 0 16px 0 44px;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    font-size: 13px;
+    font-size: 14px;
     transition: all 0.2s;
-    background: #f9fafb;
+    background: #f8fafc;
     color: #1f2937;
     box-sizing: border-box;
 }
 
-.search-input-compact:focus {
+.search-input-clean:focus {
     outline: none;
     border-color: #3b82f6;
     background: white;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
 
-/* Create Button (Specific to Requests) */
-.btn-create-compact {
-    height: 36px;
-    padding: 0 16px;
-    background: #0f172a;
-    color: white;
+.search-input-clean::placeholder {
+    color: #94a3b8;
+}
+
+/* Create Button Clean - Yellow Style */
+.btn-create-clean {
+    height: 48px;
+    padding: 0 24px;
+    background: #FCD34D;
+    /* Yellow */
+    color: #0f172a;
+    /* Black text */
     border: none;
     border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 6px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    gap: 8px;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.2);
 }
 
-.btn-create-compact:hover {
-    background: #1e293b;
+.btn-create-clean:hover {
+    background: #fbbf24;
     transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(251, 191, 36, 0.3);
+}
+
+.btn-create-clean svg {
+    color: #0f172a;
 }
 
 /* Table */

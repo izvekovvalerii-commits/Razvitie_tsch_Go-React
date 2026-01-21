@@ -71,17 +71,38 @@ export const getProjectStatusClass = (status: string): string => {
  * Получает цвет для детального статуса проекта
  */
 export const getDetailedStatusColor = (status: string): string => {
-    const s = status.toLowerCase();
+    const s = status.toLowerCase().trim();
 
-    if (s.includes('открыт') || s.includes('active')) return '#4CAF50';
-    if (s.includes('смр') || s.includes('ремонт') || s.includes('renovation')) return '#F44336';
-    if (s.includes('аудит')) return '#FF9800';
-    if (s.includes('бюджет')) return '#FFC107';
-    if (s.includes('утвержден')) return '#FFB74D';
-    if (s.includes('договор')) return '#FB8C00';
-    if (s.includes('слетел')) return '#9E9E9E';
+    // Specific mapping for known statuses to keep brand consistency
+    const map: { [key: string]: string } = {
+        'создан': '#94A3B8', // Slate 400
+        'подготовка к аудиту': '#FCD34D', // Amber 300
+        'аудит объекта': '#F59E0B', // Amber 500
+        'контур планировки': '#EAB308', // Yellow 500
+        'согласование планировки': '#CA8A04', // Yellow 600
+        'бюджет сформирован': '#84CC16', // Lime 500
+        'утвержден ик': '#10B981', // Emerald 500
+        'подписан договор': '#06B6D4', // Cyan 500
+        'смр': '#EF4444', // Red 500
+        'ремонт': '#DC2626', // Red 600
+        'рср': '#991B1B', // Red 800
+        'active': '#0EA5E9', // Sky 500
+        'открыт': '#3B82F6', // Blue 500
+        'закрыт': '#1E293B', // Slate 800
+        'слетел': '#64748B', // Slate 500
+    };
 
-    return '#E0E0E0';
+    if (map[s]) return map[s];
+
+    // Fallback: Generate consistent unique color from string hash
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+        hash = s.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // Use HSL to ensure colors are visible and nice (not too dark/light)
+    const hue = Math.abs(hash % 360);
+    return `hsl(${hue}, 70%, 45%)`;
 };
 
 /**

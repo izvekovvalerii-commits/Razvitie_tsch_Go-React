@@ -76,7 +76,6 @@ func RequirePermission(perm string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, exists := c.Get("user")
 		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
 		}

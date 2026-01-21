@@ -238,63 +238,98 @@ const Requests: React.FC = () => {
 
     return (
         <div className="requests-page">
-            {/* Unified Controls Row - Matches Tasks Page Style */}
+            {/* Unified Controls Row - Matches Design Attachment */}
             <div className="unified-controls-row">
-                {/* Left: Quick Stats */}
-                <div className="quick-stats-inline">
-                    <div className="stat-card-mini">
-                        <span className="stat-label-mini">Всего</span>
-                        <span className="stat-value-mini">{totalRequests}</span>
+                {/* Left: Stats Group */}
+                <div className="stats-group">
+                    <div
+                        className={`stat-item ${statusFilter === '' ? 'active' : ''}`}
+                        onClick={() => setStatusFilter('')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <span className="stat-label">Всего</span>
+                        <span className="stat-value">{totalRequests}</span>
                     </div>
-                    <div className="stat-card-mini">
-                        <span className="stat-label-mini">Новые</span>
-                        <span className="stat-value-mini" style={{ color: '#0369a1' }}>{newRequestsCount}</span>
+                    <div
+                        className={`stat-item ${statusFilter === 'Новая' ? 'active' : ''}`}
+                        onClick={() => setStatusFilter('Новая')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <span className="stat-label">Новые</span>
+                        <span className="stat-value">{newRequestsCount}</span>
                     </div>
-                    <div className="stat-card-mini">
-                        <span className="stat-label-mini">В работе</span>
-                        <span className="stat-value-mini" style={{ color: '#a16207' }}>{inProgressCount}</span>
+                    <div
+                        className={`stat-item ${statusFilter === 'В работе' ? 'active' : ''}`}
+                        onClick={() => setStatusFilter('В работе')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <span className="stat-label">В работе</span>
+                        <span className="stat-value">{inProgressCount}</span>
                     </div>
                 </div>
 
-                {/* Right: Controls & Filters */}
+                {/* Right: Controls Group */}
                 <div className="controls-right-group">
                     {/* Tab Filter (All / My / Assigned) */}
-                    <select
-                        className="compact-select"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value as any)}
-                    >
-                        <option value="all">Все заявки</option>
-                        <option value="created">Мои заявки</option>
-                        <option value="assigned">Назначенные мне</option>
-                    </select>
+                    <div className="select-wrapper">
+                        <select
+                            className="clean-select"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value as any)}
+                        >
+                            <option value="all">Все заявки</option>
+                            <option value="created">Мои заявки</option>
+                            <option value="assigned">Назначенные мне</option>
+                        </select>
+                        <div className="select-arrow">
+                            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1L5 5L9 1" stroke="#64748B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </div>
+                    </div>
 
-                    <select
-                        className="compact-select"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                        <option value="">Все статусы</option>
-                        <option value="Новая">Новая</option>
-                        <option value="В работе">В работе</option>
-                        <option value="Отвечена">Отвечена</option>
-                        <option value="Закрыта">Закрыта</option>
-                        <option value="Отклонена">Отклонена</option>
-                    </select>
+                    <div className="select-wrapper">
+                        <select
+                            className="clean-select"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                            <option value="">Все статусы</option>
+                            <option value="Новая">Новая</option>
+                            <option value="В работе">В работе</option>
+                            <option value="Отвечена">Отвечена</option>
+                            <option value="Закрыта">Закрыта</option>
+                            <option value="Отклонена">Отклонена</option>
+                        </select>
+                        <div className="select-arrow">
+                            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1L5 5L9 1" stroke="#64748B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </div>
+                    </div>
 
-                    <div className="search-wrapper-compact">
-                        <span className="search-icon">🔍</span>
+                    <div className="search-wrapper-clean">
+                        <span className="search-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                        </span>
                         <input
                             type="text"
-                            className="search-input-compact"
+                            className="search-input-clean"
                             placeholder="Поиск по названию или ID"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
 
-                    <button className="btn-create-compact" onClick={() => setShowCreateModal(true)}>
-                        <span>+</span> Создать
+                    <button className="btn-create-clean" onClick={() => setShowCreateModal(true)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Создать
                     </button>
                 </div>
             </div>

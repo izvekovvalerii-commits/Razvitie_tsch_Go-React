@@ -15,6 +15,7 @@ import {
     getRoleColor,
     getTaskStatusClass
 } from '../utils/uiHelpers';
+import { DonutChart } from '../components/DonutChart';
 import './Hero.css';
 
 interface Stat {
@@ -33,7 +34,7 @@ const Hero: React.FC = () => {
     const [myTasks, setMyTasks] = useState<ProjectTask[]>([]);
     const [newTasks, setNewTasks] = useState<ProjectTask[]>([]);
     const [activeTasks, setActiveTasks] = useState<ProjectTask[]>([]);
-    const [projectStats, setProjectStats] = useState({ active: 0, planning: 0, renovation: 0, total: 0 });
+    const [projectStats, setProjectStats] = useState({ active: 0, planning: 0, renovation: 0, others: 0, total: 0 });
     const [detailedStats, setDetailedStats] = useState<Stat[]>([]);
     const [recentActivities, setRecentActivities] = useState<UserActivity[]>([]);
     const [overdueCount, setOverdueCount] = useState(0);
@@ -119,15 +120,22 @@ const Hero: React.FC = () => {
             myProjects = allProjects.filter(p => myProjectIds.has(p.id));
         }
 
+        // Expanded lists to catch more statuses seen in screenshot
         const active = myProjects.filter(p => ['Active', 'Открыт'].includes(p.status)).length;
-        const planning = myProjects.filter(p => ['Planning', 'Создан', 'Аудит', 'Бюджет сформирован', 'Утвержден ИК', 'Подписан договор'].includes(p.status)).length;
+        const planning = myProjects.filter(p => [
+            'Planning', 'Создан', 'Аудит', 'Бюджет сформирован', 'Утвержден ИК', 'Подписан договор',
+            'Подготовка к аудиту', 'Контур планировки', 'Аудит объекта', 'Согласование планировки'
+        ].includes(p.status)).length;
         const renovation = myProjects.filter(p => ['Renovation', 'СМР', 'Ремонт', 'Рср'].includes(p.status)).length;
+
+        const others = myProjects.length - active - planning - renovation;
 
         setProjectStats({
             total: myProjects.length,
             active,
             planning,
-            renovation
+            renovation,
+            others
         });
 
         const statusCounts: { [key: string]: number } = {};
@@ -141,7 +149,7 @@ const Hero: React.FC = () => {
             count: statusCounts[status],
             percent: Math.round((statusCounts[status] / myProjects.length) * 100),
             color: getDetailedStatusColor(status)
-        })).sort((a, b) => b.count - a.count).slice(0, 5);
+        })).sort((a, b) => b.count - a.count);
 
         setDetailedStats(stats);
         return myProjects;
@@ -204,9 +212,12 @@ const Hero: React.FC = () => {
                     <div className="feed-date-header">{label}</div>
                     {activities.map(activity => (
                         <div key={activity.id} className="feed-item">
-                            <div className="feed-line"></div>
-                            <div className="feed-avatar" style={{ background: getRoleColor(activity.user?.role || 'МП') }}>
-                                {activity.user?.name ? activity.user.name.charAt(0) : '?'}
+                            <div className="feed-avatar-wrapper">
+                                <div className="feed-line"></div>
+                                <div className="feed-avatar" style={{ background: getRoleColor(activity.user?.role || 'МП') }}>
+                                    {activity.user?.name ? activity.user.name.charAt(0) : '?'}
+                                    <div className="feed-avatar-ring" style={{ borderColor: getRoleColor(activity.user?.role || 'МП') }} />
+                                </div>
                             </div>
                             <div className="feed-content">
                                 <div className="feed-header-row">
@@ -236,19 +247,51 @@ const Hero: React.FC = () => {
     return (
         <div className="dashboard-page">
             {/* Welcome Banner */}
+            {/* Welcome Banner */}
             <div className="welcome-banner">
                 <div className="welcome-content">
                     <h1>Добрый день, {(currentUser?.name || '').split(' ')[0]}!</h1>
+
+                    {/* Focus Block */}
+                    {overdueCount > 0 ? (
+                        <div className="focus-alert overdue" onClick={navigateToOverdueTasks}>
+                            <div className="focus-icon">🔥</div>
+                            <div className="focus-text">
+                                <strong>Фокус внимания:</strong> {overdueCount} просроченных задач. Рекомендуем начать с них.
+                            </div>
+                            <div className="focus-arrow">→</div>
+                        </div>
+                    ) : expiringSoonCount > 0 ? (
+                        <div className="focus-alert warning" onClick={navigateToExpiringSoonTasks}>
+                            <div className="focus-icon">⏰</div>
+                            <div className="focus-text">
+                                <strong>Обратите внимание:</strong> {expiringSoonCount} задач истекают скоро.
+                            </div>
+                            <div className="focus-arrow">→</div>
+                        </div>
+                    ) : newTasks.length > 0 ? (
+                        <div className="focus-alert info" onClick={() => navigateToTasksWithFilter('Назначена')}>
+                            <div className="focus-icon">🔔</div>
+                            <div className="focus-text">
+                                <strong>Новые поступления:</strong> {newTasks.length} новых задач ждут вашего участия.
+                            </div>
+                            <div className="focus-arrow">→</div>
+                        </div>
+                    ) : (
+                        <div className="focus-alert success">
+                            <div className="focus-icon">✨</div>
+                            <div className="focus-text">
+                                <strong>Отличная работа!</strong> Все критичные задачи решены.
+                            </div>
+                        </div>
+                    )}
+
                     <div className="welcome-meta-row">
                         <div className="live-clock">
                             {currentTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                         <div className="live-date">
                             {currentTime.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </div>
-                        <div className="live-divider">•</div>
-                        <div className="tasks-count">
-                            {activeTasks.length > 0 ? `Активных задач: ${activeTasks.length}` : 'Все задачи выполнены'}
                         </div>
                     </div>
                 </div>
@@ -257,7 +300,6 @@ const Hero: React.FC = () => {
                         <span className="icon">📋</span> Мои задачи
                     </button>
                     <Link to="/projects/new" className="action-btn primary">
-                        {/* Assuming /projects/new exists or opens modal, otherwise /projects */}
                         <span className="icon">🏗️</span> Новый проект
                     </Link>
                 </div>
@@ -322,29 +364,24 @@ const Hero: React.FC = () => {
                             <h3>Статус проектов</h3>
                             <Link to="/projects" className="link-simple">Все проекты →</Link>
                         </div>
+
+
                         <div className="stats-content">
                             <div className="chart-container">
-                                {projectStats.total > 0 ? (
-                                    <div className="pie-chart"
-                                        style={{
-                                            background: `conic-gradient(
-                                                #4caf50 0% ${(projectStats.active / projectStats.total) * 100}%, 
-                                                #ff9800 ${(projectStats.active / projectStats.total) * 100}% ${((projectStats.active + projectStats.planning) / projectStats.total) * 100}%, 
-                                                #f44336 ${((projectStats.active + projectStats.planning) / projectStats.total) * 100}% 100%
-                                            )`
-                                        }}>
-                                        <div className="pie-hole">
-                                            <div className="pie-total">{projectStats.total}</div>
-                                            <div className="pie-label">Проектов</div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="chart-empty">Нет данных</div>
-                                )}
+                                <DonutChart
+                                    total={projectStats.total}
+                                    data={detailedStats.map(s => ({
+                                        name: s.name,
+                                        value: s.count,
+                                        color: s.color
+                                    }))}
+                                    size={160}
+                                    strokeWidth={16}
+                                />
                             </div>
 
                             <div className="detailed-stats-list">
-                                {detailedStats.map(stat => (
+                                {detailedStats.slice(0, 5).map(stat => (
                                     <div className="stat-row" key={stat.name}>
                                         <div className="stat-row-header">
                                             <div className="stat-name-group">

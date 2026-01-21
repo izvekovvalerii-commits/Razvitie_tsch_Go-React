@@ -142,107 +142,120 @@ const Stores: React.FC = () => {
     return (
         <div className="stores-page">
 
-            {/* Top Controls - Stats + Search + Filters in 1 Row */}
-            <div className="top-controls-row">
-                {/* 1. Stats Overview (Left Side - Compact) */}
-                <div className="stats-inline">
+            {/* Main Toolbar Panel */}
+            <div className="main-toolbar">
+                {/* 1. Stats Section */}
+                <div className="toolbar-section stats-section">
                     <div
-                        className={`stat-card-compact total ${selectedStatuses.length === 0 ? 'active-filter' : ''}`}
+                        className={`stat-badge badge-total ${selectedStatuses.length === 0 ? 'active' : ''}`}
                         onClick={() => handleStatClick('total')}
                     >
-                        <div className="stat-label">Всего магазинов</div>
-                        <div className="stat-value">{stats.total}</div>
+                        <span className="stat-label">Всего</span>
+                        <span className="stat-value">{stats.total}</span>
                     </div>
                     <div
-                        className={`stat-card-compact active ${selectedStatuses.includes('Активный') ? 'active-filter' : ''}`}
+                        className={`stat-badge badge-active ${selectedStatuses.includes('Активный') ? 'active' : ''}`}
                         onClick={() => handleStatClick('Active')}
                     >
-                        <div className="stat-label">Активные</div>
-                        <div className="stat-value text-green">{stats.active}</div>
+                        <span className="stat-label">Активные</span>
+                        <span className="stat-value">{stats.active}</span>
                     </div>
                     <div
-                        className={`stat-card-compact planning ${selectedStatuses.includes('Планируется') ? 'active-filter' : ''}`}
+                        className={`stat-badge badge-planning ${selectedStatuses.includes('Планируется') ? 'active' : ''}`}
                         onClick={() => handleStatClick('Planning')}
                     >
-                        <div className="stat-label">В плане</div>
-                        <div className="stat-value text-orange">{stats.planning}</div>
+                        <span className="stat-label">В плане</span>
+                        <span className="stat-value">{stats.planning}</span>
                     </div>
                     <div
-                        className={`stat-card-compact renovation ${selectedStatuses.includes('Ремонт') ? 'active-filter' : ''}`}
+                        className={`stat-badge badge-renovation ${selectedStatuses.includes('Ремонт') ? 'active' : ''}`}
                         onClick={() => handleStatClick('Renovation')}
                     >
-                        <div className="stat-label">Ремонт</div>
-                        <div className="stat-value text-red">{stats.renovation}</div>
+                        <span className="stat-label">Ремонт</span>
+                        <span className="stat-value">{stats.renovation}</span>
                     </div>
                 </div>
 
-                {/* Right Side: Search + Filters + View Toggle */}
-                <div className="controls-right">
-                    {/* Search */}
-                    <div className="search-wrapper">
-                        <div className="search-icon"><Icons.Search /></div>
+                {/* 2. Filters Section */}
+                <div className="toolbar-section filters-section">
+                    <div className="filter-dropdown-wrapper">
+                        <button
+                            className={`filter-select ${regionDropdownOpen ? 'open' : ''}`}
+                            onClick={() => { setRegionDropdownOpen(!regionDropdownOpen); setCityDropdownOpen(false); }}
+                        >
+                            <span className="select-text">
+                                {selectedRegions.length > 0 ? `Регионы: ${selectedRegions.length}` : 'Все регионы'}
+                            </span>
+                            <svg className="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                        {regionDropdownOpen && (
+                            <div className="dropdown-menu">
+                                {regionOptions.map(opt => (
+                                    <label key={opt} className="dropdown-item">
+                                        <input type="checkbox" checked={selectedRegions.includes(opt)} onChange={() => toggleSelection(selectedRegions, opt, setSelectedRegions)} />
+                                        <span>{opt}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="filter-dropdown-wrapper">
+                        <button
+                            className={`filter-select ${cityDropdownOpen ? 'open' : ''}`}
+                            onClick={() => { setCityDropdownOpen(!cityDropdownOpen); setRegionDropdownOpen(false); }}
+                        >
+                            <span className="select-text">
+                                {selectedCities.length > 0 ? `Города: ${selectedCities.length}` : 'Все города'}
+                            </span>
+                            <svg className="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                        {cityDropdownOpen && (
+                            <div className="dropdown-menu">
+                                {cityOptions.map(opt => (
+                                    <label key={opt} className="dropdown-item">
+                                        <input type="checkbox" checked={selectedCities.includes(opt)} onChange={() => toggleSelection(selectedCities, opt, setSelectedCities)} />
+                                        <span>{opt}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 3. Actions Section */}
+                <div className="toolbar-section actions-section">
+                    <div className="search-compact">
+                        <Icons.Search />
                         <input
                             type="text"
-                            placeholder="Поиск по названию, коду, адресу..."
+                            placeholder="Поиск..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="search-input"
                         />
                     </div>
 
-                    {/* Filters + View Toggle */}
-                    <div className="toolbar-actions">
-                        <div className="filters-group">
-                            {/* Region Filter */}
-                            <div className="filter-dropdown">
-                                <button className={`filter-btn ${regionDropdownOpen ? 'active' : ''}`} onClick={() => { setRegionDropdownOpen(!regionDropdownOpen); setCityDropdownOpen(false); }}>
-                                    Регион {selectedRegions.length > 0 && `(${selectedRegions.length})`}
-                                </button>
-                                {regionDropdownOpen && (
-                                    <div className="dropdown-menu">
-                                        {regionOptions.map(opt => (
-                                            <label key={opt} className="dropdown-item">
-                                                <input type="checkbox" checked={selectedRegions.includes(opt)} onChange={() => toggleSelection(selectedRegions, opt, setSelectedRegions)} />
-                                                <span>{opt}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* City Filter */}
-                            <div className="filter-dropdown">
-                                <button className={`filter-btn ${cityDropdownOpen ? 'active' : ''}`} onClick={() => { setCityDropdownOpen(!cityDropdownOpen); setRegionDropdownOpen(false); }}>
-                                    Город {selectedCities.length > 0 && `(${selectedCities.length})`}
-                                </button>
-                                {cityDropdownOpen && (
-                                    <div className="dropdown-menu">
-                                        {cityOptions.map(opt => (
-                                            <label key={opt} className="dropdown-item">
-                                                <input type="checkbox" checked={selectedCities.includes(opt)} onChange={() => toggleSelection(selectedCities, opt, setSelectedCities)} />
-                                                <span>{opt}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {(selectedStatuses.length > 0 || selectedRegions.length > 0 || selectedCities.length > 0) && (
-                                <button className="clear-all-btn" onClick={() => { setSelectedStatuses([]); setSelectedRegions([]); setSelectedCities([]); }}>
-                                    Сбросить
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="view-toggles">
-                            <button className={`toggle-view-btn ${viewMode === 'table' ? 'active' : ''}`} onClick={() => setViewMode('table')}>
-                                <Icons.List />
-                            </button>
-                            <button className={`toggle-view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
-                                <Icons.Grid />
-                            </button>
-                        </div>
+                    <div className="view-toggles-group">
+                        <button
+                            className={`view-toggle ${viewMode === 'table' ? 'active' : ''}`}
+                            onClick={() => setViewMode('table')}
+                            title="Таблица"
+                        >
+                            <Icons.List />
+                        </button>
+                        <button
+                            className={`view-toggle ${viewMode === 'grid' ? 'active' : ''}`}
+                            onClick={() => setViewMode('grid')}
+                            title="Сетка"
+                        >
+                            <Icons.Grid />
+                        </button>
                     </div>
+
+                    <button className="btn-primary-yellow">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        Создать
+                    </button>
                 </div>
             </div>
 
